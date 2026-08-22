@@ -1,0 +1,30 @@
+/// Một tài liệu bên trong một buổi làm việc — một file mã nguồn, một bản vẽ.
+///
+/// ─── Vì sao vẫn lưu nội dung, dù có thể dựng lại từ chuỗi sự kiện ────────────
+///
+/// Vì hai câu hỏi khác nhau. "Bài nộp trông ra sao" phải trả lời được ngay, không thể bắt hệ
+/// thống phát lại vài nghìn sự kiện mỗi lần mở. Còn "họ đã đi tới đó bằng cách nào" mới cần
+/// phát lại.
+///
+/// Nội dung ở đây là trạng thái MỚI NHẤT, ghi đè mỗi lần lưu.
+model Document {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Thuộc buổi làm việc nào.
+  workSessionId String @db.Uuid
+
+  /// Đường dẫn hoặc tên tài liệu, ví dụ `sketch/sketch.pde`.
+  path String
+
+  /// Nội dung hiện tại. Với bản vẽ thì đây là dạng tuần tự hoá của nó.
+  content String
+
+  updatedAt DateTime @updatedAt
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  workSession WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
+
+  /// Trong một buổi, mỗi đường dẫn chỉ có một tài liệu.
+  @@unique([workSessionId, path])
+}

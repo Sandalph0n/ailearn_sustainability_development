@@ -1,0 +1,29 @@
+/// Một sự kiện trên lịch cá nhân của người dùng.
+///
+/// ─── Vì sao hạn nộp bài tập KHÔNG được chép vào đây ──────────────────────────
+///
+/// Hạn nộp đã nằm ở `Assessment.dueAt`. Giao diện lịch gộp hai nguồn lại khi hiển thị. Chép sang
+/// đây thì giảng viên dời hạn một cái là bản sao trở thành sai, và không ai biết bản nào đúng.
+///
+/// Bảng này chỉ chứa thứ do CHÍNH người dùng thêm vào: buổi tự học, lịch làm thêm, nhắc nhở.
+model CalendarEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Lịch của ai.
+  userId String @db.Uuid
+
+  /// Tiêu đề hiển thị trên lịch.
+  title String
+
+  startAt DateTime
+
+  /// Thời điểm kết thúc. Cần cả hai mốc để vẽ được sự kiện kéo dài, và để xuất sang lịch khác.
+  endAt DateTime
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Lấy sự kiện của một người trong một khoảng thời gian — truy vấn duy nhất màn hình lịch dùng.
+  @@index([userId, startAt])
+}

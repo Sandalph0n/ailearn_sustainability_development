@@ -1,0 +1,43 @@
+/// Một BUỔI ngồi làm việc bằng một công cụ.
+///
+/// Đây là đơn vị mà toàn bộ hệ thống ghi nhận hoạt động treo vào: sự kiện, tài liệu, cờ bất
+/// thường đều thuộc về một buổi.
+///
+/// ─── `attemptId` cho phép rỗng, và đó là chủ ý ───────────────────────────────
+///
+/// Rỗng nghĩa là PHIÊN TỰ DO — sinh viên mở công cụ ra dùng mà không làm bài tập nào. Đây là thứ
+/// biến hệ thống thành công cụ học tập chứ không phải công cụ thi cử.
+///
+/// Có giá trị nghĩa là buổi này thuộc một lượt làm bài, và sẽ được chấm.
+model WorkSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Ai đang làm.
+  userId String @db.Uuid
+
+  /// Làm bằng công cụ nào.
+  toolId String
+
+  /// Thuộc lượt làm bài nào. `null` = phiên tự do, không gắn bài tập.
+  attemptId String? @db.Uuid
+
+  startedAt DateTime @default(now())
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool    Tool     @relation(fields: [toolId], references: [id])
+  attempt Attempt? @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  /// Các tài liệu mở trong buổi này.
+  documents Document[]
+
+  /// Các lô sự kiện đã ghi nhận.
+  eventBatches EventBatch[]
+
+  /// Các mốc bất thường phát hiện được.
+  flags Flag[]
+
+  @@index([userId])
+  @@index([attemptId])
+}

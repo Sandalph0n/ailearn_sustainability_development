@@ -1,0 +1,47 @@
+/// Một LÔ sự kiện do công cụ gửi lên.
+///
+/// Đây là nơi ở của toàn bộ dữ liệu ghi nhận quá trình làm bài — thứ cho phép phát lại từ đầu.
+///
+/// ─── Vì sao một dòng chứa NHIỀU sự kiện, không phải mỗi sự kiện một dòng ─────
+///
+/// Vì số lượng. Một bài tập cỡ thật sinh khoảng bảy nghìn sự kiện; mỗi sự kiện một dòng là bảy
+/// nghìn lần ghi database cho một buổi làm bài. Mà lúc phát lại ta luôn đọc TUẦN TỰ từ đầu, nên
+/// gom lô không mất gì cả.
+///
+/// ─── Vì sao `events` là JSON, không phải cột thật ────────────────────────────
+///
+/// Vì mỗi công cụ có loại thao tác riêng: trình soạn mã ghi "chèn chữ ở vị trí N", trình vẽ ghi
+/// "kéo nút A sang chỗ B". Không có bộ cột nào vừa cho cả hai. Phần chung đã nằm ở lớp ngoài
+/// (thứ tự, thời điểm, công cụ nào), phần riêng để trong JSON.
+model EventBatch {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Thuộc buổi làm việc nào.
+  workSessionId String @db.Uuid
+
+  /// Số thứ tự sự kiện ĐẦU của lô này trong buổi.
+  seqStart Int
+
+  /// Số thứ tự sự kiện CUỐI. Nhờ cặp số này mà phát hiện được lô bị thiếu: nếu `seqStart` của lô
+  /// sau không nối tiếp `seqEnd` của lô trước thì có gì đó đã mất trên đường.
+  seqEnd Int
+
+  /// Mảng sự kiện thô, mỗi phần tử là một thao tác.
+  events Json
+
+  /// Thời điểm theo đồng hồ MÁY NGƯỜI DÙNG, do công cụ gửi kèm.
+  clientAt DateTime
+
+  /// Thời điểm máy chủ NHẬN được.
+  ///
+  /// Hai mốc này để cạnh nhau là có chủ ý: máy chủ là đồng hồ độc lập. Lệch lớn giữa chúng là
+  /// dấu hiệu đồng hồ máy người dùng đã bị chỉnh.
+  receivedAt DateTime @default(now())
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  workSession WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
+
+  /// Phát lại luôn đọc theo thứ tự này, nên đánh chỉ mục sẵn.
+  @@index([workSessionId, seqStart])
+}

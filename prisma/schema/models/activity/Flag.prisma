@@ -1,0 +1,35 @@
+/// Một mốc đáng chú ý phát hiện được trong chuỗi sự kiện.
+///
+/// ─── Đây là CÂU HỎI, không phải kết luận ─────────────────────────────────────
+///
+/// Cờ không nói "người này gian lận". Nó nói "đoạn này khác thường, đáng xem kỹ". Giao diện chấm
+/// bài hiển thị chúng như những mốc trên dòng thời gian để giảng viên nhảy tới xem.
+///
+/// ─── Vì sao tách khỏi `EventBatch` ───────────────────────────────────────────
+///
+/// Vì hai thứ khác nhau về cả số lượng lẫn cách dùng. Sự kiện thì hàng nghìn, chỉ đọc tuần tự
+/// khi phát lại. Cờ thì vài cái, và cần TRUY VẤN được: "cho tôi mọi bài có dán từ ngoài vào".
+/// Chôn trong JSON là không lọc được.
+model Flag {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Thuộc buổi làm việc nào.
+  workSessionId String @db.Uuid
+
+  /// Loại bất thường, ví dụ `external-paste`, `large-insert`, `idle-then-bulk`.
+  ///
+  /// Để dạng chuỗi thay vì enum vì danh sách này còn thay đổi nhiều khi ta hiểu thêm về dữ liệu
+  /// thật. Chốt thành enum quá sớm là mỗi lần thêm một loại lại phải chuyển đổi database.
+  kind String
+
+  /// Vị trí trong chuỗi sự kiện của buổi. Đây là thứ cho phép nhảy thẳng tới đúng khoảnh khắc
+  /// khi phát lại.
+  seq Int
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  workSession WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
+
+  @@index([workSessionId])
+  @@index([kind])
+}
