@@ -27,7 +27,9 @@ model Marking {
   // ─── Quan hệ ─────────────────────────────────────────────────────────────
 
   attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  marker  User    @relation(fields: [markerId], references: [id])
+  /// `Restrict` — xoá tài khoản giảng viên KHÔNG được làm bay mất lịch sử chấm. Điểm đã cho là
+  /// hồ sơ của sinh viên, không phải tài sản của người chấm.
+  marker  User    @relation(fields: [markerId], references: [id], onDelete: Restrict)
 
   /// Lấy lần chấm mới nhất của một bài — truy vấn chạy thường xuyên nhất ở màn hình điểm.
   @@index([attemptId, createdAt])

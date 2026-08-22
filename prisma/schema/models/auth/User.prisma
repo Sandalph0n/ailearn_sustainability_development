@@ -27,7 +27,12 @@ model User {
 
   // ─── Quan hệ ─────────────────────────────────────────────────────────────
 
-  institution Institution @relation(fields: [institutionId], references: [id])
+  /// `Restrict` — CỐ Ý khác với `Subject`/`Term` (những thứ đó `Cascade`).
+  ///
+  /// Môn học thuộc sở hữu của trường nên xoá trường thì chúng chết theo là đúng. Nhưng người
+  /// dùng là một CON NGƯỜI, không thuộc sở hữu của ai — xoá trường mà cuốn theo cả tài khoản là
+  /// hành vi không ai muốn. Chặn lại buộc người xoá phải xử lý số tài khoản đó một cách có ý thức.
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
 
   /// Các phiên đăng nhập. Nhiều phiên sống cùng lúc là bình thường — một người có thể đăng nhập
   /// trên máy để bàn và laptop.
