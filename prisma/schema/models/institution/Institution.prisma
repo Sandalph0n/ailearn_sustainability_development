@@ -1,0 +1,22 @@
+/// Một cơ sở giáo dục — trường đại học, cao đẳng, trung tâm.
+///
+/// Đây là gốc của toàn bộ cây dữ liệu: môn học, kỳ học, người dùng đều treo vào một cơ sở.
+/// Hệ thống được thiết kế để nhiều cơ sở dùng chung một bản cài, nên bảng này không bao giờ
+/// được phép chỉ có một dòng.
+model Institution {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Tên hiển thị đầy đủ, ví dụ "Macquarie University".
+  name String
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  /// Người dùng khai mình thuộc cơ sở này lúc đăng ký.
+  users User[]
+
+  /// Các môn cơ sở này dạy.
+  subjects Subject[]
+
+  /// Các kỳ học của cơ sở này. Mỗi trường có lịch kỳ riêng nên kỳ KHÔNG dùng chung toàn hệ thống.
+  terms Term[]
+}

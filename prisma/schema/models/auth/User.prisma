@@ -1,0 +1,52 @@
+/// Một tài khoản người dùng.
+///
+/// ─── Không phân biệt sinh viên / giảng viên ở đây ────────────────────────────
+///
+/// Bảng này chỉ trả lời "người này là ai". Việc họ làm gì trong một môn cụ thể nằm ở
+/// `Membership` — xem file đó để biết vì sao vai trò không thuộc về con người.
+model User {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Email đăng nhập. Cũng là danh tính duy nhất của tài khoản.
+  email String @unique
+
+  /// BĂM của mật khẩu, KHÔNG phải mật khẩu.
+  ///
+  /// Rò cả bảng này thì kẻ tấn công vẫn không đăng nhập được — đó là toàn bộ lý do băm tồn tại.
+  passwordHash String
+
+  firstName String
+  lastName  String
+
+  /// Cơ sở giáo dục người này khai lúc đăng ký.
+  ///
+  /// Quyết định họ nhìn thấy môn nào, và mở khoá công cụ nhập nhanh dữ liệu riêng của trường đó.
+  institutionId String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+
+  /// Các phiên đăng nhập. Nhiều phiên sống cùng lúc là bình thường — một người có thể đăng nhập
+  /// trên máy để bàn và laptop.
+  sessions Session[]
+
+  /// Các môn họ tham gia, kèm vai trò.
+  memberships Membership[]
+
+  /// Các lượt làm bài của chính họ (khi là sinh viên).
+  attempts Attempt[]
+
+  /// Các phiên làm việc — kể cả phiên tự do không gắn bài tập nào.
+  workSessions WorkSession[]
+
+  /// Các lần chấm do CHÍNH họ thực hiện (khi là giảng viên).
+  markingsGiven Marking[]
+
+  /// Sự kiện lịch cá nhân.
+  calendarEvents CalendarEvent[]
+
+  @@index([institutionId])
+}

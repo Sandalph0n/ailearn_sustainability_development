@@ -1,0 +1,19 @@
+// Gốc schema. CHỈ chứa generator và datasource — model nằm ở `models/`, mỗi bảng một file.
+//
+// ─── Vì sao tách nhiều file ──────────────────────────────────────────────────
+//
+// Prisma đọc mọi file `.prisma` trong thư mục được khai ở `prisma.config.ts` (`schema:
+// "prisma/schema"`) rồi ghép lại. Một file duy nhất sẽ phình lên vài trăm dòng và mọi thay đổi
+// đều đụng vào nó — hai người sửa hai bảng khác nhau vẫn xung đột.
+//
+// Tách ra thì mỗi bảng có chỗ ở riêng, kèm được phần giải thích vì sao nó được thiết kế như vậy
+// mà không làm loãng chỗ khác.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

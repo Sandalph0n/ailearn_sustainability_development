@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# …trừ file mẫu: `app:init` chép ra từ nó, nên nó PHẢI có trong repo.
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +41,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Prisma Client sinh ra lúc build — dựng lại được bằng `prisma generate`, không commit.
+/app/generated/prisma
+
+# Tài liệu skill do Prisma CLI tải về. `skills-lock.json` mới là thứ cần commit —
+# nó ghim đúng phiên bản kèm hash.
+/.agents/
+/.claude/
+/.windsurf/

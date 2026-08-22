@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI-Learn
 
-## Getting Started
+Nền tảng học tập đa cơ sở giáo dục. Xem [Project Plan.md](./Project%20Plan.md) để biết phạm vi và
+kiến trúc.
 
-First, run the development server:
+## Bắt đầu
+
+Cần sẵn: **pnpm**, **Docker Desktop đang chạy**, và Node 20+.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+git clone <repo>
+cd ailearn_sustainability_development
+pnpm app:init
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`app:init` làm tất cả: cài phụ thuộc, kiểm Docker, tạo `.env`, dựng Postgres rồi **chờ tới khi nó
+thật sự nhận kết nối**, sinh Prisma Client, áp migration.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Chạy lại bao nhiêu lần cũng được — mỗi bước tự bỏ qua nếu đã xong, và **`.env` đã có thì không bị
+ghi đè** (bạn đổi cổng hay trỏ sang database khác thì vẫn giữ nguyên).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Các lệnh
 
-## Learn More
+| Lệnh | Việc |
+|---|---|
+| `pnpm app:init` | Khởi tạo toàn bộ môi trường dev |
+| `pnpm dev` | Chạy Next.js (nhớ `pnpm db:up` trước nếu database đang tắt) |
+| `pnpm db:up` | Bật Postgres, chờ tới khi nhận được kết nối |
+| `pnpm db:down` | Tắt Postgres — **dữ liệu còn nguyên** |
+| `pnpm db:reset` | **Xoá sạch dữ liệu** rồi dựng lại |
+| `pnpm db:logs` | Xem log Postgres |
+| `pnpm db:psql` | Mở psql trong container |
+| `pnpm db:generate` | Sinh lại Prisma Client |
+| `pnpm db:studio` | Mở Prisma Studio |
 
-To learn more about Next.js, take a look at the following resources:
+## Cấu trúc
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/                     Next.js App Router
+lib/db.ts                PrismaClient dùng chung
+prisma/
+  schema/
+    schema.prisma        generator + datasource
+    models/              mỗi bảng một file
+  migrations/
+scripts/init.mjs         thứ mà app:init chạy
+compose.yaml             hạ tầng dev (Postgres)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Vài chỗ dễ vấp
 
-## Deploy on Vercel
+**`prisma.config.ts` trỏ vào THƯ MỤC `prisma/schema`, không phải một file.** Prisma ghép mọi
+`.prisma` bên trong lại — đó là thứ cho phép tách mỗi bảng ra một file. Hệ quả: file `.prisma` nào
+đặt trong đó cũng bị đọc, kể cả khi bạn chỉ định để nó làm tài liệu tham khảo.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**`app/generated/prisma` bị gitignore.** Máy vừa clone về sẽ đỏ TypeScript cho tới khi chạy
+`pnpm db:generate` (hoặc `pnpm app:init`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Prisma 7 sinh ra TypeScript, không phải JavaScript.** Generator `prisma-client` (khác
+`prisma-client-js` đời cũ) xuất `.ts` để bundler tự biên dịch. Script chạy bằng `node` trần sẽ
+không import được — dùng `tsx`, hoặc để Next.js lo.
+
+**Biến `POSTGRES_*` trong `compose.yaml` chỉ có tác dụng lần đầu**, lúc Postgres chạy `initdb`.
+Đổi mật khẩu hay tên database sau đó rồi `up` lại thì **không có gì thay đổi** và cũng không có
+báo lỗi nào. Muốn đổi thật thì `pnpm db:reset` (mất dữ liệu) hoặc sửa bằng SQL.
+
+**Đừng dùng `docker volume prune`.** Nó xoá mọi volume mồ côi trên máy, kể cả của dự án khác. Cần
+dọn thì liệt kê bằng `docker volume ls -f dangling=true` rồi xoá đích danh từng cái bằng
+`docker volume rm <tên>`.

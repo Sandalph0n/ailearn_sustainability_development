@@ -1,0 +1,39 @@
+/// Một LƯỢT MỞ MÔN — môn X được dạy trong kỳ Y. Ví dụ: COMP1000 kỳ S2 2026.
+///
+/// ─── Vì sao cần bảng này, thay vì gắn thẳng bài tập vào Subject ──────────────
+///
+/// Vì mọi thứ có thật đều thuộc về LƯỢT MỞ, không thuộc về môn nói chung:
+///
+///   - Bài tập: đề bài và hạn nộp kỳ này khác kỳ trước
+///   - Lớp học: sinh viên học kỳ này không liên quan gì tới sinh viên kỳ trước
+///   - Giảng viên: người dạy có thể đổi mỗi kỳ
+///
+/// Gắn thẳng vào `Subject` thì mở lại môn ở kỳ sau sẽ đè lên dữ liệu kỳ trước, hoặc phải nhân bản
+/// cả môn — cách nào cũng làm mất lịch sử.
+///
+/// Đây là bảng nối, nên nó gần như không có thuộc tính riêng. Điều đó là bình thường: giá trị của
+/// nó nằm ở chỗ nó tồn tại, không ở chỗ nó chứa gì.
+model Offering {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Môn nào được mở.
+  subjectId String @db.Uuid
+
+  /// Mở trong kỳ nào.
+  termId String @db.Uuid
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  term    Term    @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  /// Ai tham gia lượt mở này, và với vai trò gì.
+  memberships Membership[]
+
+  /// Các bài tập của lượt mở này.
+  assessments Assessment[]
+
+  /// Một môn chỉ được mở một lần trong một kỳ. Chặn tạo trùng do bấm hai lần.
+  @@unique([subjectId, termId])
+  @@index([termId])
+}

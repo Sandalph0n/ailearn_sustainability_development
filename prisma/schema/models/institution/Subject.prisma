@@ -1,0 +1,28 @@
+/// Một môn học, ví dụ "COMP1000 — Introduction to Computer Programming".
+///
+/// ─── Môn KHÔNG gắn với kỳ ────────────────────────────────────────────────────
+///
+/// Dòng ở đây mô tả môn học nói chung, tồn tại qua nhiều năm. Việc "môn này được mở trong kỳ nào"
+/// thuộc về `Offering` — xem file đó để biết vì sao phải tách.
+model Subject {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Môn này thuộc cơ sở nào.
+  institutionId String @db.Uuid
+
+  /// Mã môn theo cách gọi của trường, ví dụ "COMP1000".
+  code String
+
+  /// Tên đầy đủ, ví dụ "Introduction to Computer Programming".
+  name String
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  /// Các lần môn này được mở, mỗi lần một kỳ.
+  offerings Offering[]
+
+  /// Mã môn chỉ cần duy nhất TRONG một cơ sở — hai trường khác nhau đều có thể có "COMP1000".
+  @@unique([institutionId, code])
+}

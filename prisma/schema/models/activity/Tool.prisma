@@ -1,0 +1,25 @@
+/// Một công cụ làm bài mà hệ thống cung cấp — trình soạn mã, trình vẽ sơ đồ, …
+///
+/// ─── Vì sao khoá chính là chuỗi, không phải UUID ─────────────────────────────
+///
+/// Vì mã nguồn phải gọi tên công cụ trực tiếp: giao diện cần biết `'code'` thì dựng trình soạn
+/// mã, `'diagram'` thì dựng khung vẽ. Với UUID thì mọi chỗ như vậy phải tra bảng trước, hoặc tệ
+/// hơn là chép cứng một chuỗi UUID vào mã nguồn.
+///
+/// Đổi lại: `id` là thứ do người phát triển đặt và KHÔNG được đổi về sau — nó nằm rải trong dữ
+/// liệu đã ghi.
+model Tool {
+  /// Định danh dạng chữ, ví dụ `code`, `diagram`. Do người phát triển đặt.
+  id String @id
+
+  /// Tên hiển thị cho người dùng, ví dụ "Trình soạn mã".
+  name String
+
+  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+
+  /// Các bài tập cho phép dùng công cụ này.
+  assessments Assessment[]
+
+  /// Các phiên làm việc đã mở bằng công cụ này.
+  workSessions WorkSession[]
+}

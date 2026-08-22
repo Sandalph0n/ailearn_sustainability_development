@@ -1,0 +1,25 @@
+name: ailearn
+services:
+  db:
+    image: postgres:17
+    container_name: ailearn-pg     # thêm vào service
+
+
+    environment:
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: ailearn
+    ports:
+      - "5432:5432" # our 5432 -> docker 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ailearn"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    
+
+
+volumes:
+  pgdata:
