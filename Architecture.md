@@ -251,8 +251,8 @@ Mỗi công cụ tự chọn thư viện, cách dựng giao diện, cách bắt 
 
 | Công cụ | `Tool.id` | Người làm |
 |---|---|---|
-| Soạn mã | `code` | (người A) |
-| Vẽ sơ đồ | `diagram` | (người B) |
+| Soạn mã | `code` | Nguyên |
+| Vẽ sơ đồ | `diagram` | Duy |
 
 Ghi chú kỹ thuật riêng của từng công cụ để ở file khác, không đưa vào đây.
 

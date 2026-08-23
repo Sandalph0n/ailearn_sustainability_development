@@ -254,12 +254,16 @@ Next.js · React · TypeScript · Tailwind · Prisma · PostgreSQL (Docker) · z
 
 Hai người ngang hàng, cắt theo trục dọc. Điểm chạm duy nhất là đặc tả op-log ở §4; chốt xong thì hai bên chạy song song không chặn nhau.
 
-| | **Người A — Công cụ & ghi nhận** | **Người B — Nền tảng & dữ liệu** |
+| | **Nguyên — Core & công cụ soạn mã** | **Duy — Hạ tầng, dữ liệu & công cụ sơ đồ** |
 |---|---|---|
-| Tuần 1 | Spike `monaco-vscode-api`, op-log core | Docker Postgres, Prisma, auth, dữ liệu mẫu |
-| Tuần 2 | Recorder coding đầy đủ, bộ tua lại | Lịch, export `.ics`, adapter Macquarie |
-| Tuần 3 | Công cụ diagram + recorder, cờ bất thường | Quyền đọc lại, danh sách bài nộp, chấm điểm |
+| Tuần 1 | Đặc tả op-log, lớp host công cụ, spike `monaco-vscode-api` | Auth, dữ liệu mẫu, API nhận sự kiện |
+| Tuần 2 | Recorder soạn mã đầy đủ, phát lại + mốc hash | Lịch, export `.ics`, adapter theo trường, API đọc lại + kiểm quyền |
+| Tuần 3 | Cờ bất thường, phần tua theo vai trò | Công cụ sơ đồ + recorder, trang danh sách bài nộp, chấm điểm |
 | Tuần 4 | Ghép, sửa lỗi | Ghép, dữ liệu demo, chuẩn bị trình bày |
+
+**Nguyên** giữ phần lõi: đặc tả sự kiện, lớp nạp và chạy công cụ, hợp đồng giữa nền tảng với công cụ — cộng công cụ soạn mã và toàn bộ recorder engine.
+
+**Duy** giữ mọi thứ dưới lớp lõi: Docker, Prisma, mô hình dữ liệu, đăng nhập, lịch — cộng công cụ sơ đồ, vốn đã có sẵn phần vẽ từ dự án React Flow của Duy.
 
 ---
 
@@ -268,22 +272,22 @@ Hai người ngang hàng, cắt theo trục dọc. Điểm chạm duy nhất là
 ### Tuần 1 — Nền móng (21–28/08)
 
 - **Ngày 1–2, cả hai:** chốt đặc tả `SessionEvent` và schema v1
-- **Người A:** spike `monaco-vscode-api` trong Next.js **Mốc chặn — hết ngày 3 phải render được workbench và override được ít nhất một service.** Không đạt thì chuyển sang phương án lùi ngay, không kéo dài
-- **Người B:** Docker Postgres, Prisma, đăng nhập email + mật khẩu, seed một cơ sở / một môn / một assessment
+- **Nguyên:** spike `monaco-vscode-api` trong Next.js **Mốc chặn — hết ngày 3 phải render được workbench và override được ít nhất một service.** Không đạt thì chuyển sang phương án lùi ngay, không kéo dài
+- **Duy:** đăng nhập email + mật khẩu, seed một cơ sở / một môn / một assessment, API nhận lô sự kiện *(Docker và Prisma đã xong)*
 - **Nghiệm thu:** gõ trong editor, sự kiện lên tới server, thấy bản ghi trong DB
 
 ### Tuần 2 — Tua lại được (29/08–04/09)
 
-- **Người A:** recorder đầy đủ (edit, selection, paste trong/ngoài, save kèm hash) và bộ tua lại
-- **Người B:** mô hình lịch, export `.ics`, adapter Macquarie, CRUD offering và assessment
+- **Nguyên:** recorder đầy đủ (edit, selection, paste trong/ngoài, save kèm hash) và phát lại trong công cụ
+- **Duy:** mô hình lịch, export `.ics`, adapter theo trường, CRUD offering và assessment, API đọc lại kèm kiểm quyền
 - **Nghiệm thu:** tua lại trọn vẹn một phiên coding, khớp mọi mốc hash
 
 Đây là mốc quan trọng nhất của dự án. Nếu hết tuần 2 chưa tua lại được, dừng mọi việc khác cho tới khi nó chạy — không có phần này thì không còn gì để trình bày.
 
 ### Tuần 3 — Đủ vòng (05–11/09)
 
-- **Người A:** công cụ diagram, recorder cho nó, bốn cờ bất thường
-- **Người B:** kiểm quyền ở máy chủ + API đọc lại sự kiện, trang danh sách bài nộp, ghi note và chấm điểm
+- **Nguyên:** bốn cờ bất thường, phần tua theo dòng thời gian hiện ra khi vai trò là người chấm
+- **Duy:** công cụ sơ đồ + recorder cho nó, trang danh sách bài nộp, ghi note và chấm điểm
 
 > Không dựng màn hình chấm bài riêng. Phần tua lại nằm trong chính công cụ, hiện ra khi vai trò người mở là người chấm — xem `Architecture.md` §6. Nền tảng chỉ cần trang danh sách để bấm vào, cộng phần kiểm quyền ở máy chủ.
 - **Nghiệm thu:** giảng viên mở bài của sinh viên, tua lại, thấy cờ, chấm xong
@@ -302,7 +306,7 @@ Ghép các phần, dựng dữ liệu mẫu, chạy thử toàn luồng, sửa l
 | `monaco-vscode-api` không tương thích Next.js (CSS/bundler) | Hết ngày 3 tuần 1 chưa render được | Về `monaco-editor` thuần, tự dựng layout. Phần ghi nhận không mất gì vì recorder móc vào Monaco chứ không vào workbench |
 | Dự án React Flow không ở trạng thái dùng được | Rà tuần 1 thấy dở dang | Tự viết canvas node/edge tối giản, khoảng 3 ngày |
 | Replay lệch, hash không khớp | Mốc kiểm chứng báo đỏ | Sửa recorder. Đây đúng là việc mốc kiểm chứng sinh ra để làm |
-| Phần lịch ăn hết thời gian người B | Cuối tuần 2 chưa xong | Cắt Gantt và thời khoá biểu tuần; giữ deadline, sự kiện tự thêm, export `.ics` |
+| Phần lịch ăn hết thời gian của Duy | Cuối tuần 2 chưa xong | Cắt Gantt và thời khoá biểu tuần; giữ deadline, sự kiện tự thêm, export `.ics` |
 | Phạm vi phình ra | Tuần 3 vẫn đang thêm tính năng | Đóng băng tính năng cuối tuần 3, không có ngoại lệ |
 
 Rủi ro lớn nhất không nằm trong bảng: **đầu tư quá sâu vào các phần không nằm trên luồng chính.** Chỉ op-log đáng làm kỹ; mọi thứ khác làm ở mức chạy được rồi đi tiếp.
