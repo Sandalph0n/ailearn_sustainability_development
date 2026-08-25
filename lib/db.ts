@@ -1,3 +1,6 @@
+// File này khởi tạo Prisma Client dùng chung cho toàn bộ mã chạy phía server.
+import 'server-only';
+
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/app/generated/prisma/client';
 
@@ -18,7 +21,7 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 function create(): PrismaClient {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-        throw new Error('Thiếu DATABASE_URL trong .env');
+        throw new Error('DATABASE_URL is missing from .env');
     }
 
     // Prisma 7 bắt buộc dùng driver adapter — không còn engine nhị phân tự kết nối nữa.
