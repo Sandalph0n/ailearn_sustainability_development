@@ -1,13 +1,14 @@
 name: ailearn
+
 services:
   db:
     image: postgres:17
-    container_name: ailearn-pg     # thêm vào service
+    container_name: ailearn-pg
     environment:
       POSTGRES_PASSWORD: dev
       POSTGRES_DB: ailearn
     ports:
-      - "5432:5432" # our 5432 -> docker 5432
+      - "5432:5432" # may that -> trong container
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +17,34 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-    
+
+  # Kho tệp nói giao thức S3. Ở máy dev là container này; khi lên AWS thì đổi sang S3 thật,
+  # mã nguồn không phải sửa gì ngoài việc bỏ `endpoint` và `forcePathStyle` đi.
+  #
+  # ─── Vì sao GHIM tag ────────────────────────────────────────────────────────
+  #
+  # MinIO đã ngừng phát triển từ 02/2026; RELEASE.2025-09-07 là bản cuối. Ghim đúng nó để hai
+  # máy luôn chạy cùng một thứ, và để `latest` không âm thầm đổi dưới chân.
+  storage:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: ailearn-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ailearn
+      MINIO_ROOT_PASSWORD: ailearn-dev-secret
+    ports:
+      - "9000:9000" # API S3 — thu ma ung dung goi
+      - "9001:9001" # trinh duyet tep, mo bang trinh duyet web
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      # MinIO mo san mot duong dan bao suc khoe. Dung no de `--wait` biet luc nao san sang.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
 volumes:
   pgdata:
+  miniodata:

@@ -10,15 +10,17 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "db:up": "docker compose up -d --wait",
-    "db:down": "docker compose stop",
-    "db:logs": "docker compose logs -f db",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose stop",
+    "infra:logs": "docker compose logs -f",
+    "infra:reset": "docker compose down -v && docker compose up -d --wait",
     "db:psql": "docker compose exec db psql -U postgres -d ailearn",
-    "db:reset": "docker compose down -v && docker compose up -d --wait",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "storage:console": "node -e \"console.log(String.raw`Trinh duyet tep MinIO: http://localhost:9001  (ailearn / ailearn-dev-secret)`)\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1117.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "argon2": "^0.45.1",

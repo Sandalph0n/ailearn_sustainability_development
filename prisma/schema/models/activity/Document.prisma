@@ -13,7 +13,9 @@ model Document {
   /// Thuộc buổi làm việc nào.
   workSessionId String @db.Uuid
 
-  /// Đường dẫn hoặc tên tài liệu, ví dụ `sketch/sketch.pde`.
+  /// Đường dẫn hoặc tên tài liệu, ví dụ `src/main.js` hoặc `so-do/luong-du-lieu.json`.
+  ///
+  /// Nền tảng không suy diễn gì từ đuôi tệp — đó là việc của công cụ.
   path String
 
   /// Nội dung hiện tại. Với bản vẽ thì đây là dạng tuần tự hoá của nó.

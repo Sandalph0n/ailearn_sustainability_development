@@ -22,14 +22,25 @@ Chạy lại bao nhiêu lần cũng được — mỗi bước tự bỏ qua n�
 | Lệnh | Việc |
 |---|---|
 | `pnpm app:init` | Khởi tạo toàn bộ môi trường dev |
-| `pnpm dev` | Chạy Next.js (nhớ `pnpm db:up` trước nếu database đang tắt) |
-| `pnpm db:up` | Bật Postgres, chờ tới khi nhận được kết nối |
-| `pnpm db:down` | Tắt Postgres — **dữ liệu còn nguyên** |
-| `pnpm db:reset` | **Xoá sạch dữ liệu** rồi dựng lại |
-| `pnpm db:logs` | Xem log Postgres |
+| `pnpm dev` | Chạy Next.js (nhớ `pnpm infra:up` trước nếu hạ tầng đang tắt) |
+| `pnpm infra:up` | Bật Postgres + kho tệp, chờ tới khi cả hai nhận kết nối |
+| `pnpm infra:down` | Tắt cả hai — **dữ liệu còn nguyên** |
+| `pnpm infra:reset` | **Xoá sạch dữ liệu** rồi dựng lại |
+| `pnpm infra:logs` | Xem log hạ tầng |
 | `pnpm db:psql` | Mở psql trong container |
 | `pnpm db:generate` | Sinh lại Prisma Client |
 | `pnpm db:studio` | Mở Prisma Studio |
+| `pnpm storage:console` | In địa chỉ trình duyệt tệp MinIO |
+
+## Hạ tầng dev
+
+| | Địa chỉ | |
+|---|---|---|
+| Postgres | `localhost:5432` | `postgres` / `dev` / db `ailearn` |
+| Kho tệp (S3) | `localhost:9000` | `ailearn` / `ailearn-dev-secret` |
+| Trình duyệt tệp | `localhost:9001` | mở bằng trình duyệt web |
+
+Kho tệp nói giao thức S3, nên khi lên AWS chỉ cần **xoá `S3_ENDPOINT`** khỏi `.env` — SDK tự tìm S3 thật, mã nguồn không đổi dòng nào.
 
 ## Cấu trúc
 
@@ -42,7 +53,7 @@ prisma/
     models/              mỗi bảng một file
   migrations/
 scripts/init.mjs         thứ mà app:init chạy
-compose.yaml             hạ tầng dev (Postgres)
+compose.yaml             hạ tầng dev (Postgres + kho tệp MinIO)
 ```
 
 ## Vài chỗ dễ vấp
@@ -53,6 +64,6 @@ compose.yaml             hạ tầng dev (Postgres)
 
 **Prisma 7 sinh ra TypeScript, không phải JavaScript.** Generator `prisma-client` (khác `prisma-client-js` đời cũ) xuất `.ts` để bundler tự biên dịch. Script chạy bằng `node` trần sẽ không import được — dùng `tsx`, hoặc để Next.js lo.
 
-**Biến `POSTGRES_*` trong `compose.yaml` chỉ có tác dụng lần đầu**, lúc Postgres chạy `initdb`. Đổi mật khẩu hay tên database sau đó rồi `up` lại thì **không có gì thay đổi** và cũng không có báo lỗi nào. Muốn đổi thật thì `pnpm db:reset` (mất dữ liệu) hoặc sửa bằng SQL.
+**Biến `POSTGRES_*` trong `compose.yaml` chỉ có tác dụng lần đầu**, lúc Postgres chạy `initdb`. Đổi mật khẩu hay tên database sau đó rồi `up` lại thì **không có gì thay đổi** và cũng không có báo lỗi nào. Muốn đổi thật thì `pnpm infra:reset` (mất dữ liệu) hoặc sửa bằng SQL.
 
 **Đừng dùng `docker volume prune`.** Nó xoá mọi volume mồ côi trên máy, kể cả của dự án khác. Cần dọn thì liệt kê bằng `docker volume ls -f dangling=true` rồi xoá đích danh từng cái bằng `docker volume rm <tên>`.

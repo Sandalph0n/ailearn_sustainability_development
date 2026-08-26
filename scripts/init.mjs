@@ -126,16 +126,16 @@ if (existsSync(envPath)) {
     ok('.env tạo từ .env.example');
 }
 
-// ─── 4. Postgres ─────────────────────────────────────────────────────────────
+// ─── 4. Hạ tầng: Postgres + kho tệp ──────────────────────────────────────────
 //
-// `--wait` đọc `healthcheck` trong compose.yaml, nên dòng này chỉ trả về khi Postgres THẬT SỰ
-// nhận kết nối — không phải khi container vừa được đánh dấu là đang chạy. Thiếu cờ đó thì bước
-// migration ngay dưới sẽ thỉnh thoảng lỗi `connection refused`, và chỉ trên máy chậm.
-step('dựng Postgres (lần đầu phải tải image, hơi lâu)…');
+// `--wait` đọc `healthcheck` của TỪNG service trong compose.yaml, nên dòng này chỉ trả về khi cả
+// hai thật sự nhận kết nối — không phải khi container vừa được đánh dấu là đang chạy. Thiếu cờ
+// đó thì bước migration ngay dưới sẽ thỉnh thoảng lỗi `connection refused`, và chỉ trên máy chậm.
+step('dựng Postgres và kho tệp (lần đầu phải tải image, hơi lâu)…');
 if (!run('docker', ['compose', 'up', '-d', '--wait'])) {
-    die('Không dựng được Postgres.', 'Xem chi tiết: pnpm db:logs');
+    die('Không dựng được hạ tầng.', 'Xem chi tiết: pnpm infra:logs');
 }
-ok('Postgres sẵn sàng ở localhost:5432');
+ok('Postgres ở localhost:5432 · kho tệp ở localhost:9000');
 
 // ─── 5. Prisma Client ────────────────────────────────────────────────────────
 //
@@ -164,5 +164,54 @@ if (hasMigrations) {
 } else {
     skip('chưa có migration nào — bỏ qua');
 }
+
+// ─── 7. Bucket trong kho tệp ─────────────────────────────────────────────────
+//
+// ─── Vì sao tạo ở đây chứ không phải trong compose.yaml ──────────────────────
+//
+// Cách thường thấy là thêm một container `mc` chạy một lần rồi thoát. Nhưng service kiểu
+// chạy-rồi-chết làm `--wait` khó xử: nó chờ trạng thái khoẻ mạnh, mà thứ đã thoát thì không
+// khoẻ cũng không ốm.
+//
+// Ở đây chỉ là một lời gọi API, và dùng đúng SDK mà ứng dụng sẽ dùng — nên cấu hình sai thì
+// hỏng ngay tại bước này, chứ không phải hỏng lúc người dùng đầu tiên tải tệp lên.
+async function ensureBucket() {
+    // Nạp `.env` TẠI ĐÂY, không phải ở đầu file: bước 3 mới vừa tạo ra nó. Nạp sớm hơn thì trên
+    // máy mới file chưa tồn tại và mọi biến sẽ rỗng.
+    const dotenv = await import('dotenv');
+    dotenv.config({ path: join(root, '.env'), quiet: true });
+
+    const bucket = process.env.S3_BUCKET;
+    if (!bucket) die('Thiếu S3_BUCKET trong .env.', 'Đối chiếu với .env.example.');
+
+    const { S3Client, HeadBucketCommand, CreateBucketCommand } = await import('@aws-sdk/client-s3');
+    const s3 = new S3Client({
+        region: process.env.S3_REGION ?? 'us-east-1',
+        endpoint: process.env.S3_ENDPOINT,
+        // Bắt buộc với MinIO: nó nhận `host/bucket`, không nhận `bucket.host` như AWS.
+        forcePathStyle: true,
+        credentials: {
+            accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '',
+            secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '',
+        },
+    });
+
+    try {
+        await s3.send(new HeadBucketCommand({ Bucket: bucket }));
+        skip(`bucket "${bucket}" đã có`);
+        return;
+    } catch (err) {
+        // 404 = chưa có, tạo tiếp bên dưới. Lỗi khác là vấn đề thật, đừng nuốt.
+        const code = err?.$metadata?.httpStatusCode;
+        if (code !== 404 && err?.name !== 'NotFound' && err?.name !== 'NoSuchBucket') {
+            die(`Không nối được kho tệp: ${err?.name ?? err}`, 'Xem chi tiết: pnpm infra:logs');
+        }
+    }
+
+    await s3.send(new CreateBucketCommand({ Bucket: bucket }));
+    ok(`bucket "${bucket}" đã tạo`);
+}
+
+await ensureBucket();
 
 console.log('\n\x1b[32m\x1b[1mXong.\x1b[0m Chạy \x1b[1mpnpm dev\x1b[0m để bắt đầu.\n');
