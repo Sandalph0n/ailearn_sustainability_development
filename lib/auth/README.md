@@ -156,7 +156,7 @@ UI nên dùng `error.code` cho logic, không so sánh `message`.
 
 ## Trang test tạm
 
-Mở `/auth-test` để test thủ công register, login, kiểm tra session, logout và logout-all. Trang hiển thị raw API response và trạng thái session hiện tại.
+Mở `/tools/auth-test` để test thủ công register, login, kiểm tra session, logout và logout-all. Trang hiển thị raw API response và trạng thái session hiện tại.
 
 Form register lấy danh sách `Institution` trực tiếp từ database. Nếu chưa có Institution, thêm một dòng bằng `pnpm db:studio` trước khi test. Trang này dùng API và database thật, nên account tạo từ đây là dữ liệu thật.
 

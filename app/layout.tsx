@@ -2,15 +2,21 @@
  * Root layout — bọc TOÀN BỘ ứng dụng.
  *
  * Cố ý giữ ở mức tối thiểu: `<html>`, `<body>`, font, và stylesheet chung. Không header, không
- * footer, không khung. Khung là việc của từng nhóm bên dưới.
+ * footer, không khung. Khung là việc của từng khu vực bên dưới.
  *
- * ─── Hai nhóm bên dưới ───────────────────────────────────────────────────────
+ * ─── Ba khu vực bên dưới ─────────────────────────────────────────────────────
  *
- *   app/(navigation)/   trang phục vụ việc đi lại: trang chủ, đăng nhập, danh sách, lịch.
- *                       Chúng chia nhau một header/footer chung, đặt ở layout của nhóm.
+ *   app/(navigation)/   trang phục vụ việc đi lại: trang chủ, danh sách, lịch. Chúng chia nhau
+ *                       một sidebar chung, đặt ở layout của nhóm. Đặt trong ngoặc để trang chủ
+ *                       vẫn là `/` chứ không phải `/navigation`.
  *
- *   app/(application)/  nơi làm việc thật: trình soạn mã, trình vẽ sơ đồ. CỐ Ý không có
- *                       layout — mỗi ứng dụng tự dựng lấy giao diện của mình.
+ *   app/tools/          nơi làm việc thật: trình soạn mã, trình vẽ sơ đồ. Là đường dẫn THẬT chứ
+ *                       không phải nhóm — khi công cụ do bên thứ ba viết, ranh giới nên nhìn
+ *                       thấy được trong URL: `/tools/<mã-công-cụ>/…`. Cố ý không có layout, mỗi
+ *                       công cụ tự dựng lấy giao diện của mình.
+ *
+ *   app/auth/           đăng nhập và đăng ký. Nằm ngoài `(navigation)` vì nhóm đó được proxy
+ *                       bảo vệ — để ở trong thì người chưa đăng nhập bị đá về chính nó.
  *
  * Thư mục đặt trong ngoặc không xuất hiện trong URL, nên `(navigation)/page.tsx` vẫn là `/`.
  *
@@ -36,13 +42,13 @@ const fontMono = Geist_Mono({ variable: '--font-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
     title: 'AI-Learn',
-    description: 'Nền tảng học tập với công cụ làm bài tua lại được.',
+    description: 'A learning platform whose tools record how the work happened.',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
     return (
         <html
-            lang="vi"
+            lang="en"
             className={cn('h-full antialiased', fontSans.variable, fontMono.variable)}
         >
             <body className="min-h-full bg-background text-foreground">{children}</body>

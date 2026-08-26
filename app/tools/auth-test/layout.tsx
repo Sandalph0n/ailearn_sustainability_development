@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     description: 'Temporary page for manually testing authentication APIs.',
 };
 
-export default function AuthTestLayout({ children }: LayoutProps<'/auth-test'>) {
+export default function AuthTestLayout({ children }: LayoutProps<'/tools/auth-test'>) {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
             <header className="border-b border-white/10 bg-slate-950/90">
