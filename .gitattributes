@@ -1,0 +1,20 @@
+# Ép LF ở MỌI nơi — trong kho lẫn trong thư mục làm việc, bất kể hệ điều hành.
+#
+# ─── Vì sao ─────────────────────────────────────────────────────────────────
+#
+# Windows mặc định bật `core.autocrlf=true`, tức git đổi LF thành CRLF lúc lấy file về. Máy macOS
+# thì giữ LF. Hai người làm chung sẽ thấy git báo "file đã đổi" trên toàn bộ nội dung dù không ai
+# sửa gì — và diff thật bị chôn giữa hàng trăm dòng nhiễu.
+#
+# Khai ở đây thì file này quyết định, cấu hình riêng của từng máy không còn ảnh hưởng.
+* text=auto eol=lf
+
+# Không đụng vào tệp nhị phân.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary
