@@ -36,18 +36,59 @@ const die = (m, hint) => {
 };
 
 /**
+ * Các cách gọi `pnpm`, xếp theo thứ tự ưu tiên. Thử lần lượt cho tới khi có cách chạy được.
+ *
+ * ─── Vì sao KHÔNG có nhánh `pnpm.cmd` ────────────────────────────────────────
+ *
+ * Trực giác nói trên Windows nên thử thêm `pnpm.cmd`. Nhưng Node CỐ TÌNH từ chối chạy `.cmd`
+ * và `.bat` khi không qua shell (bản vá bảo mật) — nó ném `EINVAL`, không phải `ENOENT`. Thêm
+ * nhánh đó vào chỉ là mã chết trông như đang làm việc gì đó.
+ *
+ * Trường hợp cần tới nó — Windows cài pnpm bằng npm/corepack — thì `npm_execpath` bên dưới đã
+ * xử lý, vì script này luôn được chính pnpm chạy.
+ */
+function pnpmCandidates(args) {
+    const list = [];
+    const exec = process.env.npm_execpath;
+
+    // 1. Chính xác nhất: pnpm đang chạy script này tự khai nó nằm đâu. Không cần đoán qua PATH.
+    if (exec) {
+        list.push(/\.(c?js|mjs)$/i.test(exec) ? [process.execPath, [exec, ...args]] : [exec, args]);
+    }
+
+    // 2. Tra PATH. Dùng khi ai đó chạy thẳng `node scripts/init.mjs`.
+    list.push(['pnpm', args]);
+
+    return list;
+}
+
+/**
  * Chạy một lệnh, để output chảy thẳng ra terminal.
  *
- * `shell: true` trên Windows là bắt buộc: ở đó `pnpm` là file `.cmd`, mà `spawnSync` không gọi
- * được `.cmd` nếu không qua shell.
+ * ─── Vì sao không dùng `shell: true` ─────────────────────────────────────────
+ *
+ * Cách hiển nhiên trên Windows là bật `shell: true` để gọi được `pnpm.cmd`. Nhưng khi có shell,
+ * Node NỐI các tham số thành một chuỗi mà KHÔNG bọc dấu nháy — Node 24 cảnh báo đúng chuyện này
+ * (DEP0190), và sẽ thành lỗi ở bản sau.
+ *
+ * Hiện mọi tham số ở đây đều là hằng số nên vô hại. Nhưng đường dẫn dự án có khoảng trắng, nên
+ * ngày nào đó truyền một đường dẫn vào là vỡ, theo kiểu rất khó lần ra.
  */
 function run(cmd, args, { quiet = false } = {}) {
-    const r = spawnSync(cmd, args, {
-        cwd: root,
-        stdio: quiet ? 'ignore' : 'inherit',
-        shell: process.platform === 'win32',
-    });
-    return r.status === 0;
+    const opts = { cwd: root, stdio: quiet ? 'ignore' : 'inherit' };
+    const attempts = cmd === 'pnpm' ? pnpmCandidates(args) : [[cmd, args]];
+
+    for (const [file, argv] of attempts) {
+        const r = spawnSync(file, argv, opts);
+        // `error` nghĩa là KHÔNG GỌI ĐƯỢC (không tìm thấy, bị từ chối) — khác hẳn với lệnh chạy
+        // rồi thất bại. Trường hợp đầu thì thử cách gọi khác; trường hợp sau mới là lỗi thật.
+        if (r.error) continue;
+        return r.status === 0;
+    }
+
+    console.error(`\x1b[31m✗ không gọi được \`${cmd}\`.\x1b[0m`);
+    if (cmd === 'pnpm') console.error('  Chạy bằng `pnpm app:init` thay vì `node scripts/init.mjs`.');
+    return false;
 }
 
 console.log('\n\x1b[1mAI-Learn — khởi tạo môi trường dev\x1b[0m\n');

@@ -3,8 +3,6 @@ services:
   db:
     image: postgres:17
     container_name: ailearn-pg     # thêm vào service
-
-
     environment:
       POSTGRES_PASSWORD: dev
       POSTGRES_DB: ailearn
@@ -19,7 +17,5 @@ services:
       retries: 30
       start_period: 10s
     
-
-
 volumes:
   pgdata:
