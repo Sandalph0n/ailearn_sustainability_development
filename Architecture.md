@@ -181,18 +181,100 @@ Không có phép kiểm này thì một dòng thời gian thiếu dữ liệu tr
 
 ---
 
-## 7. Quyền đọc thuộc về máy chủ
+## 7. Phân quyền
 
-**Công cụ ẩn nút đi là chuyện giao diện, không phải bảo mật.**
+### 7.1 Mọi phép kiểm chạy ở máy chủ
+
+**Giao diện ẩn nút đi là chuyện trình bày, không phải bảo mật.**
 
 Mã của công cụ chạy trên máy người dùng. Ai cũng sửa được, hoặc bỏ qua nó mà gọi thẳng API.
 
 | Câu hỏi | Ai trả lời |
 |---|---|
 | Có hiện phần tua lại không | Công cụ, dựa trên `ctx.role` |
-| Có được đọc sự kiện của bài đó không | **Máy chủ**, kiểm `Membership.role` |
+| Có được đọc sự kiện của bài đó không | **Máy chủ** |
 
-Mỗi lần đọc lại, máy chủ phải tự trả lời: người gọi có phải `TUTOR` hoặc `CONVENOR` của đúng `Offering` chứa bài này không. Schema đã đủ dữ liệu để trả lời bằng một truy vấn.
+### 7.2 Mô hình: RBAC có phạm vi
+
+Câu "Alice là Trợ giảng" tự nó vô nghĩa — trợ giảng của **cái gì**? Cùng lúc, Alice có thể là trợ giảng một lớp, sinh viên lớp khác, và quản trị của cả trường.
+
+Nên phép gán không phải cặp mà là **bộ ba**:
+
+```
+(người, vai trò, PHẠM VI)
+```
+
+Phạm vi có ba loại: **toàn hệ thống**, **cơ sở giáo dục**, **lượt mở môn**.
+
+### 7.3 Ranh giới: cái gì thuộc mã, cái gì thuộc dữ liệu
+
+| | Ai sở hữu | Vì sao |
+|---|---|---|
+| Danh sách quyền | **Mã** | Một quyền chỉ có nghĩa khi có đoạn mã thật sự kiểm nó. Cho người dùng tự tạo quyền thì sinh ra quyền mà không ai hỏi tới — tức quyền giả |
+| Mỗi quyền thuộc **loại** phạm vi nào | **Mã** | `attempt.mark` bản chất thao tác trên thứ thuộc một lượt mở môn. Cấu hình lại được thì vô nghĩa |
+| Vai trò gồm những quyền gì | **Dữ liệu** | Mỗi cơ sở tự nghĩ ra vai trò của mình |
+| Ai giữ vai trò nào ở **thực thể** phạm vi nào | **Dữ liệu** | |
+
+Cùng nguyên tắc với `Tool.id` ở §2: **mã giữ từ vựng, dữ liệu chỉ trỏ tới.**
+
+Hệ quả cần ép bằng kiểu: khai danh sách quyền thành hằng số có kiểu, sinh dữ liệu gieo *từ* hằng số đó, và cho hàm kiểm chỉ nhận đúng những giá trị ấy. Gõ sai thành lỗi biên dịch, không phải lỗi lúc chạy.
+
+Gắn luôn loại phạm vi vào kiểu thì truyền nhầm một cơ sở vào chỗ cần một lượt mở môn cũng bị bắt lúc biên dịch.
+
+### 7.4 Quyền KHÔNG BAO GIỜ gán thẳng cho người
+
+Chỉ gán cho vai trò. Đó là toàn bộ lý do RBAC tồn tại: sửa một vai trò là sửa cho mọi người mang nó, ở một chỗ.
+
+Hễ mở ngoại lệ kiểu "cho riêng người này thêm một quyền", vài tháng sau sẽ không ai trả lời được *"ai đang có quyền gì"*.
+
+### 7.5 Vai trò bao gồm vai trò
+
+Một vai trò kế thừa toàn bộ quyền của vai trò khác — "Phụ trách môn" bao gồm "Trợ giảng". Không phải chép danh sách quyền, và sửa một chỗ là mọi vai trò kế thừa đổi theo.
+
+**Bảng khai báo quan hệ bao gồm là nguồn sự thật. Tập quyền đầy đủ là thứ ĐƯỢC TÍNH RA từ nó** — lưu riêng, và không ai được sửa tay vào.
+
+Ba điều bắt buộc:
+
+- **Chặn chu trình lúc GHI**, không phải lúc đọc. A bao gồm B, B bao gồm A là đệ quy vô tận. Bắt lúc ghi thì báo lỗi cho đúng người vừa gây ra nó.
+- **Trải phẳng lúc ghi, không đệ quy lúc đọc.** Phép kiểm quyền chạy liên tục; định nghĩa vai trò gần như không đổi. Đặt việc nặng vào phía hiếm khi xảy ra.
+- **Tính lại TOÀN BỘ, đừng tính gia tăng.** Dữ liệu vai trò rất nhỏ (vài chục dòng). Cập nhật thông minh kiểu "sửa cái này thì tính lại đúng những cái bị ảnh hưởng" là loại mã sai âm thầm — quên một đường ghi là quyền lệch mà không có gì báo. Dựng lại cả bảng tốn vài mili giây và xoá hẳn một lớp lỗi.
+
+Giữ cây kế thừa **nông**, hai ba tầng. Sâu hơn thì không ai trả lời nổi *"vì sao người này có quyền đó"* — mà đó đúng là câu hỏi cần trả lời lúc có sự cố.
+
+### 7.6 KHÔNG kế thừa theo phạm vi (đã chốt)
+
+Quản trị viên cấp **cơ sở** không tự động làm được việc cấp **lớp** trong cơ sở đó. Muốn động vào một lớp thì phải được gán vai trò ở chính lớp ấy.
+
+Lưu ý dễ nhầm: **bao gồm vai trò không giải quyết việc này.** Hai thứ nằm trên hai trục khác nhau —
+
+- *bao gồm vai trò* trả lời **quyền nào**, trong cùng một phạm vi
+- *kế thừa phạm vi* trả lời **thực thể nào**, cùng một quyền ở chỗ khác
+
+Phép gán ghi phạm vi là cơ sở; phép kiểm hỏi phạm vi là lượt mở môn. Vai trò có bao gồm bao nhiêu vai trò khác thì hai phạm vi vẫn không khớp.
+
+Cái giá đã biết và chấp nhận: trường lớn thì gán tay nhiều.
+
+### 7.7 Một cửa duy nhất
+
+Mọi phép kiểm đi qua đúng một hàm:
+
+```ts
+can(user, 'attempt.mark', offering)
+```
+
+**Không rải `if (role === 'TUTOR')` ở bất kỳ đâu.** Lý do không phải cho gọn: khi nào cần cho cơ sở tự định nghĩa vai trò, chỉ thay phần ruột của hàm này — không một chỗ gọi nào phải sửa. Còn nếu điều kiện rải khắp nơi thì đó là viết lại cả ứng dụng.
+
+### 7.8 Vì sao không dùng ABAC hay ReBAC
+
+Cả hai đều tránh được việc nhân bản bộ máy phân quyền cho từng loại tài nguyên, và ReBAC hợp với hình dạng dữ liệu ở đây hơn — mọi câu hỏi phân quyền trong hệ này đều là đi theo một đường quan hệ.
+
+Nhưng có một yêu cầu loại chúng ra: **phải trả lời được câu hỏi ngược.**
+
+> *"liệt kê mọi bài làm mà tôi được chấm"*
+
+Đó là một **truy vấn**, không phải một phép kiểm. RBAC có phạm vi trả lời bằng một câu JOIN. ABAC thuần phải duyệt qua mọi bài làm rồi chạy luật lên từng cái. ReBAC làm được nhưng cần một dịch vụ riêng chạy song song.
+
+RBAC có phạm vi thật ra đã là một dạng ABAC nhẹ — phạm vi chính là *một* thuộc tính, thuộc tính duy nhất thật sự quan trọng ở đây.
 
 ---
 
