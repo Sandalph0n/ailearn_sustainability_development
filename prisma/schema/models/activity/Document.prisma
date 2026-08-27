@@ -1,32 +1,36 @@
-/// Một tài liệu bên trong một buổi làm việc — một file mã nguồn, một bản vẽ.
+/// Một tài liệu trong workspace.
 ///
-/// ─── Vì sao vẫn lưu nội dung, dù có thể dựng lại từ chuỗi sự kiện ────────────
+/// ─── Nội dung KHÔNG nằm ở đây ────────────────────────────────────────────────
 ///
-/// Vì hai câu hỏi khác nhau. "Bài nộp trông ra sao" phải trả lời được ngay, không thể bắt hệ
-/// thống phát lại vài nghìn sự kiện mỗi lần mở. Còn "họ đã đi tới đó bằng cách nào" mới cần
-/// phát lại.
+/// Nội dung sống trong kho tệp, và khoá của nó CHÍNH LÀ `id` của dòng này. Vì tài liệu có thể là
+/// bất cứ thứ gì — văn bản, ảnh nhúng trong sơ đồ, tệp tải lên.
 ///
-/// Nội dung ở đây là trạng thái MỚI NHẤT, ghi đè mỗi lần lưu.
+/// Khoá kho tệp phải bất biến, nên không được dùng `displayPath`: đổi tên tệp mà phải di chuyển
+/// đối tượng trong kho là sai. `displayPath` chỉ là tên hiển thị.
+///
+/// ─── Thứ tự ghi ─────────────────────────────────────────────────────────────
+///
+/// Ghi kho tệp TRƯỚC, ghi database SAU. Hỏng giữa chừng theo thứ tự này để lại một đối tượng mồ
+/// côi — rác, quét được. Ngược lại thì để lại một dòng trỏ vào hư không, không cứu được.
 model Document {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  /// Thuộc buổi làm việc nào.
-  workSessionId String @db.Uuid
+  workspaceId String @db.Uuid
 
-  /// Đường dẫn hoặc tên tài liệu, ví dụ `src/main.js` hoặc `so-do/luong-du-lieu.json`.
+  /// Đường dẫn hiển thị: `src/main.js`, `so-do/erd.json`. Cây thư mục dựng lại từ cột này.
   ///
-  /// Nền tảng không suy diễn gì từ đuôi tệp — đó là việc của công cụ.
-  path String
+  /// Phải chuẩn hoá LÚC GHI — chỉ dùng `/`, bỏ `./`, gộp `//` — và TỪ CHỐI mọi đoạn `..`:
+  /// tài liệu có lúc được đổ ra hệ thống tệp thật để chạy mã.
+  displayPath String
 
-  /// Nội dung hiện tại. Với bản vẽ thì đây là dạng tuần tự hoá của nó.
-  content String
+  /// Băm nội dung tại lần lưu gần nhất. Đây là MỐC KIỂM CHỨNG: phát lại chuỗi sự kiện tới thời
+  /// điểm lưu rồi băm, lệch nghĩa là đã bỏ sót sự kiện.
+  contentHash String
 
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  workSession WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
-
-  /// Trong một buổi, mỗi đường dẫn chỉ có một tài liệu.
-  @@unique([workSessionId, path])
+  @@unique([workspaceId, displayPath])
 }

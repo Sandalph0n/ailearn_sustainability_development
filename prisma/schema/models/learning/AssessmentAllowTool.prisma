@@ -1,0 +1,15 @@
+/// Những công cụ sinh viên được phép dùng cho một bài tập.
+///
+/// Không có dòng nào = bài không dùng công cụ nào cả: thi giấy, thuyết trình, vấn đáp. Vẫn là bài
+/// tập, vẫn có điểm và trọng số.
+model AssessmentAllowTool {
+  assessmentId String @db.Uuid
+  toolId       String @db.Uuid
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  /// `Restrict`: công cụ đang được bài tập nào đó cho phép thì không gỡ khỏi hệ thống được.
+  tool       Tool       @relation(fields: [toolId], references: [id], onDelete: Restrict)
+
+  @@id([assessmentId, toolId])
+  @@index([toolId])
+}

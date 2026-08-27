@@ -1,0 +1,35 @@
+/// Một người giữ một vai trò, trong một phạm vi.
+///
+/// ─── Vì sao có khoá thay thế thay vì khoá tổ hợp ─────────────────────────────
+///
+/// `offeringId` rỗng được (vai trò cấp cơ sở), mà cột rỗng không nằm trong khoá chính được. Nên
+/// khoá tổ hợp `(userId, roleId, offeringId)` là bất khả thi — không phải lựa chọn.
+///
+/// ─── Phạm vi suy ra từ vai trò ───────────────────────────────────────────────
+///
+/// Không có cột `institutionId`: `Role` đã thuộc về một cơ sở rồi. Lưu thêm lần nữa là hai nguồn
+/// sự thật, và chúng lệch nhau được.
+model RoleAssignment {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  userId String @db.Uuid
+  roleId String @db.Uuid
+
+  /// Rỗng = vai trò cấp cơ sở. Có = vai trò trong đúng lượt mở môn này.
+  /// Phải khớp với `role.scopeType` — database không kiểm được, mã phải kiểm.
+  offeringId String? @db.Uuid
+
+  roleGrantedAt DateTime  @default(now())
+  roleRevokedAt DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role     Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  offering Offering? @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+
+  /// Đơn xin đã tạo ra phép gán này, nếu có.
+  fromRequest RoleRequest?
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([offeringId])
+}

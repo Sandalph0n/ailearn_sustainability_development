@@ -1,28 +1,33 @@
 /// Một bài tập của một lượt mở môn.
+///
+/// Gắn với LƯỢT MỞ chứ không phải môn — đề bài và hạn nộp kỳ này khác kỳ trước.
 model Assessment {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  /// Thuộc lượt mở môn nào. Bài tập gắn với LƯỢT MỞ chứ không gắn với môn — xem `Offering`.
   offeringId String @db.Uuid
 
-  /// Tên bài tập hiển thị cho sinh viên.
-  title String
+  name        String
+  description String?
 
-  /// Hạn nộp. Cũng là thứ hệ thống lịch đọc để dựng nhắc nhở.
-  dueAt DateTime
+  /// Trọng số phần trăm. Tổng của một lượt mở môn phải bằng 100 — luật nghiệp vụ, mã kiểm.
+  weight Float
 
-  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+  /// Điều kiện bắt buộc: trượt bài này là trượt môn, dù tổng điểm đủ. Không tham gia phép tính
+  /// trọng số — nó là một cửa riêng.
+  hurdle Boolean @default(false)
+
+  /// Bài nhóm: một lượt làm bài, nhiều người cùng đóng góp.
+  isGroup Boolean @default(false)
+
+  /// Rỗng = chưa công bố, sinh viên chưa thấy.
+  publishAt DateTime?
+  dueAt     DateTime
 
   offering Offering @relation(fields: [offeringId], references: [id], onDelete: Cascade)
 
-  /// Những công cụ sinh viên được phép dùng cho bài này.
-  ///
-  /// Quan hệ nhiều-nhiều: một bài có thể cho dùng vài công cụ, một công cụ dùng cho nhiều bài.
-  /// Prisma tự dựng bảng nối, ta không cần khai.
-  tools Tool[]
-
-  /// Các lượt làm bài của sinh viên.
-  attempts Attempt[]
+  allowedTools AssessmentAllowTool[]
+  /// `Restrict`: còn bài làm của sinh viên thì không xoá được bài tập.
+  attempts     AssessmentAttempt[]
 
   @@index([offeringId])
 }

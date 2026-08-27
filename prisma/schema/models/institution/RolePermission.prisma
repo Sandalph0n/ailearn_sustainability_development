@@ -1,0 +1,19 @@
+/// Vai trò gồm những quyền gì.
+///
+/// Khoá chính tổ hợp — không thực thể nào khác trỏ vào bảng này, nên không cần khoá thay thế.
+///
+/// `grantedAt`/`revokedAt` để trả lời "vai trò này có quyền đó từ bao giờ", thứ cần tới khi điều
+/// tra một sự cố phân quyền.
+model RolePermission {
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}

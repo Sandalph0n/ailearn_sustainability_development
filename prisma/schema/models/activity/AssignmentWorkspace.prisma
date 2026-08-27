@@ -1,0 +1,19 @@
+/// Workspace của một lượt làm bài. Đây là nơi DUY NHẤT có ghi nhận thao tác.
+///
+/// Khoá chính `workspaceId` ĐỒNG THỜI là khoá ngoại trỏ về `Workspace` — đó là cách ánh xạ
+/// chuyên biệt hoá xuống quan hệ. Nhờ khoá chính dùng chung, mỗi workspace nhiều nhất một dòng ở
+/// đây, không cần ràng buộc nào thêm.
+model AssignmentWorkspace {
+  workspaceId String @id @db.Uuid
+
+  attemptUserId       String @db.Uuid
+  attemptAssessmentId String @db.Uuid
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  attempt   AssessmentAttempt @relation(fields: [attemptUserId, attemptAssessmentId], references: [userId, assessmentId], onDelete: Cascade)
+
+  workSessions AssignmentWorkSession[]
+
+  /// Một lượt làm bài có đúng một workspace.
+  @@unique([attemptUserId, attemptAssessmentId])
+}

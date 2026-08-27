@@ -1,0 +1,25 @@
+/// Một LƯỢT LÀM BÀI của một sinh viên cho một bài tập.
+///
+/// Một lượt trải qua NHIỀU buổi ngồi máy, cách nhau nhiều ngày — buổi không phải lượt.
+///
+/// Khoá chính tổ hợp `(userId, assessmentId)` cũng chính là luật "một lượt cho mỗi cặp". Chuỗi
+/// lan dừng ngay ở đây: `AssignmentWorkspace` mang hai cột này, nhưng bản thân nó có khoá riêng
+/// nên các bảng dưới không phải mang tiếp.
+model AssessmentAttempt {
+  userId       String @db.Uuid
+  assessmentId String @db.Uuid
+
+  startAt DateTime @default(now())
+
+  /// Rỗng = đang làm dở. Sau thời điểm này bài chuyển sang chỉ đọc, và mọi thao tác ghi nhận
+  /// được sau đó đều đáng chú ý.
+  submitAt DateTime?
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+
+  workspace AssignmentWorkspace?
+
+  @@id([userId, assessmentId])
+  @@index([assessmentId])
+}

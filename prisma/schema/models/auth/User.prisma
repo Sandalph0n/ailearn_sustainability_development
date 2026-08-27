@@ -1,57 +1,33 @@
 /// Một tài khoản người dùng.
 ///
-/// ─── Không phân biệt sinh viên / giảng viên ở đây ────────────────────────────
-///
-/// Bảng này chỉ trả lời "người này là ai". Việc họ làm gì trong một môn cụ thể nằm ở
-/// `Membership` — xem file đó để biết vì sao vai trò không thuộc về con người.
+/// Không phân biệt sinh viên hay giảng viên ở đây: vai trò thuộc về QUAN HỆ giữa người và một
+/// phạm vi cụ thể — xem `RoleAssignment`.
 model User {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  /// Email đăng nhập. Cũng là danh tính duy nhất của tài khoản.
-  email String @unique
-
-  /// BĂM của mật khẩu, KHÔNG phải mật khẩu.
-  ///
-  /// Rò cả bảng này thì kẻ tấn công vẫn không đăng nhập được — đó là toàn bộ lý do băm tồn tại.
+  email        String @unique
+  /// BĂM của mật khẩu. Rò bảng này thì kẻ tấn công vẫn không đăng nhập được.
   passwordHash String
 
   firstName String
   lastName  String
 
-  /// Cơ sở giáo dục người này khai lúc đăng ký.
-  ///
-  /// Quyết định họ nhìn thấy môn nào, và mở khoá công cụ nhập nhanh dữ liệu riêng của trường đó.
-  institutionId String @db.Uuid
-
   createdAt DateTime @default(now())
 
   // ─── Quan hệ ─────────────────────────────────────────────────────────────
 
-  /// `Restrict` — CỐ Ý khác với `Subject`/`Term` (những thứ đó `Cascade`).
+  /// Phiên đăng nhập chết theo tài khoản — chúng không có giá trị lưu trữ nào.
+  loginSessions LoginSession[]
+
+  /// Những thứ dưới đây đều `Restrict`: KHÔNG xoá được tài khoản đã có hoạt động.
   ///
-  /// Môn học thuộc sở hữu của trường nên xoá trường thì chúng chết theo là đúng. Nhưng người
-  /// dùng là một CON NGƯỜI, không thuộc sở hữu của ai — xoá trường mà cuốn theo cả tài khoản là
-  /// hành vi không ai muốn. Chặn lại buộc người xoá phải xử lý số tài khoản đó một cách có ý thức.
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  /// Với một hệ thống lấy liêm chính học thuật làm cốt lõi, cho phép xoá tài khoản là mở một
+  /// đường xoá sạch bằng chứng. Muốn ngừng cho ai đó dùng thì vô hiệu hoá, không phải xoá.
+  roleAssignments   RoleAssignment[]
+  roleRequests      RoleRequest[]      @relation("requestedBy")
+  processedRequests RoleRequest[]      @relation("processedBy")
+  attempts          AssessmentAttempt[]
 
-  /// Các phiên đăng nhập. Nhiều phiên sống cùng lúc là bình thường — một người có thể đăng nhập
-  /// trên máy để bàn và laptop.
-  sessions Session[]
-
-  /// Các môn họ tham gia, kèm vai trò.
-  memberships Membership[]
-
-  /// Các lượt làm bài của chính họ (khi là sinh viên).
-  attempts Attempt[]
-
-  /// Các phiên làm việc — kể cả phiên tự do không gắn bài tập nào.
-  workSessions WorkSession[]
-
-  /// Các lần chấm do CHÍNH họ thực hiện (khi là giảng viên).
-  markingsGiven Marking[]
-
-  /// Sự kiện lịch cá nhân.
-  calendarEvents CalendarEvent[]
-
-  @@index([institutionId])
+  /// Workspace cá nhân thì ngược lại — dữ liệu riêng, không có giá trị đối chứng, xoá theo được.
+  personalWorkspaces PersonalWorkspace[]
 }

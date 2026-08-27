@@ -1,25 +1,21 @@
-/// Một công cụ làm bài mà hệ thống cung cấp — trình soạn mã, trình vẽ sơ đồ, …
-///
-/// ─── Vì sao khoá chính là chuỗi, không phải UUID ─────────────────────────────
-///
-/// Vì mã nguồn phải gọi tên công cụ trực tiếp: giao diện cần biết `'code'` thì dựng trình soạn
-/// mã, `'diagram'` thì dựng khung vẽ. Với UUID thì mọi chỗ như vậy phải tra bảng trước, hoặc tệ
-/// hơn là chép cứng một chuỗi UUID vào mã nguồn.
-///
-/// Đổi lại: `id` là thứ do người phát triển đặt và KHÔNG được đổi về sau — nó nằm rải trong dữ
-/// liệu đã ghi.
+/// Một công cụ làm bài: trình soạn mã, trình vẽ sơ đồ.
 model Tool {
-  /// Định danh dạng chữ, ví dụ `code`, `diagram`. Do người phát triển đặt.
-  id String @id
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  /// Tên hiển thị cho người dùng, ví dụ "Trình soạn mã".
-  name String
+  /// Tên bền vững, GIỐNG NHAU ở mọi môi trường: `code`, `diagram`.
+  ///
+  /// Cần vì UUID khác nhau ở mỗi database — mã nguồn không so được với nó. Cũng là thứ xuất hiện
+  /// trong đường dẫn `/tools/<code>/…`.
+  ///
+  /// Không bao giờ hiện cho người dùng, nên không có lý do gì để đổi. Chữ hiển thị là `name`.
+  code String @unique
 
-  // ─── Quan hệ ─────────────────────────────────────────────────────────────
+  name        String
+  description String?
 
-  /// Các bài tập cho phép dùng công cụ này.
-  assessments Assessment[]
+  /// Nơi chứa mã của công cụ. Chỗ để về sau nạp công cụ không nằm trong bản build.
+  codeBaseLocation String?
 
-  /// Các phiên làm việc đã mở bằng công cụ này.
-  workSessions WorkSession[]
+  assessments  AssessmentAllowTool[]
+  workSessions AssignmentWorkSession[]
 }

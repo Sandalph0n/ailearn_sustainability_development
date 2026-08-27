@@ -1,0 +1,39 @@
+/// Một LƯỢT xin vai trò.
+///
+/// ─── Vì sao tách khỏi `RoleAssignment` ───────────────────────────────────────
+///
+/// Đơn là SỰ VIỆC ĐÃ XẢY RA; phép gán là SỰ THẬT HIỆN TẠI. Gộp lại thì thu hồi vai trò phải sửa
+/// một bản ghi lịch sử, và mọi truy vấn phân quyền phải kèm `where status = APPROVED` — quên một
+/// lần là đơn đang chờ duyệt được tính như đã duyệt.
+model RoleRequest {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  userId        String @db.Uuid
+  institutionId String @db.Uuid
+  roleId        String @db.Uuid
+
+  requestedAt DateTime          @default(now())
+  status      RoleRequestStatus @default(PENDING)
+  processedAt DateTime?
+
+  /// Ai bấm duyệt. `SetNull` — xoá tài khoản người duyệt không được làm mất chính cái đơn.
+  processedByUserId String? @db.Uuid
+
+  /// Phép gán mà đơn này sinh ra khi được duyệt. Giữ đường truy vết hai chiều.
+  approvedAssignmentId String? @unique @db.Uuid
+
+  user               User            @relation("requestedBy", fields: [userId], references: [id], onDelete: Restrict)
+  institution        Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  role               Role            @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  processedBy        User?           @relation("processedBy", fields: [processedByUserId], references: [id], onDelete: SetNull)
+  approvedAssignment RoleAssignment? @relation(fields: [approvedAssignmentId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, status])
+  @@index([userId])
+}
+
+enum RoleRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

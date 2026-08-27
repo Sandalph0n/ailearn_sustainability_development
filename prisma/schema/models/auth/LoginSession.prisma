@@ -1,0 +1,19 @@
+/// Một phiên đăng nhập của một thiết bị.
+///
+/// Lưu trong database thay vì dùng JWT thuần là để THU HỒI được: máy bị mất thì xoá một dòng là
+/// phiên chết ngay.
+model LoginSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  userId String @db.Uuid
+
+  /// BĂM của token, KHÔNG phải token. Token thật chỉ nằm trong cookie trên máy người dùng.
+  tokenHash String @unique
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

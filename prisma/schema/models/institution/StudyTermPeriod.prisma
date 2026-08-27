@@ -1,0 +1,25 @@
+/// Một giai đoạn bên trong kỳ: tuần học, tuần nghỉ, đợt thi.
+///
+/// Cần thiết vì buổi học lặp theo tuần nhưng KHÔNG phải tuần nào cũng có, và giảng viên hay nói
+/// "nộp trước tuần 8" chứ không nói ngày. Tính ra từ ngày bắt đầu thì không diễn đạt được tuần
+/// nghỉ.
+model StudyTermPeriod {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  studyTermId String @db.Uuid
+
+  name    String
+  type    StudyTermPeriodType
+  startAt DateTime
+  endAt   DateTime
+
+  studyTerm StudyTerm @relation(fields: [studyTermId], references: [id], onDelete: Cascade)
+
+  @@index([studyTermId, startAt])
+}
+
+enum StudyTermPeriodType {
+  TEACHING
+  BREAK
+  EXAM
+}

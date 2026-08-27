@@ -1,0 +1,31 @@
+/// Một lần mở MỘT công cụ trong một workspace bài tập.
+///
+/// ─── Một buổi, một công cụ ───────────────────────────────────────────────────
+///
+/// Mở công cụ thứ hai là một buổi khác, và hai buổi sống song song là bình thường — nó mô tả
+/// đúng việc sinh viên để hai tab cạnh nhau.
+///
+/// Nhờ vậy `seq` chỉ có một dòng duy nhất, phát lại chỉ cần một hàm diễn giải, và mỗi sự kiện
+/// KHÔNG cần mang theo tên công cụ.
+///
+/// Cây quan hệ cho biết công cụ nào ĐƯỢC PHÉP (qua bài tập), nhưng không cho biết công cụ nào ĐÃ
+/// DÙNG — nên `toolId` ở đây là bắt buộc.
+model AssignmentWorkSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  assignmentWorkspaceId String @db.Uuid
+  toolId                String @db.Uuid
+
+  startAt DateTime  @default(now())
+  /// Rỗng = chưa đóng. Ranh giới buổi vốn mờ: máy sập thì không có tín hiệu nào cả.
+  endAt   DateTime?
+
+  workspace AssignmentWorkspace @relation(fields: [assignmentWorkspaceId], references: [workspaceId], onDelete: Cascade)
+  /// `Restrict`: đã có buổi làm việc dùng công cụ này thì không gỡ nó khỏi hệ thống được.
+  tool      Tool                @relation(fields: [toolId], references: [id], onDelete: Restrict)
+
+  eventBatches EventBatch[]
+
+  @@index([assignmentWorkspaceId, startAt])
+  @@index([toolId])
+}

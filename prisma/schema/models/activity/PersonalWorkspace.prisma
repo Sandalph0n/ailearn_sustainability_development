@@ -1,0 +1,17 @@
+/// Workspace cá nhân: ghi chú, nháp, tài liệu riêng của sinh viên.
+///
+/// KHÔNG ghi nhận thao tác — không có buổi làm việc, không có nhật ký sự kiện, không có cờ.
+/// Đó là một cam kết với người dùng, và giao diện phải nói rõ điều đó.
+///
+/// Chủ sở hữu gắn thẳng ở đây, không đặt trên lớp cha: workspace bài tập lấy chủ qua lượt làm
+/// bài, và bài nhóm còn không có "một chủ" nào cả.
+model PersonalWorkspace {
+  workspaceId String @id @db.Uuid
+
+  userId String @db.Uuid
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

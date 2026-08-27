@@ -1,0 +1,21 @@
+/// Một kỳ học của một cơ sở: "Session 2, 2026".
+///
+/// `year` và `session` tách riêng để SẮP XẾP được. Một chuỗi "Session 10" đứng trước "Session 2"
+/// khi sắp theo ký tự — mà lịch và danh sách môn đều cần đúng thứ tự thời gian.
+///
+/// Các kỳ CÓ THỂ chồng lấn: môn cả năm sống song song với môn một kỳ, kỳ hè lọt giữa hai kỳ
+/// chính. Đừng giả định chúng nối tiếp nhau.
+model StudyTerm {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  institutionId String @db.Uuid
+
+  year    Int
+  session Int
+
+  institution Institution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  periods     StudyTermPeriod[]
+  offerings   Offering[]
+
+  @@unique([institutionId, year, session])
+}

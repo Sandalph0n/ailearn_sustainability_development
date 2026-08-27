@@ -1,0 +1,30 @@
+/// Nơi chứa tài liệu. Lớp CHA của hai loại workspace.
+///
+/// ─── Vì sao chuyên biệt hoá thay vì một cột `mode` ───────────────────────────
+///
+/// Hai loại khác nhau ở QUAN HỆ, không phải ở thuộc tính: loại bài tập gắn lượt làm bài và có
+/// buổi làm việc; loại cá nhân gắn người dùng và không ghi nhận gì. Gộp một bảng thì mấy quan hệ
+/// đó thành cột rỗng-được kèm luật ngoài lề.
+///
+/// Giữ lớp cha để `Document` chỉ có MỘT cha — nếu tách hẳn hai bảng thì tài liệu lại phải trỏ
+/// vào một trong hai, và công cụ cũng phải phân biệt hai loại thùng chứa.
+///
+/// ─── Hai ràng buộc KHÔNG diễn đạt được ở tầng này ────────────────────────────
+///
+/// Ở mô hình khái niệm, chuyên biệt hoá này là RỜI NHAU và TOÀN PHẦN. Database không chặn được
+/// một `Workspace` có dòng ở cả hai bảng con, cũng không bắt được nó phải có ở một bảng. Mã phải
+/// bảo đảm.
+model Workspace {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  name String
+
+  createdAt    DateTime  @default(now())
+  /// Cho danh sách "gần đây". Workspace cá nhân không có buổi làm việc nào để suy ra.
+  lastOpenedAt DateTime?
+
+  documents Document[]
+
+  assignment AssignmentWorkspace?
+  personal   PersonalWorkspace?
+}

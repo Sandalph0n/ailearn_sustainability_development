@@ -1,0 +1,18 @@
+/// Một hành động cụ thể được phép làm: `assessment.create`, `attempt.mark`, `member.approve`.
+///
+/// ─── Từ vựng do MÃ NGUỒN sở hữu ──────────────────────────────────────────────
+///
+/// Bảng này được GIEO từ một hằng số trong mã, không phải do người dùng tạo. Một quyền chỉ có
+/// nghĩa khi có đoạn mã thật sự kiểm nó; cho quản trị viên tự gõ tên quyền mới thì sinh ra quyền
+/// mà không ai hỏi tới — tức quyền giả.
+///
+/// Cơ sở giáo dục được tự do GHÉP quyền thành vai trò, nhưng không được tự nghĩ ra quyền mới.
+model Permission {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  /// Mã quyền, khớp từng ký tự với hằng số trong mã nguồn.
+  permission  String  @unique
+  description String?
+
+  roles RolePermission[]
+}
