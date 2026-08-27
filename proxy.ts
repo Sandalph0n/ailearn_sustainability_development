@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 function isAuthenticated(){
     // dummy function 
-    return false;
+    return true;
 }
 
 function proxyLog(...messages: unknown[]){
