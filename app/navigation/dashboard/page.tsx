@@ -14,7 +14,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 
 /**
  * Các lối vào chính. Để thành dữ liệu để phần hiển thị chỉ việc lặp qua — thêm một mục là thêm
@@ -22,19 +22,19 @@ import { Button } from '@/components/ui/button';
  */
 const SECTIONS = [
     {
-        href: '/subjects',
+        href: '/navigation/subjects',
         icon: BookOpen01Icon,
         title: 'Subjects',
         description: 'The subjects you are enrolled in this term.',
     },
     {
-        href: '/assessments',
+        href: '/navigation/assessments',
         icon: TaskDone01Icon,
         title: 'Assessments',
         description: 'In progress, coming due, and already submitted.',
     },
     {
-        href: '/calendar',
+        href: '/navigation/calendar',
         icon: Calendar03Icon,
         title: 'Calendar',
         description: 'Due dates, class schedules, and anything you add.',
@@ -67,15 +67,17 @@ export default function HomePage() {
                             <CardDescription>{section.description}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="-ml-2"
-                                render={<Link href={section.href} />}
+                            <Link
+                                href={section.href}
+                                className={buttonVariants({
+                                    variant: 'ghost',
+                                    size: 'sm',
+                                    className: '-ml-2',
+                                })}
                             >
                                 Open
                                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                            </Button>
+                            </Link>
                         </CardContent>
                     </Card>
                 ))}

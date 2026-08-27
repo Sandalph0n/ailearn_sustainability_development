@@ -24,7 +24,6 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from '@/components/ui/sidebar';
-import { Button } from '@base-ui/react/button';
 
 /**
  * Danh sách mục điều hướng.
@@ -33,10 +32,10 @@ import { Button } from '@base-ui/react/button';
  * một mục là thêm một dòng, không phải chép lại năm dòng JSX rồi sửa.
  */
 const NAV_ITEMS = [
-    { href: '/', label: 'Home', icon: Home01Icon },
-    { href: '/subjects', label: 'Subjects', icon: BookOpen01Icon },
-    { href: '/assessments', label: 'Assessments', icon: TaskDone01Icon },
-    { href: '/calendar', label: 'Calendar', icon: Calendar03Icon },
+    { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
+    { href: '/navigation/subjects', label: 'Subjects', icon: BookOpen01Icon },
+    { href: '/navigation/assessments', label: 'Assessments', icon: TaskDone01Icon },
+    { href: '/navigation/calendar', label: 'Calendar', icon: Calendar03Icon },
 ] as const;
 
 export function AppSidebar() {
@@ -72,11 +71,7 @@ export function AppSidebar() {
                                     <SidebarMenuButton
                                         // Khớp chính xác với `/`, còn lại khớp theo tiền tố — nếu không thì
                                         // trang chủ luôn sáng vì mọi đường dẫn đều bắt đầu bằng `/`.
-                                        isActive={
-                                            item.href === '/'
-                                                ? pathname === '/'
-                                                : pathname.startsWith(item.href)
-                                        }
+                                        isActive={pathname.startsWith(item.href)}
                                         tooltip={item.label}
                                         render={<Link href={item.href} />}
                                     >

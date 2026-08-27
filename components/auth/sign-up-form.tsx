@@ -1,86 +1,77 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+
+import { FormInput } from '@/components/form';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { FieldGroup } from '@/components/ui/field';
+import { Spinner } from '@/components/ui/spinner';
+import { SignUpSchema, type SignUpSchemaValue } from '@/lib/auth/validation/credentials';
+
+import { useAuthSubmit } from './use-auth-submit';
+import { FormAlert } from './form-alert';
 
 /**
- * Biểu mẫu đăng ký — THUẦN GIAO DIỆN.
+ * Biểu mẫu đăng ký, nối với `POST /api/auth/register`.
  *
- * Chưa nối với `/api/auth/register`.
+ * Route đó tạo tài khoản RỒI ĐĂNG NHẬP LUÔN — nó đặt cookie phiên ngay trong phản hồi. Nên đăng
+ * ký xong đi thẳng vào ứng dụng, không bắt người dùng gõ lại email và mật khẩu vừa đặt.
  *
- * Tên các ô khớp với `registerSchema`: `firstName`, `lastName`, `email`, `password`.
- *
- * ─── Cố ý KHÔNG hỏi cơ sở giáo dục ───────────────────────────────────────────
- *
- * Một người có thể thuộc nhiều cơ sở, nên bắt chọn ngay lúc đăng ký là mô hình sai: nó giả định
- * mỗi người chỉ có đúng một trường.
- *
- * Hướng đang cân nhắc: tạo tài khoản trước, liên kết với cơ sở sau — từ trong ứng dụng, và liên
- * kết được nhiều lần.
- *
- * ─── Hệ quả: biểu mẫu này CHƯA gửi được ──────────────────────────────────────
- *
- * `registerSchema` hiện vẫn bắt buộc `institutionId`, nên gọi API mà thiếu nó sẽ bị trả về
- * `VALIDATION_ERROR`. Phải sửa schema trước khi nối phần gửi.
+ * Không hỏi cơ sở giáo dục ở đây. Một người có thể thuộc nhiều cơ sở, và quan hệ đó nằm ở
+ * `RoleAssignment` chứ không phải một cột trên `User` — nên nó thuộc về một luồng riêng sau khi
+ * đã có tài khoản, không phải một ô trong biểu mẫu đăng ký.
  */
 export function SignUpForm() {
-    return (
-        <form
-            onSubmit={(event) => {
-                event.preventDefault();
-                // TODO(logic): gọi POST /api/auth/register
-            }}
-        >
-            <FieldGroup>
-                <div className="grid grid-cols-2 gap-4">
-                    <Field>
-                        <FieldLabel htmlFor="signup-first-name">First name</FieldLabel>
-                        <Input
-                            id="signup-first-name"
-                            name="firstName"
-                            autoComplete="given-name"
-                            placeholder="Alex"
-                            required
-                        />
-                    </Field>
+    const form = useForm<SignUpSchemaValue>({
+        resolver: zodResolver(SignUpSchema),
+        defaultValues: { email: '', password: '', firstName: '', lastName: '' },
+    });
 
-                    <Field>
-                        <FieldLabel htmlFor="signup-last-name">Last name</FieldLabel>
-                        <Input
-                            id="signup-last-name"
-                            name="lastName"
-                            autoComplete="family-name"
-                            placeholder="Morgan"
-                            required
-                        />
-                    </Field>
+    const submit = useAuthSubmit('/api/auth/register', form);
+    const { isSubmitting } = form.formState;
+
+    return (
+        <form onSubmit={form.handleSubmit(submit)} noValidate>
+            <FieldGroup>
+                <FormAlert message={form.formState.errors.root?.message} />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <FormInput
+                        control={form.control}
+                        name="firstName"
+                        label="First name"
+                        autoComplete="given-name"
+                    />
+                    <FormInput
+                        control={form.control}
+                        name="lastName"
+                        label="Last name"
+                        autoComplete="family-name"
+                    />
                 </div>
 
-                <Field>
-                    <FieldLabel htmlFor="signup-email">Email</FieldLabel>
-                    <Input
-                        id="signup-email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        placeholder="you@school.edu"
-                        required
-                    />
-                </Field>
+                <FormInput
+                    control={form.control}
+                    name="email"
+                    label="Email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@school.edu"
+                />
 
-                <Field>
-                    <FieldLabel htmlFor="signup-password">Password</FieldLabel>
-                    <Input
-                        id="signup-password"
-                        name="password"
-                        type="password"
-                        autoComplete="new-password"
-                        required
-                    />
-                </Field>
+                <FormInput
+                    control={form.control}
+                    name="password"
+                    label="Password"
+                    description="At least 12 characters."
+                    type="password"
+                    // `new-password` để trình duyệt gợi ý tạo mật khẩu mạnh thay vì điền lại cái cũ.
+                    autoComplete="new-password"
+                />
 
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting && <Spinner />}
                     Create account
                 </Button>
             </FieldGroup>

@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -64,23 +65,33 @@ export function AccountBox({ user, onSignOut }: Props) {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="flex flex-col gap-0.5">
-                    <span className="font-medium">{fullName}</span>
-                    <span className="text-muted-foreground truncate text-xs font-normal">
-                        {user.email}
-                    </span>
-                </DropdownMenuLabel>
+                {/*
+                    `DropdownMenuLabel` dựng ra `Menu.GroupLabel`, và Base UI BẮT BUỘC nó nằm
+                    trong một `Menu.Group` — thiếu thì ném lỗi "MenuGroupContext is missing".
 
-                <DropdownMenuSeparator />
+                    Ràng buộc đó có lý do: nhãn phải gán tên cho một nhóm cụ thể thì trình đọc
+                    màn hình mới nói được "Profile, trong nhóm Nguyên Phạm". Nhãn đứng trơ một
+                    mình chỉ là chữ, không nối với gì cả.
+                */}
+                <DropdownMenuGroup>
+                    <DropdownMenuLabel className="flex flex-col gap-0.5">
+                        <span className="font-medium">{fullName}</span>
+                        <span className="text-muted-foreground truncate text-xs font-normal">
+                            {user.email}
+                        </span>
+                    </DropdownMenuLabel>
 
-                <DropdownMenuItem>
-                    <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
-                    Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
-                    Settings
-                </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem>
+                        <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
+                        Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
+                        Settings
+                    </DropdownMenuItem>
+                </DropdownMenuGroup>
 
                 <DropdownMenuSeparator />
 

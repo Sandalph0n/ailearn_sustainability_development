@@ -3,17 +3,11 @@
 
 import { type FormEvent, useState } from 'react';
 
-export type InstitutionOption = {
-    id: string;
-    name: string;
-};
-
 type AuthUserView = {
     id: string;
     email: string;
     firstName: string;
     lastName: string;
-    institutionId: string;
 };
 
 export type AuthSessionView = {
@@ -32,7 +26,6 @@ type ApiResult = {
 
 type AuthTestClientProps = {
     initialSession: AuthSessionView | null;
-    institutions: InstitutionOption[];
 };
 
 const inputClassName =
@@ -77,11 +70,10 @@ function isAuthSessionView(value: unknown): value is AuthSessionView {
     );
 }
 
-export default function AuthTestClient({ initialSession, institutions }: AuthTestClientProps) {
+export default function AuthTestClient({ initialSession }: AuthTestClientProps) {
     const [session, setSession] = useState<AuthSessionView | null>(initialSession);
     const [result, setResult] = useState<ApiResult | null>(null);
     const [pendingAction, setPendingAction] = useState<string | null>(null);
-    const hasInstitutions = institutions.length > 0;
 
     async function runAction(
         action: string,
@@ -136,7 +128,6 @@ export default function AuthTestClient({ initialSession, institutions }: AuthTes
                     password: formData.get('password'),
                     firstName: formData.get('firstName'),
                     lastName: formData.get('lastName'),
-                    institutionId: formData.get('institutionId'),
                 }),
             },
             'refresh',
@@ -186,29 +177,8 @@ export default function AuthTestClient({ initialSession, institutions }: AuthTes
                             <p className="mt-1 text-sm text-slate-400">Creates a User, a Session, and a cookie.</p>
                         </div>
 
-                        {!hasInstitutions && (
-                            <div className="mb-4 rounded-xl border border-rose-400/20 bg-rose-400/5 p-3 text-sm text-rose-200">
-                                No Institution rows exist. Add one with Prisma Studio before testing registration.
-                            </div>
-                        )}
 
                         <form className="space-y-4" onSubmit={handleRegister}>
-                            <label className="block text-sm font-medium text-slate-300">
-                                Institution
-                                <select
-                                    name="institutionId"
-                                    required
-                                    disabled={!hasInstitutions}
-                                    defaultValue={institutions[0]?.id}
-                                    className={inputClassName}
-                                >
-                                    {institutions.map((institution) => (
-                                        <option key={institution.id} value={institution.id}>
-                                            {institution.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <label className="block text-sm font-medium text-slate-300">
@@ -261,7 +231,7 @@ export default function AuthTestClient({ initialSession, institutions }: AuthTes
 
                             <button
                                 type="submit"
-                                disabled={!hasInstitutions || pendingAction !== null}
+                                disabled={pendingAction !== null}
                                 className={`${primaryButtonClassName} w-full`}
                             >
                                 {pendingAction === 'Register' ? 'Registering…' : 'Create account'}

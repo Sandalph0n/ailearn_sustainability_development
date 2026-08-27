@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+
+    // Code tham khảo, không phải của ứng dụng — không lint, không typecheck.
+    "reference/**",
+    "base44reference/**",
   ]),
 ]);
 

@@ -1,5 +1,5 @@
-// File này chuẩn hóa cấu trúc JSON thành công và lỗi trả về từ auth API.
 import type { ValidationErrors } from '@/lib/auth/validation/credentials';
+import { NextResponse } from 'next/server';
 
 type ErrorCode =
     | 'AUTHENTICATION_REQUIRED'
@@ -13,11 +13,11 @@ type ErrorCode =
     | 'UNSUPPORTED_CONTENT_TYPE'
     | 'VALIDATION_ERROR';
 
-export function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+export function jsonResponse(body: unknown, init: ResponseInit = {}): NextResponse {
     const headers = new Headers(init.headers);
     headers.set('Cache-Control', 'no-store');
 
-    return Response.json(body, { ...init, headers });
+    return NextResponse.json(body, { ...init, headers });
 }
 
 export function errorResponse(
@@ -25,7 +25,9 @@ export function errorResponse(
     code: ErrorCode,
     message: string,
     fields?: ValidationErrors,
-): Response {
+): NextResponse {
+    // Đi qua `jsonResponse` chứ không gọi thẳng `NextResponse.json`, nếu không thì mất
+    // `Cache-Control: no-store` và phản hồi lỗi đăng nhập có thể bị proxy đem dùng lại.
     return jsonResponse(
         {
             error: {
@@ -38,7 +40,7 @@ export function errorResponse(
     );
 }
 
-export function invalidBodyResponse(reason: 'invalid_json' | 'too_large' | 'wrong_content_type'): Response {
+export function invalidBodyResponse(reason: 'invalid_json' | 'too_large' | 'wrong_content_type'): NextResponse {
     if (reason === 'too_large') {
         return errorResponse(413, 'PAYLOAD_TOO_LARGE', 'Request payload is too large');
     }
@@ -50,6 +52,6 @@ export function invalidBodyResponse(reason: 'invalid_json' | 'too_large' | 'wron
     return errorResponse(400, 'INVALID_JSON', 'JSON payload is invalid');
 }
 
-export function invalidOriginResponse(): Response {
+export function invalidOriginResponse(): NextResponse {
     return errorResponse(403, 'INVALID_ORIGIN', 'Request origin is invalid');
 }

@@ -28,10 +28,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  * Bên trong card vẫn chia đôi: biểu mẫu cần ngắn, nhưng người lần đầu vào cần biết đây là gì.
  * Màn hình hẹp thì nửa trái ẩn đi, chỉ còn phần nhận diện thu gọn phía trên biểu mẫu.
  *
- * ─── Vì sao nằm ngoài nhóm `(navigation)` ────────────────────────────────────
+ * ─── Vì sao nằm ngoài `/navigation` ──────────────────────────────────────────
  *
- * Nhóm kia có sidebar và được proxy bảo vệ. Để trang này ở đó thì người chưa đăng nhập bị đá về
- * chính nó, lặp vô tận. Bản thân đường dẫn `/auth` đã đủ tách bạch, không cần bọc thêm nhóm.
+ * Nhánh kia có sidebar và được proxy bảo vệ. Để trang này ở đó thì người chưa đăng nhập bị đá về
+ * chính nó, lặp vô tận. Bản thân đường dẫn `/auth` đã đủ tách bạch.
+ *
+ * ─── CẢNH BÁO: tham số `next` ────────────────────────────────────────────────
+ *
+ * `proxy.ts` gắn `?next=<đường dẫn>` khi đá người chưa đăng nhập về đây, để đăng nhập xong quay
+ * lại đúng chỗ họ định tới.
+ *
+ * Giá trị đó đến từ URL, nghĩa là bất kỳ ai cũng đặt được. Phía đăng nhập PHẢI kiểm trước khi
+ * chuyển hướng theo. Nhận bừa là mở lỗ hổng chuyển hướng — kẻ tấn công gửi
+ * `/auth?next=https://tencuop.example`, người dùng đăng nhập xong bị đẩy sang trang giả mạo và
+ * gõ lại mật khẩu ở đó.
+ *
+ * Chỉ chấp nhận đường dẫn nội bộ: bắt đầu bằng đúng một dấu `/` và không phải `//` (vì `//host`
+ * là URL tuyệt đối thiếu giao thức, trình duyệt vẫn đi ra ngoài). Sai thì rơi về mặc định.
  */
 
 const HIGHLIGHTS = [
@@ -56,8 +69,8 @@ export default function AuthPage() {
     return (
         <div className="bg-muted/40 relative flex min-h-svh items-center justify-center overflow-hidden p-4 md:p-8">
             {/*
-              Nền trang trí. Cả ba lớp đều là CSS thuần — không thêm một request ảnh nào, và chúng
-              lấy màu từ token nên đổi bảng màu không phải sửa gì ở đây.
+                Nền trang trí. Cả ba lớp đều là CSS thuần — không thêm một request ảnh nào, và chúng
+                lấy màu từ token nên đổi bảng màu không phải sửa gì ở đây.
             */}
             <div
                 aria-hidden

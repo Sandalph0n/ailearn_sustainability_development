@@ -17,11 +17,13 @@
     "db:psql": "docker compose exec db psql -U postgres -d ailearn",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate",
     "storage:console": "node -e \"console.log(String.raw`Trinh duyet tep MinIO: http://localhost:9001  (ailearn / ailearn-dev-secret)`)\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1117.0",
     "@base-ui/react": "^1.7.0",
+    "@hookform/resolvers": "^5.9.1",
     "@hugeicons/core-free-icons": "^4.3.0",
     "@hugeicons/react": "^1.1.10",
     "@prisma/adapter-pg": "^7.9.1",
@@ -41,6 +43,7 @@
     "react": "19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.8",
+    "react-hook-form": "^7.86.0",
     "react-resizable-panels": "^4.12.3",
     "recharts": "3.8.0",
     "server-only": "^0.0.1",
