@@ -13,11 +13,6 @@ import {
 
 import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
 import {
-    JOIN_REQUEST_ICON,
-    NotificationsPanel,
-    type AdminNotification,
-} from '@/components/admin/notifications-panel';
-import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
@@ -147,32 +142,8 @@ export default async function InstitutionSettingsPage({
         },
     ];
 
-    /**
-     * Thông báo — hiện chỉ có MỘT nguồn thật.
-     *
-     * Chưa có bảng `Notification` và chưa có hàng đợi nào. Thứ duy nhất đã tồn tại và đáng để
-     * người quản trị phải quyết là đơn xin vai trò đang chờ, nên nó là mục duy nhất ở đây.
-     *
-     * Không bịa thêm mục cho bảng trông đầy: đến lúc nối nguồn thật sẽ phải gỡ, và trong lúc đó
-     * không ai phân biệt được cái nào thật.
-     */
-    const notifications: AdminNotification[] =
-        pendingRequests > 0
-            ? [
-                  {
-                      id: 'join-requests',
-                      icon: JOIN_REQUEST_ICON,
-                      title: `${pendingRequests} join request${pendingRequests === 1 ? '' : 's'}`,
-                      body: 'Someone is waiting for a role at this institution.',
-                      at: 'Waiting for a decision',
-                      tone: 'attention',
-                  },
-              ]
-            : [];
-
     return (
-        <NotificationsPanel notifications={notifications}>
-            <div className="flex flex-col gap-6 pt-1">
+        <div className="flex flex-col gap-6 pt-1">
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
@@ -266,7 +237,6 @@ export default async function InstitutionSettingsPage({
                         ))}
                     </div>
                 </section>
-            </div>
-        </NotificationsPanel>
+        </div>
     );
 }
