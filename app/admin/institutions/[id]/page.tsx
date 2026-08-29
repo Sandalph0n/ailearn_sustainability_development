@@ -22,13 +22,6 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { db } from '@/lib/db';
 
 /**
@@ -150,7 +143,7 @@ export default async function InstitutionSettingsPage({
     ];
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex max-w-4xl flex-col gap-6 pt-1">
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
@@ -167,7 +160,7 @@ export default async function InstitutionSettingsPage({
 
             <section className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="font-heading text-2xl font-medium tracking-tight">
+                    <h1 className="font-heading text-xl font-semibold tracking-tight">
                         {institution.name}
                     </h1>
                     {institution.website ? (
@@ -199,39 +192,47 @@ export default async function InstitutionSettingsPage({
                 />
             </section>
 
-            <section className="flex flex-col gap-4">
+            <section className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
-                    <h2 className="font-heading text-lg font-medium">Setup</h2>
+                    <h2 className="font-heading text-base font-semibold">Setup</h2>
                     <p className="text-muted-foreground text-sm">
-                        Everything below belongs to this institution alone. None of it is built
-                        yet.
+                        Everything below belongs to this institution alone. None of it is built yet.
                     </p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/*
+                    Danh sách dày, cùng ngôn ngữ với trang tổng quan quản trị. Sáu thẻ có biểu
+                    tượng và câu mô tả là khuôn của trang tiếp thị; ở đây người đọc cần liếc một
+                    lượt xem trường này đã cấu hình tới đâu.
+                */}
+                <div className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
                     {sections.map((section) => (
-                        <Card key={section.key} className="opacity-70">
-                            <CardHeader>
-                                <div className="mb-3 flex items-start justify-between">
-                                    <div className="bg-secondary text-secondary-foreground flex size-9 items-center justify-center rounded-lg">
-                                        <HugeiconsIcon
-                                            icon={section.icon}
-                                            strokeWidth={2}
-                                            className="size-4"
-                                        />
-                                    </div>
-                                    <Badge variant="secondary">Not built yet</Badge>
-                                </div>
-                                <CardTitle>{section.title}</CardTitle>
-                                <CardDescription>{section.description}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <span className="text-muted-foreground text-sm tabular-nums">
-                                    {section.count} {section.unit}
-                                    {section.count === 1 ? '' : 's'}
-                                </span>
-                            </CardContent>
-                        </Card>
+                        <div key={section.key} className="flex items-center gap-4 px-4 py-3.5">
+                            <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
+                                <HugeiconsIcon
+                                    icon={section.icon}
+                                    strokeWidth={2}
+                                    className="size-4"
+                                />
+                            </div>
+
+                            {/* `min-w-0` để mô tả dài bị cắt chứ không đẩy vỡ hàng. */}
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium">{section.title}</p>
+                                <p className="text-muted-foreground truncate text-sm">
+                                    {section.description}
+                                </p>
+                            </div>
+
+                            <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+                                {section.count} {section.unit}
+                                {section.count === 1 ? '' : 's'}
+                            </span>
+
+                            <Badge variant="secondary" className="shrink-0">
+                                Not built
+                            </Badge>
+                        </div>
                     ))}
                 </div>
             </section>

@@ -49,9 +49,9 @@ export default async function AdminInstitutionsPage() {
     }));
 
     return (
-        <div className="flex flex-col gap-8">
-            <section className="flex flex-col gap-2">
-                <h1 className="font-heading text-2xl font-medium tracking-tight">Institutions</h1>
+        <div className="flex flex-col gap-6 pt-1">
+            <section className="flex flex-col gap-1.5">
+                <h1 className="font-heading text-xl font-semibold tracking-tight">Institutions</h1>
                 <p className="text-muted-foreground max-w-2xl text-sm">
                     Schools and universities using the platform. Every subject, term and role
                     belongs to one of these.

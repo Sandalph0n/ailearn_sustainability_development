@@ -1,31 +1,34 @@
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-    UniversityIcon,
+    ArrowRight01Icon,
     BookOpen01Icon,
     Calendar03Icon,
-    UserMultipleIcon,
     Shield01Icon,
     ToolboxIcon,
-    ArrowRight01Icon,
+    UniversityIcon,
+    UserMultipleIcon,
 } from '@hugeicons/core-free-icons';
 
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { buttonVariants } from '@/components/ui/button';
 import { db } from '@/lib/db';
 
 /**
- * Các lối vào của khu quản trị. Cùng dạng dữ liệu với trang chủ điều hướng — thêm một mục là
- * thêm một dòng.
+ * Các lối vào của khu quản trị.
  *
- * `count` là hàm đếm chạy ở server, để mỗi thẻ hiện được số lượng thật thay vì một con số cứng.
+ * ─── Vì sao là DANH SÁCH chứ không phải lưới thẻ ─────────────────────────────
+ *
+ * Bản trước là một lưới sáu thẻ, mỗi thẻ một biểu tượng, một tiêu đề, một câu mô tả. Đó đúng
+ * khuôn trang giới thiệu sản phẩm — và cũng đúng khuôn mà giao diện máy sinh hay rơi vào.
+ *
+ * Nhưng đây là bảng quản trị, không phải trang bán hàng. Người vào đây đã biết mình cần gì; thứ
+ * họ muốn là ĐI TỚI nhanh và thấy hệ thống đang có bao nhiêu. Danh sách dày làm cả hai việc đó
+ * tốt hơn: sáu dòng đọc hết trong một lần liếc, còn sáu thẻ thì mắt phải nhảy theo hai chiều.
+ *
+ * Nó cũng tách hẳn khu quản trị khỏi ngôn ngữ của trang giới thiệu — hai nơi phục vụ hai kiểu
+ * người đọc, không có lý do gì phải trông giống nhau.
  */
+export const dynamic = 'force-dynamic';
+
 const SECTIONS = [
     {
         href: '/admin/institutions',
@@ -76,48 +79,54 @@ export default async function AdminOverviewPage() {
     const counts = await Promise.all(SECTIONS.map((section) => section.count()));
 
     return (
-        <div className="flex flex-col gap-8">
-            <section className="flex flex-col gap-2">
-                <h1 className="font-heading text-2xl font-medium tracking-tight">Administration</h1>
-                <p className="text-muted-foreground max-w-2xl text-sm">
+        <div className="flex max-w-4xl flex-col gap-6 pt-1">
+            <section className="flex flex-col gap-1.5">
+                <h1 className="font-heading text-xl font-semibold tracking-tight">
+                    Administration
+                </h1>
+                <p className="text-muted-foreground text-sm">
                     Platform-wide settings. Changes here affect every institution, so they are kept
                     apart from the rest of the app.
                 </p>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/*
+                `divide-y` thay cho khoảng cách giữa các thẻ: một đường kẻ mảnh nói "đây là các
+                mục cùng loại" rõ hơn sáu hộp rời nhau, và tiết kiệm chiều dọc.
+            */}
+            <section className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
                 {SECTIONS.map((section, index) => (
-                    <Card key={section.href}>
-                        <CardHeader>
-                            <div className="mb-3 flex items-start justify-between">
-                                <div className="bg-secondary text-secondary-foreground flex size-9 items-center justify-center rounded-lg">
-                                    <HugeiconsIcon
-                                        icon={section.icon}
-                                        strokeWidth={2}
-                                        className="size-4"
-                                    />
-                                </div>
-                                <span className="text-muted-foreground font-mono text-sm tabular-nums">
-                                    {counts[index]}
-                                </span>
-                            </div>
-                            <CardTitle>{section.title}</CardTitle>
-                            <CardDescription>{section.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Link
-                                href={section.href}
-                                className={buttonVariants({
-                                    variant: 'ghost',
-                                    size: 'sm',
-                                    className: '-ml-2',
-                                })}
-                            >
-                                Manage
-                                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                            </Link>
-                        </CardContent>
-                    </Card>
+                    <Link
+                        key={section.href}
+                        href={section.href}
+                        className="hover:bg-muted/50 group flex items-center gap-4 px-4 py-3.5 transition-colors"
+                    >
+                        <div className="bg-muted text-muted-foreground group-hover:text-foreground flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                            <HugeiconsIcon icon={section.icon} strokeWidth={2} className="size-4" />
+                        </div>
+
+                        {/* `min-w-0` để mô tả dài bị cắt bằng dấu ba chấm thay vì đẩy vỡ hàng. */}
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">{section.title}</p>
+                            <p className="text-muted-foreground truncate text-sm">
+                                {section.description}
+                            </p>
+                        </div>
+
+                        {/*
+                            Số đếm dùng `tabular-nums` — đây là một CỘT số, và chữ số đều bề rộng
+                            giúp chúng thẳng hàng dọc qua sáu dòng.
+                        */}
+                        <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+                            {counts[index]}
+                        </span>
+
+                        <HugeiconsIcon
+                            icon={ArrowRight01Icon}
+                            strokeWidth={2}
+                            className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
+                        />
+                    </Link>
                 ))}
             </section>
         </div>
