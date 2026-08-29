@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
+    ArrowRight01Icon,
     BookOpen01Icon,
     Calendar03Icon,
     CheckListIcon,
@@ -27,20 +28,17 @@ import { db } from '@/lib/db';
 /**
  * Trang cài đặt của MỘT cơ sở giáo dục.
  *
- * ─── Trang này đang là khung rỗng ────────────────────────────────────────────
+ * ─── Đây là BẢNG MỤC LỤC, không phải nơi sửa dữ liệu ─────────────────────────
  *
- * Các mục bên dưới liệt kê những gì một trường cần cấu hình, kèm số lượng thật đọc từ database.
- * Chưa mục nào có trang con — bấm vào chưa đi đâu cả. Dựng khung trước để nhìn thấy toàn cảnh
- * rồi mới quyết làm mục nào trước.
+ * Mỗi mục hiện số lượng thật và dẫn sang trang quản lý tương ứng, ĐÃ LỌC SẴN theo cơ sở này qua
+ * `?institution=<id>`.
  *
- * ─── Vì sao mọi thứ ở đây thuộc về MỘT trường ────────────────────────────────
+ * Các trang đó là trang toàn hệ thống kèm bộ lọc, không phải trang con của cơ sở. Lý do: làm
+ * trang con thì Subject, Term, Role, Offering, People, Requests thành sáu bộ CRUD gần như giống
+ * hệt nhau, và người quản trị mất khả năng nhìn tất cả các trường cùng lúc. Xem
+ * `app/admin/subjects/page.tsx`.
  *
- * `Subject`, `StudyTerm`, `Role`, `RoleRequest` đều mang `institutionId` và đều `onDelete:
- * Cascade`. Nghĩa là chúng không tồn tại độc lập — hai trường có thể cùng có môn tên "COMP3000"
- * mà là hai môn khác nhau, cùng có vai trò tên "Tutor" mà là hai vai trò khác nhau.
- *
- * Nên nơi đúng để cấu hình chúng là ở đây, trong phạm vi một trường, chứ không phải một danh
- * sách phẳng toàn hệ thống.
+ * Mục nào chưa có trang thì mang nhãn "Not built" và không bấm được — không giả vờ là liên kết.
  */
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +50,13 @@ type Section = {
     count: number;
     /** Chữ đứng cạnh con số, để "3" không mơ hồ. */
     unit: string;
+    /**
+     * Trang quản lý, đã lọc sẵn theo cơ sở này. `null` là chưa dựng.
+     *
+     * Các trang đó là trang TOÀN HỆ THỐNG kèm bộ lọc `?institution=`, không phải trang con của
+     * cơ sở — xem `app/admin/subjects/page.tsx` để biết vì sao.
+     */
+    href: string | null;
 };
 
 export default async function InstitutionSettingsPage({
@@ -97,6 +102,7 @@ export default async function InstitutionSettingsPage({
             description: 'The units this institution teaches, with their codes and names.',
             count: institution._count.subjects,
             unit: 'subject',
+            href: `/admin/subjects?institution=${id}`,
         },
         {
             key: 'terms',
@@ -106,6 +112,7 @@ export default async function InstitutionSettingsPage({
                 'Years and sessions, and the teaching, break and exam periods inside each.',
             count: institution._count.studyTerms,
             unit: 'term',
+            href: `/admin/terms?institution=${id}`,
         },
         {
             key: 'offerings',
@@ -114,6 +121,7 @@ export default async function InstitutionSettingsPage({
             description: 'Which subject runs in which term. Assessments hang off these.',
             count: offerings,
             unit: 'offering',
+            href: null,
         },
         {
             key: 'roles',
@@ -123,6 +131,7 @@ export default async function InstitutionSettingsPage({
                 'Role definitions, what each may do, and which roles include which others.',
             count: institution._count.roles,
             unit: 'role',
+            href: `/admin/roles?institution=${id}`,
         },
         {
             key: 'people',
@@ -131,6 +140,7 @@ export default async function InstitutionSettingsPage({
             description: 'Who holds which role here, and in which offering.',
             count: activeAssignments,
             unit: 'active assignment',
+            href: null,
         },
         {
             key: 'requests',
@@ -139,76 +149,77 @@ export default async function InstitutionSettingsPage({
             description: 'People asking for a role here, waiting to be approved or rejected.',
             count: pendingRequests,
             unit: 'pending request',
+            href: null,
         },
     ];
 
     return (
         <div className="flex flex-col gap-6 pt-1">
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <BreadcrumbLink render={<Link href="/admin/institutions" />}>
-                                Institutions
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                            <BreadcrumbPage>{institution.name}</BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
+            <Breadcrumb>
+                <BreadcrumbList>
+                    <BreadcrumbItem>
+                        <BreadcrumbLink render={<Link href="/admin/institutions" />}>
+                            Institutions
+                        </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        <BreadcrumbPage>{institution.name}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                </BreadcrumbList>
+            </Breadcrumb>
 
-                <section className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="font-heading text-xl font-semibold tracking-tight">
-                            {institution.name}
-                        </h1>
-                        {institution.website ? (
-                            <a
-                                href={institution.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
-                            >
-                                {institution.website.replace(/^https?:\/\//, '')}
-                                <HugeiconsIcon
-                                    icon={LinkSquare02Icon}
-                                    strokeWidth={2}
-                                    className="size-3.5"
-                                />
-                            </a>
-                        ) : (
-                            <span className="text-muted-foreground text-sm">No website set</span>
-                        )}
-                    </div>
+            <section className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="font-heading text-xl font-semibold tracking-tight">
+                        {institution.name}
+                    </h1>
+                    {institution.website ? (
+                        <a
+                            href={institution.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
+                        >
+                            {institution.website.replace(/^https?:\/\//, '')}
+                            <HugeiconsIcon
+                                icon={LinkSquare02Icon}
+                                strokeWidth={2}
+                                className="size-3.5"
+                            />
+                        </a>
+                    ) : (
+                        <span className="text-muted-foreground text-sm">No website set</span>
+                    )}
+                </div>
 
-                    <InstitutionFormDialog
-                        institution={{
-                            id: institution.id,
-                            name: institution.name,
-                            website: institution.website,
-                        }}
-                        trigger={<Button variant="outline">Edit details</Button>}
-                    />
-                </section>
+                <InstitutionFormDialog
+                    institution={{
+                        id: institution.id,
+                        name: institution.name,
+                        website: institution.website,
+                    }}
+                    trigger={<Button variant="outline">Edit details</Button>}
+                />
+            </section>
 
-                <section className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1">
-                        <h2 className="font-heading text-base font-semibold">Setup</h2>
-                        <p className="text-muted-foreground text-sm">
-                            Everything below belongs to this institution alone. None of it is built
-                            yet.
-                        </p>
-                    </div>
+            <section className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                    <h2 className="font-heading text-base font-semibold">Setup</h2>
+                    <p className="text-muted-foreground text-sm">
+                        Everything below belongs to this institution alone.
+                    </p>
+                </div>
 
-                    {/*
+                {/*
                     Danh sách dày, cùng ngôn ngữ với trang tổng quan quản trị. Sáu thẻ có biểu
                     tượng và câu mô tả là khuôn của trang tiếp thị; ở đây người đọc cần liếc một
                     lượt xem trường này đã cấu hình tới đâu.
                 */}
-                    <div className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
-                        {sections.map((section) => (
-                            <div key={section.key} className="flex items-center gap-4 px-4 py-3.5">
+                <div className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
+                    {sections.map((section) => {
+                        const body = (
+                            <>
                                 <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
                                     <HugeiconsIcon
                                         icon={section.icon}
@@ -230,13 +241,38 @@ export default async function InstitutionSettingsPage({
                                     {section.count === 1 ? '' : 's'}
                                 </span>
 
-                                <Badge variant="secondary" className="shrink-0">
-                                    Not built
-                                </Badge>
+                                {section.href ? (
+                                    <HugeiconsIcon
+                                        icon={ArrowRight01Icon}
+                                        strokeWidth={2}
+                                        className="text-muted-foreground size-4 shrink-0"
+                                    />
+                                ) : (
+                                    <Badge variant="secondary" className="shrink-0">
+                                        Not built
+                                    </Badge>
+                                )}
+                            </>
+                        );
+
+                        // Mục đã có trang thì cả hàng là liên kết; chưa có thì là một hàng
+                        // trơ, không giả vờ bấm được.
+                        return section.href ? (
+                            <Link
+                                key={section.key}
+                                href={section.href}
+                                className="hover:bg-muted/50 flex items-center gap-4 px-4 py-3.5 transition-colors"
+                            >
+                                {body}
+                            </Link>
+                        ) : (
+                            <div key={section.key} className="flex items-center gap-4 px-4 py-3.5">
+                                {body}
                             </div>
-                        ))}
-                    </div>
-                </section>
+                        );
+                    })}
+                </div>
+            </section>
         </div>
     );
 }
