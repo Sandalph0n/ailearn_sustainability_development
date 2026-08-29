@@ -26,6 +26,9 @@ const sessionUserSelect = {
     email: true,
     firstName: true,
     lastName: true,
+    // Đi kèm phiên vì chốt chặn `/admin` cần nó ở MỌI request. Truy vấn riêng thì thành hai lần
+    // chạm database cho cùng một câu hỏi, và dễ có chỗ quên hỏi.
+    isSystemAdmin: true,
 } satisfies Prisma.UserSelect;
 
 export type SessionUser = Prisma.UserGetPayload<{ select: typeof sessionUserSelect }>;

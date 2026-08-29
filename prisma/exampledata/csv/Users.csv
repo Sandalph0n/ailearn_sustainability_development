@@ -1,0 +1,3 @@
+id, email, passwordHash, firstName, lastName, createdAt, isSystemAdmin
+e7fb6fd5-14ca-49a3-b21d-a2b53f6ea6ad,aoikanariya1212@gmail.com,"$argon2id$v=19$m=19456,p=1,t=2$g/V7BfLytZnF5S20T1MJ5g$gJaimEDNa20HyXxRCTRmA7baSbecIDRMGMPbtpb0gMo",Khoi Nguyen,Vu,2026-08-28 07:35:21.029,false
+39267335-6ab8-4483-a8d0-a13d2e11a1b2,nguyenthichlaptrinh@gmail.com,"$argon2id$v=19$m=19456,p=1,t=2$Kkltypf0TubrM3xTjWJfnA$LsyWKsZ7MLjKDtnogkawSfo/4Gsqg+60BCl/3Nv/7Hs",Admin,Vu,2026-08-28 07:39:21.847,true

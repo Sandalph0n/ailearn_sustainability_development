@@ -12,6 +12,17 @@ model User {
   firstName String
   lastName  String
 
+  /// Quản trị viên toàn hệ thống — người vận hành, không phải vai trò trong môn học.
+  ///
+  /// Mặc định `false` chứ không cho phép null: "có phải quản trị viên không" chỉ có hai câu trả
+  /// lời, thêm trạng thái `null` là thêm một nhánh vô nghĩa mà mọi chỗ đọc đều phải xử lý.
+  ///
+  /// Mặc định an toàn theo hướng từ chối: quên gán thì thành `false`, không bao giờ vô tình
+  /// thành quản trị viên.
+  ///
+  /// Khác hẳn `Membership.role` — cái kia là vai trò TRONG một môn, cái này là quyền vận hành
+  /// toàn hệ thống.
+  isSystemAdmin Boolean @default(false)
   createdAt DateTime @default(now())
 
   // ─── Quan hệ ─────────────────────────────────────────────────────────────
