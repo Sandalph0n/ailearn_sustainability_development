@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-    Home01Icon,
     BookOpen01Icon,
     Calendar03Icon,
+    Home01Icon,
+    SourceCodeIcon,
     TaskDone01Icon,
-    StudentIcon,
+    WorkflowSquare01Icon,
 } from '@hugeicons/core-free-icons';
 
+import { BrandLogo } from '@/components/brand-logo';
 import {
     Sidebar,
     SidebarContent,
@@ -26,33 +28,52 @@ import {
 } from '@/components/ui/sidebar';
 
 /**
- * Danh sách mục điều hướng.
+ * Mục điều hướng, để thành DỮ LIỆU — thêm một mục là thêm một dòng.
  *
- * Để thành DỮ LIỆU chứ không phải một dãy JSX viết tay: nơi hiển thị chỉ việc lặp qua nó. Thêm
- * một mục là thêm một dòng, không phải chép lại năm dòng JSX rồi sửa.
+ * Chia hai nhóm vì hai loại việc khác nhau: một bên là xem và theo dõi, một bên là ngồi xuống
+ * làm. Gộp chung thì danh sách dài dần rồi không ai tìm thấy gì.
  */
-const NAV_ITEMS = [
+const STUDY_ITEMS = [
     { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
     { href: '/navigation/subjects', label: 'Subjects', icon: BookOpen01Icon },
     { href: '/navigation/assessments', label: 'Assessments', icon: TaskDone01Icon },
     { href: '/navigation/calendar', label: 'Calendar', icon: Calendar03Icon },
 ] as const;
 
+const TOOL_ITEMS = [
+    { href: '/tools/code', label: 'Code', icon: SourceCodeIcon },
+    { href: '/tools/diagram', label: 'Diagram', icon: WorkflowSquare01Icon },
+] as const;
+
+/**
+ * Mục đang mở phải nổi hơn mục đang rê chuột.
+ *
+ * Mặc định của shadcn dùng CÙNG một token `--sidebar-accent` cho cả `hover` lẫn `data-active`,
+ * nên trên nền teal đậm hai trạng thái trông y hệt nhau và không biết mình đang ở đâu. Đè lại ở
+ * đây — chỗ dùng — thay vì sửa `components/ui/sidebar.tsx`.
+ */
+const ACTIVE_ITEM =
+    'data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground';
+
 export function AppSidebar() {
     const pathname = usePathname();
 
     return (
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" render={pathname != "/" ? <Link href="/"/>: <div/>}>
-                            <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <HugeiconsIcon icon={StudentIcon} strokeWidth={2} className="size-4" />
-                            </div>
+                        <SidebarMenuButton
+                            size="lg"
+                            render={<Link href="/" />}
+                            className="hover:bg-sidebar-accent/60"
+                        >
+                            <BrandLogo className="size-8 shrink-0" gradientId="ailearn-mark-nav" />
                             <div className="grid flex-1 text-left leading-tight">
-                                <span className="font-heading truncate font-medium">AI-Learn</span>
-                                <span className="text-muted-foreground truncate text-xs">
+                                <span className="font-heading truncate font-semibold">
+                                    AI-Learn
+                                </span>
+                                <span className="text-sidebar-foreground/60 truncate text-xs">
                                     Learning platform
                                 </span>
                             </div>
@@ -63,17 +84,41 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                    <SidebarGroupLabel className="text-sidebar-foreground/50">
+                        Study
+                    </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {NAV_ITEMS.map((item) => (
+                            {STUDY_ITEMS.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
-                                        // Khớp chính xác với `/`, còn lại khớp theo tiền tố — nếu không thì
-                                        // trang chủ luôn sáng vì mọi đường dẫn đều bắt đầu bằng `/`.
                                         isActive={pathname.startsWith(item.href)}
                                         tooltip={item.label}
                                         render={<Link href={item.href} />}
+                                        className={ACTIVE_ITEM}
+                                    >
+                                        <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                                        <span>{item.label}</span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel className="text-sidebar-foreground/50">
+                        Tools
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {TOOL_ITEMS.map((item) => (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton
+                                        isActive={pathname.startsWith(item.href)}
+                                        tooltip={item.label}
+                                        render={<Link href={item.href} />}
+                                        className={ACTIVE_ITEM}
                                     >
                                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                                         <span>{item.label}</span>
@@ -86,7 +131,13 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                {/* Khu vực tài khoản sẽ đặt ở đây khi có đăng nhập. */}
+                {/*
+                    Câu định vị, đặt ở chân sidebar. Nó biến mất khi thu gọn — `group-data`
+                    của Sidebar bật `collapsible=icon`, lúc đó chỉ còn chỗ cho biểu tượng.
+                */}
+                <p className="text-sidebar-foreground/45 px-3 py-2 text-xs leading-relaxed group-data-[collapsible=icon]:hidden">
+                    Every session is recorded, and plays back from the start.
+                </p>
             </SidebarFooter>
 
             <SidebarRail />

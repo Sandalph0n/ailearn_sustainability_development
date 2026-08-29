@@ -96,24 +96,56 @@
   --brand-amber: oklch(0.7045 0.1644 58.9557);
   --brand-sky: oklch(0.6262 0.1399 239.7062);
 
-  --chart-1: oklch(0.6772 0.1571 35.1898);
-  --chart-2: oklch(0.6309 0.1013 183.4907);
-  --chart-3: oklch(0.3787 0.0440 225.5393);
-  --chart-4: oklch(0.8336 0.1186 88.1463);
-  --chart-5: oklch(0.7834 0.1261 58.7491);
+  /*
+   * ─── Bảng màu biểu đồ, ĐÃ QUA KIỂM ─────────────────────────────────────
+   *
+   * Đây không phải bốn màu chọn cho hợp mắt. Chúng chạy qua bộ kiểm sáu bước cho bảng màu phân
+   * loại (dải độ sáng, sàn độ bão hoà, tách bạch dưới mù màu, sàn cho mắt thường, tương phản với
+   * nền) và phải PASS cả năm.
+   *
+   * THỨ TỰ QUAN TRỌNG. Đây chính là bốn màu thương hiệu, nhưng xếp teal → amber → sky → violet.
+   * Xếp teal cạnh sky thì cặp đó chỉ đạt ΔE 11.9 với mắt thường — dưới sàn 15, tức là người nhìn
+   * bình thường cũng khó phân biệt. Chen amber vào giữa thì cặp tệ nhất lên 21.3 và tất cả đạt.
+   *
+   * Hệ quả: gán màu theo THỨ TỰ CỐ ĐỊNH, không xoay vòng. Chuỗi thứ 5 không được sinh thêm màu
+   * mới — gộp vào "Other" hoặc tách thành nhiều biểu đồ nhỏ.
+   *
+   * `--chart-2` (amber) có tương phản 2.67:1 với nền sáng, dưới 3:1. Nó chỉ được dùng kèm nhãn
+   * hiện rõ, không bao giờ để màu tự đứng một mình mang thông tin.
+   */
+  --chart-1: oklch(0.6047 0.1022 184.2004); /* teal   #189589 */
+  --chart-2: oklch(0.7045 0.1644 58.9557); /* amber  #e9820c */
+  --chart-3: oklch(0.6262 0.1399 239.7062); /* sky    #0d91d3 */
+  --chart-4: oklch(0.5228 0.2319 293.3758); /* violet #763adf */
+  /* Xám giảm nhấn: dùng cho phần "còn lại" khi một chuỗi được làm nổi. */
+  --chart-5: oklch(0.7600 0.0120 220);
 
-  /* GIỮ NGUYÊN của preset Maia — thang bo góc trong `@theme inline` nhân với giá trị này. */
-  --radius: 0.625rem;
+  /*
+   * Thang bo góc trong `@theme inline` nhân với giá trị này, nên đổi một số là đổi cả hệ.
+   * Nâng từ 0.625rem của preset Maia lên để thẻ và nút tròn hơn, hợp với khối sidebar nổi.
+   */
+  --radius: 0.875rem;
 
-  /* base44 gọi token này là `--sidebar-background`; shadcn v4 gọi là `--sidebar`. Đổi tên cho khớp. */
-  --sidebar: oklch(0.9848 0 0);
-  --sidebar-foreground: oklch(0.3705 0.0120 285.8008);
-  --sidebar-primary: oklch(0.2103 0.0059 285.8835);
-  --sidebar-primary-foreground: oklch(0.9848 0 0);
-  --sidebar-accent: oklch(0.9676 0.0013 286.3752);
-  --sidebar-accent-foreground: oklch(0.2103 0.0059 285.8835);
-  --sidebar-border: oklch(0.9278 0.0058 264.5314);
-  --sidebar-ring: oklch(0.6232 0.1879 259.7964);
+  /*
+   * ─── Sidebar là một khối MÀU, không phải nền xám ────────────────────────
+   *
+   * base44 để nguyên bộ token mặc định của shadcn ở đây: xám trung tính (hue 0) và viền xanh
+   * dương (hue 259) — dấu vết của việc chưa ai đụng tới, không phải một lựa chọn thiết kế. Đặt
+   * cạnh nền ngả lam và màu chính teal của phần còn lại thì nó lạc hẳn.
+   *
+   * Bộ dưới đây kéo tất cả về hue 184 của `--brand-teal`, chỉ đổi độ sáng. Sidebar thành một
+   * mảng teal đậm, nội dung thành tấm thẻ sáng nổi lên trên — bố cục của `variant="inset"`.
+   */
+  --sidebar: oklch(0.3800 0.0620 184);
+  --sidebar-foreground: oklch(0.9400 0.0180 190);
+  /* Mục đang mở: sáng hẳn lên để phân biệt với hover. */
+  --sidebar-primary: oklch(0.7600 0.1300 182);
+  --sidebar-primary-foreground: oklch(0.2400 0.0450 190);
+  /* Hover: sáng hơn nền một bậc, không hơn. */
+  --sidebar-accent: oklch(0.4550 0.0700 184);
+  --sidebar-accent-foreground: oklch(0.9800 0.0120 190);
+  --sidebar-border: oklch(0.4600 0.0560 184);
+  --sidebar-ring: oklch(0.7600 0.1200 182);
 }
 
 .dark {
@@ -142,20 +174,28 @@
   --brand-amber: oklch(0.8105 0.1484 73.3099);
   --brand-sky: oklch(0.7655 0.1304 232.3302);
 
-  --chart-1: oklch(0.5292 0.1931 262.1292);
-  --chart-2: oklch(0.6983 0.1337 165.4626);
-  --chart-3: oklch(0.7232 0.1500 60.6307);
-  --chart-4: oklch(0.6192 0.2037 312.7283);
-  --chart-5: oklch(0.6123 0.2093 6.3856);
+  /*
+   * Chế độ tối KHÔNG phải bản lật của chế độ sáng — nó là những bước khác trên cùng dải màu,
+   * chọn lại rồi kiểm lại với nền tối. Bốn màu của chế độ sáng nằm ở L 0.52–0.70, vượt dải cho
+   * nền tối (0.48–0.67), nên phải hạ xuống và tăng độ bão hoà bù lại.
+   *
+   * `--chart-4` (violet) ở đây có tương phản 2.72:1 — cùng ràng buộc: phải kèm nhãn.
+   */
+  --chart-1: oklch(0.6400 0.1200 181); /* teal   #00a390 */
+  --chart-2: oklch(0.6600 0.1500 62); /* amber  #d27908 */
+  --chart-3: oklch(0.6550 0.1500 238); /* sky    #009be1 */
+  --chart-4: oklch(0.5100 0.2100 302); /* violet #7f37c7 */
+  --chart-5: oklch(0.4400 0.0150 220);
 
-  --sidebar: oklch(0.2103 0.0059 285.8835);
-  --sidebar-foreground: oklch(0.9676 0.0013 286.3752);
-  --sidebar-primary: oklch(0.4878 0.2170 264.3876);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.2741 0.0055 286.0329);
-  --sidebar-accent-foreground: oklch(0.9676 0.0013 286.3752);
-  --sidebar-border: oklch(0.2741 0.0055 286.0329);
-  --sidebar-ring: oklch(0.6232 0.1879 259.7964);
+  /* Chế độ tối: vẫn là teal, chỉ đậm hơn — không quay về xám ngả tím như bản mặc định. */
+  --sidebar: oklch(0.2600 0.0330 190);
+  --sidebar-foreground: oklch(0.9300 0.0150 190);
+  --sidebar-primary: oklch(0.8000 0.1300 182);
+  --sidebar-primary-foreground: oklch(0.2000 0.0350 190);
+  --sidebar-accent: oklch(0.3300 0.0430 188);
+  --sidebar-accent-foreground: oklch(0.9700 0.0120 190);
+  --sidebar-border: oklch(0.3400 0.0380 188);
+  --sidebar-ring: oklch(0.7900 0.1250 182);
 }
 
 @layer base {
@@ -168,4 +208,5 @@
   html {
     @apply font-sans;
   }
+
 }

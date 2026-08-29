@@ -45,17 +45,29 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
     return (
         <SidebarProvider>
             <AdminSidebar />
-            <SidebarInset>
-                <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator orientation="vertical" className="my-2" />
-                    <span className="text-muted-foreground text-sm">Administration</span>
-                    {/* Đẩy mọi thứ sau nó sang phải. */}
+            <SidebarInset className="overflow-hidden">
+                <header className="flex h-16 shrink-0 items-center gap-3 px-5 md:px-6">
+                    <SidebarTrigger className="-ml-1.5" />
+                    <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
+                    {/* Nhãn cảnh báo: mọi thay đổi ở khu này ảnh hưởng toàn hệ thống. */}
+                    <span className="text-destructive bg-destructive/10 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                        Administration
+                    </span>
                     <div className="flex-1" />
-
                     <HeaderAccount />
                 </header>
-                <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+
+                <div className="relative flex-1 overflow-y-auto">
+                    <div
+                        aria-hidden
+                        className="text-foreground pointer-events-none absolute inset-0 opacity-[0.035]"
+                        style={{
+                            backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)',
+                            backgroundSize: '22px 22px',
+                        }}
+                    />
+                    <div className="relative px-5 pb-10 md:px-6">{children}</div>
+                </div>
             </SidebarInset>
         </SidebarProvider>
     );

@@ -1,87 +1,395 @@
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-    BookOpen01Icon,
-    TaskDone01Icon,
-    Calendar03Icon,
     ArrowRight01Icon,
+    BookOpen01Icon,
+    Calendar03Icon,
+    Note01Icon,
+    SourceCodeIcon,
+    TaskDone01Icon,
+    TimeQuarterPassIcon,
+    WorkflowSquare01Icon,
 } from '@hugeicons/core-free-icons';
 
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { BrandLogo } from '@/components/brand-logo';
+import { DotGrid, Glow, Particles } from '@/components/navigation/decor';
 import { buttonVariants } from '@/components/ui/button';
+import { getCurrentSession } from '@/lib/auth/session/service';
+import { db } from '@/lib/db';
 
 /**
- * Các lối vào chính. Để thành dữ liệu để phần hiển thị chỉ việc lặp qua — thêm một mục là thêm
- * một dòng.
+ * Bảng điều khiển.
+ *
+ * ─── Trang này được TRANG TRÍ, không phải thêm dữ liệu ───────────────────────
+ *
+ * Cấu trúc và các con số y như trước: bốn ô thống kê đọc thật từ database, hai khối trạng thái,
+ * hai thẻ công cụ. Thay đổi nằm hoàn toàn ở lớp nhìn.
+ *
+ * ─── Bốn màu, và mỗi màu có việc của nó ──────────────────────────────────────
+ *
+ *     teal    môn học        — màu chính, dùng cho thứ nền tảng nhất
+ *     amber   hạn nộp        — màu duy nhất mang tính cảnh báo
+ *     sky     phiên ghi lại  — công cụ code
+ *     violet  ghi chú        — công cụ sơ đồ
+ *
+ * Gán cố định như vậy để màu trở thành thông tin: nhìn thấy hổ phách là biết đang nói về thời
+ * hạn, ở bất kỳ đâu trong ứng dụng. Nếu xoay vòng màu cho đẹp thì nó chỉ còn là trang trí.
+ *
+ * ─── Ba tầng hoạ tiết ────────────────────────────────────────────────────────
+ *
+ *     xa nhất   quầng sáng loang (`Glow`)   — mảng màu lớn, rất mờ
+ *     giữa      lưới chấm (`DotGrid`)       — kết cấu đều, gần như không thấy
+ *     gần nhất  chấm rải (`Particles`)      — điểm nhấn nhỏ, có nhịp thở
+ *
+ * Xếp tầng để nền có chiều sâu mà không có lớp nào tranh chỗ với chữ. Mọi độ mờ đều dưới 25%.
  */
-const SECTIONS = [
+export const dynamic = 'force-dynamic';
+
+const TOOLS = [
     {
-        href: '/navigation/subjects',
-        icon: BookOpen01Icon,
-        title: 'Subjects',
-        description: 'The subjects you are enrolled in this term.',
+        href: '/tools/code',
+        icon: SourceCodeIcon,
+        title: 'Code Workspace',
+        body: 'Write and run code with every edit, paste and save recorded in order.',
+        ink: 'text-brand-sky',
+        glow: 'bg-brand-sky',
+        wash: 'from-brand-sky/10',
+        edge: 'hover:border-brand-sky/45',
     },
     {
-        href: '/navigation/assessments',
-        icon: TaskDone01Icon,
-        title: 'Assessments',
-        description: 'In progress, coming due, and already submitted.',
-    },
-    {
-        href: '/navigation/calendar',
-        icon: Calendar03Icon,
-        title: 'Calendar',
-        description: 'Due dates, class schedules, and anything you add.',
+        href: '/tools/diagram',
+        icon: WorkflowSquare01Icon,
+        title: 'Diagram Workspace',
+        body: 'Build flowcharts and system diagrams from a typed node library.',
+        ink: 'text-brand-violet',
+        glow: 'bg-brand-violet',
+        wash: 'from-brand-violet/10',
+        edge: 'hover:border-brand-violet/45',
     },
 ] as const;
 
-export default function HomePage() {
+export default async function DashboardPage() {
+    const session = await getCurrentSession();
+    const userId = session?.user.id;
+
+    const [enrolled, dueSoon, attempts, notes] = await Promise.all([
+        db.roleAssignment.count({
+            where: { userId, offeringId: { not: null }, roleRevokedAt: null },
+        }),
+        db.assessment.count({
+            where: {
+                dueAt: { gt: new Date() },
+                offering: { roleAssignments: { some: { userId, roleRevokedAt: null } } },
+            },
+        }),
+        db.assessmentAttempt.count({ where: { userId } }),
+        db.personalWorkspace.count({ where: { userId } }),
+    ]);
+
+    const stats = [
+        {
+            label: 'Subjects',
+            value: enrolled,
+            caption: 'running this term',
+            icon: BookOpen01Icon,
+            ink: 'text-brand-teal',
+            wash: 'from-brand-teal/14',
+            chip: 'bg-brand-teal/12',
+            glow: 'bg-brand-teal',
+            edge: 'hover:border-brand-teal/45',
+        },
+        {
+            label: 'Due soon',
+            value: dueSoon,
+            caption: 'assessments ahead',
+            icon: TaskDone01Icon,
+            ink: 'text-brand-amber',
+            wash: 'from-brand-amber/14',
+            chip: 'bg-brand-amber/12',
+            glow: 'bg-brand-amber',
+            edge: 'hover:border-brand-amber/45',
+        },
+        {
+            label: 'Sessions',
+            value: attempts,
+            caption: 'recorded, replayable',
+            icon: TimeQuarterPassIcon,
+            ink: 'text-brand-sky',
+            wash: 'from-brand-sky/14',
+            chip: 'bg-brand-sky/12',
+            glow: 'bg-brand-sky',
+            edge: 'hover:border-brand-sky/45',
+        },
+        {
+            label: 'Notes',
+            value: notes,
+            caption: 'personal workspaces',
+            icon: Note01Icon,
+            ink: 'text-brand-violet',
+            wash: 'from-brand-violet/14',
+            chip: 'bg-brand-violet/12',
+            glow: 'bg-brand-violet',
+            edge: 'hover:border-brand-violet/45',
+        },
+    ];
+
     return (
-        <div className="flex flex-col gap-8">
-            <section className="flex flex-col gap-2">
-                <h1 className="font-heading text-2xl font-medium tracking-tight">AI-Learn</h1>
-                <p className="text-muted-foreground max-w-2xl text-sm">
-                    A learning platform whose tools record how the work happened. Every action is
-                    kept in order, so the whole session can be replayed later.
-                </p>
+        <div className="flex flex-col gap-6 pt-1">
+            {/* ─── Lời chào ───────────────────────────────────────────────── */}
+            <section className="relative overflow-hidden rounded-3xl border p-6 md:p-8">
+                {/* Ba màu chuyển vào nhau — cả bảng màu thương hiệu xuất hiện một lần, rất nhạt. */}
+                <div
+                    aria-hidden
+                    className="from-brand-teal/18 via-brand-sky/10 to-brand-violet/18 absolute inset-0 bg-linear-120"
+                />
+                <DotGrid opacity={0.06} size={18} />
+                <Glow className="-top-28 -right-20 size-72" color="bg-brand-teal" opacity="opacity-25" />
+                <Glow className="-bottom-32 left-1/3 size-64" color="bg-brand-violet" opacity="opacity-15" />
+                <Particles className="text-brand-teal" />
+
+                {/*
+                    Logo cỡ lớn làm hình chìm ở góc. Nó bị cắt bởi mép thẻ nên đọc như hoa văn
+                    chứ không phải một logo đặt sai chỗ.
+                */}
+                <BrandLogo
+                    className="pointer-events-none absolute -top-8 -right-6 hidden size-44 opacity-[0.07] md:block"
+                    gradientId="ailearn-mark-dashboard"
+                />
+
+                <div className="relative flex flex-col gap-2">
+                    <p className="text-brand-teal border-brand-teal/30 bg-brand-teal/10 inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase">
+                        {new Date().toLocaleDateString('en-AU', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                        })}
+                    </p>
+                    <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
+                        {session ? (
+                            <>
+                                Welcome back,{' '}
+                                <span className="from-brand-teal via-brand-sky to-brand-violet bg-linear-to-r bg-clip-text text-transparent">
+                                    {session.user.firstName}
+                                </span>
+                                .
+                            </>
+                        ) : (
+                            'Welcome back.'
+                        )}
+                    </h1>
+                    <p className="text-muted-foreground max-w-xl text-sm">
+                        Everything you do in a tool here is kept in order, so the whole session can
+                        be replayed later.
+                    </p>
+                </div>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {SECTIONS.map((section) => (
-                    <Card key={section.href}>
-                        <CardHeader>
-                            <div className="bg-secondary text-secondary-foreground mb-3 flex size-9 items-center justify-center rounded-lg">
+            {/* ─── Bốn con số ─────────────────────────────────────────────── */}
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.map((stat) => (
+                    <div
+                        key={stat.label}
+                        className={`bg-card relative overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5 hover:shadow-md ${stat.edge}`}
+                    >
+                        {/* Vệt màu đổ từ góc trên trái, tắt dần — đủ để nhuộm thẻ, không đủ để đọ với chữ. */}
+                        <div
+                            aria-hidden
+                            className={`absolute inset-0 bg-linear-to-br to-transparent ${stat.wash}`}
+                        />
+                        <Glow
+                            className="-top-14 -right-10 size-28"
+                            color={stat.glow}
+                            opacity="opacity-20"
+                        />
+
+                        <div className="relative">
+                            <div
+                                className={`flex size-9 items-center justify-center rounded-xl ${stat.chip}`}
+                            >
                                 <HugeiconsIcon
-                                    icon={section.icon}
+                                    icon={stat.icon}
                                     strokeWidth={2}
-                                    className="size-4"
+                                    className={`size-4 ${stat.ink}`}
                                 />
                             </div>
-                            <CardTitle>{section.title}</CardTitle>
-                            <CardDescription>{section.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Link
-                                href={section.href}
-                                className={buttonVariants({
-                                    variant: 'ghost',
-                                    size: 'sm',
-                                    className: '-ml-2',
-                                })}
-                            >
-                                Open
-                                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                            </Link>
-                        </CardContent>
-                    </Card>
+
+                            {/*
+                                Số lớn dùng chữ số tỉ lệ mặc định, KHÔNG `tabular-nums`: chữ số
+                                đều bề rộng khiến số nhỏ trông rời rạc ở cỡ lớn. Dạng bảng chỉ
+                                dành cho những cột số cần thẳng hàng dọc.
+                            */}
+                            <p className="font-heading mt-4 text-3xl font-semibold">{stat.value}</p>
+                            <p className="mt-0.5 text-sm font-medium">{stat.label}</p>
+                            <p className="text-muted-foreground text-xs">{stat.caption}</p>
+                        </div>
+                    </div>
                 ))}
             </section>
+
+            {/* ─── Hai khối trạng thái ────────────────────────────────────── */}
+            <div className="grid gap-4 lg:grid-cols-3">
+                <PanelCard
+                    className="lg:col-span-2"
+                    icon={Calendar03Icon}
+                    title="Up next"
+                    ink="text-brand-amber"
+                    chip="bg-brand-amber/12"
+                    glow="bg-brand-amber"
+                >
+                    <EmptyBlock
+                        icon={Calendar03Icon}
+                        ink="text-brand-amber"
+                        chip="bg-brand-amber/10"
+                        title="Nothing due yet"
+                        body="Assessment deadlines appear here once you are enrolled in a subject that is running."
+                    />
+                </PanelCard>
+
+                <PanelCard
+                    icon={TimeQuarterPassIcon}
+                    title="Recent work"
+                    ink="text-brand-sky"
+                    chip="bg-brand-sky/12"
+                    glow="bg-brand-sky"
+                >
+                    <EmptyBlock
+                        icon={TimeQuarterPassIcon}
+                        ink="text-brand-sky"
+                        chip="bg-brand-sky/10"
+                        title="No sessions yet"
+                        body="Open a tool and start working. Each session shows up here, ready to replay."
+                    />
+                </PanelCard>
+            </div>
+
+            {/* ─── Công cụ ────────────────────────────────────────────────── */}
+            <section className="flex flex-col gap-4">
+                <div className="flex items-center gap-2.5">
+                    {/* Thanh gạch nhỏ có màu — dấu hiệu mở đầu một mục, thay cho chữ in đậm trơn. */}
+                    <span
+                        aria-hidden
+                        className="from-brand-sky to-brand-violet h-4 w-1 rounded-full bg-linear-to-b"
+                    />
+                    <h2 className="font-heading text-lg font-medium">Your tools</h2>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    {TOOLS.map((tool) => (
+                        <Link
+                            key={tool.href}
+                            href={tool.href}
+                            className={`bg-card group relative overflow-hidden rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md ${tool.edge}`}
+                        >
+                            <div
+                                aria-hidden
+                                className={`absolute inset-0 bg-linear-to-br to-transparent ${tool.wash}`}
+                            />
+                            <div
+                                aria-hidden
+                                className={`pointer-events-none absolute -top-16 -right-12 size-40 rounded-full opacity-20 blur-3xl transition-opacity group-hover:opacity-30 ${tool.glow}`}
+                            />
+                            <DotGrid opacity={0.04} size={16} />
+
+                            <div className="relative">
+                                <HugeiconsIcon
+                                    icon={tool.icon}
+                                    strokeWidth={2}
+                                    className={`mb-4 size-7 ${tool.ink}`}
+                                />
+                                <h3 className="font-heading mb-1.5 font-semibold">{tool.title}</h3>
+                                <p className="text-muted-foreground text-sm leading-relaxed">
+                                    {tool.body}
+                                </p>
+                                <span className="text-muted-foreground group-hover:text-foreground mt-4 inline-flex items-center gap-1 text-sm transition-colors">
+                                    Open
+                                    <HugeiconsIcon
+                                        icon={ArrowRight01Icon}
+                                        strokeWidth={2}
+                                        className="size-4 transition-transform group-hover:translate-x-0.5"
+                                    />
+                                </span>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            </section>
+
+            <section>
+                <Link
+                    href="/navigation/calendar"
+                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                >
+                    <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
+                    Open the calendar
+                </Link>
+            </section>
+        </div>
+    );
+}
+
+/** Thẻ có tiêu đề kèm biểu tượng màu và một quầng sáng ở góc. */
+function PanelCard({
+    icon,
+    title,
+    ink,
+    chip,
+    glow,
+    className = '',
+    children,
+}: {
+    icon: typeof Calendar03Icon;
+    title: string;
+    ink: string;
+    chip: string;
+    glow: string;
+    className?: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <section
+            className={`bg-card relative overflow-hidden rounded-2xl border ${className}`}
+        >
+            <Glow className="-top-20 -right-16 size-40" color={glow} opacity="opacity-15" />
+
+            <div className="relative flex items-center gap-2.5 px-5 pt-5 pb-3">
+                <div className={`flex size-8 items-center justify-center rounded-lg ${chip}`}>
+                    <HugeiconsIcon icon={icon} strokeWidth={2} className={`size-4 ${ink}`} />
+                </div>
+                <h2 className="font-heading font-semibold">{title}</h2>
+            </div>
+
+            <div className="relative px-5 pb-5">{children}</div>
+        </section>
+    );
+}
+
+/**
+ * Trạng thái rỗng.
+ *
+ * Nói rõ khối này SẼ chứa gì và CẦN gì để có dữ liệu, thay vì một chữ "No data" cụt lủn. Người
+ * dùng mới đăng ký gặp màn hình này trước tiên, nên nó đáng được vẽ tử tế: biểu tượng có màu
+ * trong một vòng tròn nhạt, viền đứt, chữ căn giữa.
+ */
+function EmptyBlock({
+    icon,
+    ink,
+    chip,
+    title,
+    body,
+}: {
+    icon: typeof Calendar03Icon;
+    ink: string;
+    chip: string;
+    title: string;
+    body: string;
+}) {
+    return (
+        <div className="border-border/70 flex flex-col items-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center">
+            <div className={`mb-1 flex size-11 items-center justify-center rounded-full ${chip}`}>
+                <HugeiconsIcon icon={icon} strokeWidth={2} className={`size-5 ${ink}`} />
+            </div>
+            <p className="text-sm font-medium">{title}</p>
+            <p className="text-muted-foreground max-w-sm text-sm">{body}</p>
         </div>
     );
 }

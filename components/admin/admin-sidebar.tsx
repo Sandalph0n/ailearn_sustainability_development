@@ -47,21 +47,34 @@ const ACCESS_ITEMS = [
     { href: '/admin/roles', label: 'Roles', icon: Shield01Icon },
 ] as const;
 
+/**
+ * Mục đang mở phải nổi hơn mục đang rê chuột.
+ *
+ * shadcn dùng cùng token `--sidebar-accent` cho cả `hover` lẫn `data-active`, nên trên nền teal
+ * đậm hai trạng thái trông y hệt nhau. Đè lại ở chỗ dùng, không sửa `components/ui/sidebar.tsx`.
+ */
+const ACTIVE_ITEM =
+    'data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground';
+
 export function AdminSidebar() {
     const pathname = usePathname();
 
     return (
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" render={<Link href="/admin" />}>
-                            <div className="bg-destructive text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                        <SidebarMenuButton
+                            size="lg"
+                            render={<Link href="/admin" />}
+                            className="hover:bg-sidebar-accent/60"
+                        >
+                            <div className="bg-destructive text-destructive-foreground flex aspect-square size-8 items-center justify-center rounded-xl">
                                 <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} className="size-4" />
                             </div>
                             <div className="grid flex-1 text-left leading-tight">
                                 <span className="font-heading truncate font-medium">AI-Learn</span>
-                                <span className="text-muted-foreground truncate text-xs">
+                                <span className="text-sidebar-foreground/60 truncate text-xs">
                                     Administration
                                 </span>
                             </div>
@@ -72,7 +85,7 @@ export function AdminSidebar() {
 
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Overview</SidebarGroupLabel>
+                    <SidebarGroupLabel className="text-sidebar-foreground/50">Overview</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem>
@@ -82,6 +95,7 @@ export function AdminSidebar() {
                                     isActive={pathname === '/admin'}
                                     tooltip="Overview"
                                     render={<Link href="/admin" />}
+                                    className={ACTIVE_ITEM}
                                 >
                                     <HugeiconsIcon icon={Home01Icon} strokeWidth={2} />
                                     <span>Overview</span>
@@ -92,7 +106,7 @@ export function AdminSidebar() {
                 </SidebarGroup>
 
                 <SidebarGroup>
-                    <SidebarGroupLabel>Catalogue</SidebarGroupLabel>
+                    <SidebarGroupLabel className="text-sidebar-foreground/50">Catalogue</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {CATALOGUE_ITEMS.map((item) => (
@@ -101,6 +115,7 @@ export function AdminSidebar() {
                                         isActive={pathname.startsWith(item.href)}
                                         tooltip={item.label}
                                         render={<Link href={item.href} />}
+                                        className={ACTIVE_ITEM}
                                     >
                                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                                         <span>{item.label}</span>
@@ -112,7 +127,7 @@ export function AdminSidebar() {
                 </SidebarGroup>
 
                 <SidebarGroup>
-                    <SidebarGroupLabel>Access</SidebarGroupLabel>
+                    <SidebarGroupLabel className="text-sidebar-foreground/50">Access</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {ACCESS_ITEMS.map((item) => (
@@ -121,6 +136,7 @@ export function AdminSidebar() {
                                         isActive={pathname.startsWith(item.href)}
                                         tooltip={item.label}
                                         render={<Link href={item.href} />}
+                                        className={ACTIVE_ITEM}
                                     >
                                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                                         <span>{item.label}</span>
