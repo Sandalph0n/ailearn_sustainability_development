@@ -5,10 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import {
-    InstitutionFilter,
-    type InstitutionOption,
-} from '@/components/admin/institution-filter';
+import { InstitutionFilter, type InstitutionOption } from '@/components/admin/institution-filter';
 import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
@@ -48,6 +45,7 @@ export function RolesTable({
     roles,
     institutions,
     institutionId,
+    locked,
     /** Vai trò có thể chọn làm "bao gồm bởi" — cùng cơ sở với vai trò đang sửa. */
     rolesByInstitution,
     page,
@@ -59,6 +57,8 @@ export function RolesTable({
     roles: RoleListItem[];
     institutions: InstitutionOption[];
     institutionId: string | null;
+    /** Đang ở trang con của một cơ sở: cột và bộ lọc cơ sở đều thừa. */
+    locked: boolean;
     rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
     page: number;
     pageCount: number;
@@ -79,19 +79,27 @@ export function RolesTable({
                 column.accessor('scopeType', {
                     header: 'Scope',
                     cell: (info) => (
-                        <Badge variant={info.getValue() === 'INSTITUTION' ? 'default' : 'secondary'}>
+                        <Badge
+                            variant={info.getValue() === 'INSTITUTION' ? 'default' : 'secondary'}
+                        >
                             {info.getValue() === 'INSTITUTION' ? 'Institution' : 'Offering'}
                         </Badge>
                     ),
                 }),
 
-                column.accessor((row) => row.institution.name, {
-                    id: 'institution',
-                    header: 'Institution',
-                    cell: (info) => (
-                        <span className="text-muted-foreground text-sm">{info.getValue()}</span>
-                    ),
-                }),
+                ...(locked
+                    ? []
+                    : [
+                          column.accessor((row) => row.institution.name, {
+                              id: 'institution',
+                              header: 'Institution',
+                              cell: (info) => (
+                                  <span className="text-muted-foreground text-sm">
+                                      {info.getValue()}
+                                  </span>
+                              ),
+                          }),
+                      ]),
 
                 column.accessor('emailRegex', {
                     header: 'Email rule',
@@ -131,11 +139,12 @@ export function RolesTable({
                             role={info.row.original}
                             institutions={institutions}
                             rolesByInstitution={rolesByInstitution}
+                            locked={locked}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<RoleListItem>>,
-        [institutions, rolesByInstitution],
+        [institutions, rolesByInstitution, locked],
     );
 
     return (
@@ -160,7 +169,9 @@ export function RolesTable({
                         className="max-w-56"
                         aria-label="Search roles"
                     />
-                    <InstitutionFilter institutions={institutions} value={institutionId} />
+                    {!locked && (
+                        <InstitutionFilter institutions={institutions} value={institutionId} />
+                    )}
                     <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
                         {total} total
                     </span>
@@ -169,6 +180,7 @@ export function RolesTable({
                         institutions={institutions}
                         rolesByInstitution={rolesByInstitution}
                         presetInstitutionId={institutionId}
+                        locked={locked}
                         trigger={
                             <Button>
                                 <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
@@ -201,12 +213,14 @@ function RoleDialog({
     institutions,
     rolesByInstitution,
     presetInstitutionId,
+    locked = false,
     trigger,
 }: {
     role?: RoleListItem;
     institutions: InstitutionOption[];
     rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
     presetInstitutionId?: string | null;
+    locked?: boolean;
     trigger: ReactElement;
 }) {
     return (
@@ -243,17 +257,20 @@ function RoleDialog({
 
                 return (
                     <>
-                        <FormSelect
-                            control={form.control}
-                            name="institutionId"
-                            label="Institution"
-                        >
-                            {institutions.map((institution) => (
-                                <SelectItem key={institution.id} value={institution.id}>
-                                    {institution.name}
-                                </SelectItem>
-                            ))}
-                        </FormSelect>
+                        {/* Ở trang con thì cơ sở đã cố định — ô chọn chỉ có một mục, bỏ đi cho gọn. */}
+                        {!locked && (
+                            <FormSelect
+                                control={form.control}
+                                name="institutionId"
+                                label="Institution"
+                            >
+                                {institutions.map((institution) => (
+                                    <SelectItem key={institution.id} value={institution.id}>
+                                        {institution.name}
+                                    </SelectItem>
+                                ))}
+                            </FormSelect>
+                        )}
 
                         <FormInput
                             control={form.control}
@@ -310,10 +327,12 @@ function RowActions({
     role,
     institutions,
     rolesByInstitution,
+    locked,
 }: {
     role: RoleListItem;
     institutions: InstitutionOption[];
     rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
+    locked: boolean;
 }) {
     const inUse = role.counts.assignments + role.counts.requests;
 
@@ -333,6 +352,7 @@ function RowActions({
                         role={role}
                         institutions={institutions}
                         rolesByInstitution={rolesByInstitution}
+                        locked={locked}
                         trigger={
                             <DropdownMenuItem closeOnClick={false}>
                                 <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />

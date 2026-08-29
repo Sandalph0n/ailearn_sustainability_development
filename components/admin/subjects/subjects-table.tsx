@@ -5,10 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import {
-    InstitutionFilter,
-    type InstitutionOption,
-} from '@/components/admin/institution-filter';
+import { InstitutionFilter, type InstitutionOption } from '@/components/admin/institution-filter';
 import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
@@ -46,6 +43,7 @@ export function SubjectsTable({
     subjects,
     institutions,
     institutionId,
+    locked,
     page,
     pageCount,
     total,
@@ -55,6 +53,8 @@ export function SubjectsTable({
     subjects: SubjectListItem[];
     institutions: InstitutionOption[];
     institutionId: string | null;
+    /** Đang ở trang con của một cơ sở: cột và bộ lọc cơ sở đều thừa. */
+    locked: boolean;
     page: number;
     pageCount: number;
     total: number;
@@ -76,13 +76,19 @@ export function SubjectsTable({
                     cell: (info) => <span className="font-medium">{info.getValue()}</span>,
                 }),
 
-                column.accessor((row) => row.institution.name, {
-                    id: 'institution',
-                    header: 'Institution',
-                    cell: (info) => (
-                        <span className="text-muted-foreground text-sm">{info.getValue()}</span>
-                    ),
-                }),
+                ...(locked
+                    ? []
+                    : [
+                          column.accessor((row) => row.institution.name, {
+                              id: 'institution',
+                              header: 'Institution',
+                              cell: (info) => (
+                                  <span className="text-muted-foreground text-sm">
+                                      {info.getValue()}
+                                  </span>
+                              ),
+                          }),
+                      ]),
 
                 column.accessor((row) => row.counts.offerings, {
                     id: 'offerings',
@@ -94,11 +100,15 @@ export function SubjectsTable({
                     id: 'actions',
                     header: '',
                     cell: (info) => (
-                        <RowActions subject={info.row.original} institutions={institutions} />
+                        <RowActions
+                            subject={info.row.original}
+                            institutions={institutions}
+                            locked={locked}
+                        />
                     ),
                 }),
             ] as Array<AdminColumnDef<SubjectListItem>>,
-        [institutions],
+        [institutions, locked],
     );
 
     return (
@@ -123,7 +133,9 @@ export function SubjectsTable({
                         className="max-w-56"
                         aria-label="Search subjects"
                     />
-                    <InstitutionFilter institutions={institutions} value={institutionId} />
+                    {!locked && (
+                        <InstitutionFilter institutions={institutions} value={institutionId} />
+                    )}
                     <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
                         {total} total
                     </span>
@@ -133,6 +145,7 @@ export function SubjectsTable({
                         // Đang lọc theo một trường thì điền sẵn trường đó — người dùng gần như
                         // chắc chắn muốn tạo môn cho đúng trường họ đang xem.
                         presetInstitutionId={institutionId}
+                        locked={locked}
                         trigger={
                             <Button>
                                 <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
@@ -164,11 +177,13 @@ function SubjectDialog({
     subject,
     institutions,
     presetInstitutionId,
+    locked = false,
     trigger,
 }: {
     subject?: SubjectListItem;
     institutions: InstitutionOption[];
     presetInstitutionId?: string | null;
+    locked?: boolean;
     trigger: ReactElement;
 }) {
     return (
@@ -198,18 +213,24 @@ function SubjectDialog({
             trigger={trigger}
             fields={(form) => (
                 <>
-                    <FormSelect
-                        control={form.control}
-                        name="institutionId"
-                        label="Institution"
-                        description="Subject codes are unique within one institution."
-                    >
-                        {institutions.map((institution) => (
-                            <SelectItem key={institution.id} value={institution.id}>
-                                {institution.name}
-                            </SelectItem>
-                        ))}
-                    </FormSelect>
+                    {/*
+                        Ở trang con thì cơ sở đã cố định, ô chọn chỉ có đúng một mục — bỏ đi cho
+                        gọn. Giá trị vẫn nằm trong biểu mẫu qua `presetInstitutionId`.
+                    */}
+                    {!locked && (
+                        <FormSelect
+                            control={form.control}
+                            name="institutionId"
+                            label="Institution"
+                            description="Subject codes are unique within one institution."
+                        >
+                            {institutions.map((institution) => (
+                                <SelectItem key={institution.id} value={institution.id}>
+                                    {institution.name}
+                                </SelectItem>
+                            ))}
+                        </FormSelect>
+                    )}
 
                     <FormInput
                         control={form.control}
@@ -242,9 +263,11 @@ function SubjectDialog({
 function RowActions({
     subject,
     institutions,
+    locked,
 }: {
     subject: SubjectListItem;
     institutions: InstitutionOption[];
+    locked: boolean;
 }) {
     return (
         <div className="flex justify-end">
@@ -261,6 +284,7 @@ function RowActions({
                     <SubjectDialog
                         subject={subject}
                         institutions={institutions}
+                        locked={locked}
                         trigger={
                             <DropdownMenuItem closeOnClick={false}>
                                 <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />

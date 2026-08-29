@@ -5,10 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import {
-    InstitutionFilter,
-    type InstitutionOption,
-} from '@/components/admin/institution-filter';
+import { InstitutionFilter, type InstitutionOption } from '@/components/admin/institution-filter';
 import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
@@ -47,6 +44,7 @@ export function TermsTable({
     terms,
     institutions,
     institutionId,
+    locked,
     page,
     pageCount,
     total,
@@ -56,6 +54,8 @@ export function TermsTable({
     terms: TermListItem[];
     institutions: InstitutionOption[];
     institutionId: string | null;
+    /** Đang ở trang con của một cơ sở: cột và bộ lọc cơ sở đều thừa. */
+    locked: boolean;
     page: number;
     pageCount: number;
     total: number;
@@ -76,13 +76,19 @@ export function TermsTable({
                     ),
                 }),
 
-                column.accessor((row) => row.institution.name, {
-                    id: 'institution',
-                    header: 'Institution',
-                    cell: (info) => (
-                        <span className="text-muted-foreground text-sm">{info.getValue()}</span>
-                    ),
-                }),
+                ...(locked
+                    ? []
+                    : [
+                          column.accessor((row) => row.institution.name, {
+                              id: 'institution',
+                              header: 'Institution',
+                              cell: (info) => (
+                                  <span className="text-muted-foreground text-sm">
+                                      {info.getValue()}
+                                  </span>
+                              ),
+                          }),
+                      ]),
 
                 column.accessor('span', {
                     header: 'Runs',
@@ -110,11 +116,15 @@ export function TermsTable({
                     id: 'actions',
                     header: '',
                     cell: (info) => (
-                        <RowActions term={info.row.original} institutions={institutions} />
+                        <RowActions
+                            term={info.row.original}
+                            institutions={institutions}
+                            locked={locked}
+                        />
                     ),
                 }),
             ] as Array<AdminColumnDef<TermListItem>>,
-        [institutions],
+        [institutions, locked],
     );
 
     return (
@@ -139,7 +149,9 @@ export function TermsTable({
                         className="max-w-40"
                         aria-label="Search terms by year"
                     />
-                    <InstitutionFilter institutions={institutions} value={institutionId} />
+                    {!locked && (
+                        <InstitutionFilter institutions={institutions} value={institutionId} />
+                    )}
                     <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
                         {total} total
                     </span>
@@ -147,6 +159,7 @@ export function TermsTable({
                     <TermDialog
                         institutions={institutions}
                         presetInstitutionId={institutionId}
+                        locked={locked}
                         trigger={
                             <Button>
                                 <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
@@ -178,11 +191,13 @@ function TermDialog({
     term,
     institutions,
     presetInstitutionId,
+    locked = false,
     trigger,
 }: {
     term?: TermListItem;
     institutions: InstitutionOption[];
     presetInstitutionId?: string | null;
+    locked?: boolean;
     trigger: ReactElement;
 }) {
     return (
@@ -209,18 +224,21 @@ function TermDialog({
             trigger={trigger}
             fields={(form) => (
                 <>
-                    <FormSelect
-                        control={form.control}
-                        name="institutionId"
-                        label="Institution"
-                        description="A year and session can only exist once per institution."
-                    >
-                        {institutions.map((institution) => (
-                            <SelectItem key={institution.id} value={institution.id}>
-                                {institution.name}
-                            </SelectItem>
-                        ))}
-                    </FormSelect>
+                    {/* Ở trang con thì cơ sở đã cố định — ô chọn chỉ có một mục, bỏ đi cho gọn. */}
+                    {!locked && (
+                        <FormSelect
+                            control={form.control}
+                            name="institutionId"
+                            label="Institution"
+                            description="A year and session can only exist once per institution."
+                        >
+                            {institutions.map((institution) => (
+                                <SelectItem key={institution.id} value={institution.id}>
+                                    {institution.name}
+                                </SelectItem>
+                            ))}
+                        </FormSelect>
+                    )}
 
                     <FormInput
                         control={form.control}
@@ -250,9 +268,11 @@ function TermDialog({
 function RowActions({
     term,
     institutions,
+    locked,
 }: {
     term: TermListItem;
     institutions: InstitutionOption[];
+    locked: boolean;
 }) {
     return (
         <div className="flex justify-end">
@@ -269,6 +289,7 @@ function RowActions({
                     <TermDialog
                         term={term}
                         institutions={institutions}
+                        locked={locked}
                         trigger={
                             <DropdownMenuItem closeOnClick={false}>
                                 <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />

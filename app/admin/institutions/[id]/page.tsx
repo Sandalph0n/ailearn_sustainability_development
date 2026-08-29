@@ -13,14 +13,6 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/db';
@@ -30,15 +22,11 @@ import { db } from '@/lib/db';
  *
  * ─── Đây là BẢNG MỤC LỤC, không phải nơi sửa dữ liệu ─────────────────────────
  *
- * Mỗi mục hiện số lượng thật và dẫn sang trang quản lý tương ứng, ĐÃ LỌC SẴN theo cơ sở này qua
- * `?institution=<id>`.
+ * Mỗi mục hiện số lượng thật và dẫn sang trang con tương ứng dưới `/admin/institutions/<id>/…`.
+ * Cùng những mục đó cũng nằm trên dải tab ở layout; danh sách này thêm số lượng, nên nó trả lời
+ * được câu "trường này đã cấu hình tới đâu" mà dải tab không trả lời được.
  *
- * Các trang đó là trang toàn hệ thống kèm bộ lọc, không phải trang con của cơ sở. Lý do: làm
- * trang con thì Subject, Term, Role, Offering, People, Requests thành sáu bộ CRUD gần như giống
- * hệt nhau, và người quản trị mất khả năng nhìn tất cả các trường cùng lúc. Xem
- * `app/admin/subjects/page.tsx`.
- *
- * Mục nào chưa có trang thì mang nhãn "Not built" và không bấm được — không giả vờ là liên kết.
+ * Mục chưa dựng thì mang nhãn "Not built" và không bấm được — không giả vờ là liên kết.
  */
 export const dynamic = 'force-dynamic';
 
@@ -102,7 +90,7 @@ export default async function InstitutionSettingsPage({
             description: 'The units this institution teaches, with their codes and names.',
             count: institution._count.subjects,
             unit: 'subject',
-            href: `/admin/subjects?institution=${id}`,
+            href: `/admin/institutions/${id}/subjects`,
         },
         {
             key: 'terms',
@@ -112,7 +100,7 @@ export default async function InstitutionSettingsPage({
                 'Years and sessions, and the teaching, break and exam periods inside each.',
             count: institution._count.studyTerms,
             unit: 'term',
-            href: `/admin/terms?institution=${id}`,
+            href: `/admin/institutions/${id}/terms`,
         },
         {
             key: 'offerings',
@@ -131,7 +119,7 @@ export default async function InstitutionSettingsPage({
                 'Role definitions, what each may do, and which roles include which others.',
             count: institution._count.roles,
             unit: 'role',
-            href: `/admin/roles?institution=${id}`,
+            href: `/admin/institutions/${id}/roles`,
         },
         {
             key: 'people',
@@ -155,20 +143,6 @@ export default async function InstitutionSettingsPage({
 
     return (
         <div className="flex flex-col gap-6 pt-1">
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink render={<Link href="/admin/institutions" />}>
-                            Institutions
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>{institution.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
-
             <section className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="font-heading text-xl font-semibold tracking-tight">
