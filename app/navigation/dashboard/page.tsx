@@ -12,7 +12,7 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { BrandLogo } from '@/components/brand-logo';
-import { DotGrid, Glow, Particles } from '@/components/navigation/decor';
+import { DotGrid, Glow } from '@/components/navigation/decor';
 import { buttonVariants } from '@/components/ui/button';
 import { getCurrentSession } from '@/lib/auth/session/service';
 import { db } from '@/lib/db';
@@ -35,13 +35,17 @@ import { db } from '@/lib/db';
  * Gán cố định như vậy để màu trở thành thông tin: nhìn thấy hổ phách là biết đang nói về thời
  * hạn, ở bất kỳ đâu trong ứng dụng. Nếu xoay vòng màu cho đẹp thì nó chỉ còn là trang trí.
  *
- * ─── Ba tầng hoạ tiết ────────────────────────────────────────────────────────
+ * ─── Hoạ tiết: hai tầng, và MỘT gradient duy nhất ────────────────────────────
  *
- *     xa nhất   quầng sáng loang (`Glow`)   — mảng màu lớn, rất mờ
- *     giữa      lưới chấm (`DotGrid`)       — kết cấu đều, gần như không thấy
- *     gần nhất  chấm rải (`Particles`)      — điểm nhấn nhỏ, có nhịp thở
+ *     Glow      quầng sáng loang, rất mờ — chiều sâu cho nền
+ *     DotGrid   lưới chấm đều, gần như không thấy — kết cấu
  *
- * Xếp tầng để nền có chiều sâu mà không có lớp nào tranh chỗ với chữ. Mọi độ mờ đều dưới 25%.
+ * Gradient chỉ xuất hiện ở dải chào, đúng một lần. Đổ gradient lên mọi bề mặt là một trong
+ * những dấu hiệu bị nhận diện nhiều nhất của giao diện do máy sinh; các thẻ số dùng một vạch
+ * màu đặc ở mép trái thay thế.
+ *
+ * Cũng không có chuyển động trang trí. Chuyển động chỉ nên dùng khi nó nói lên trạng thái hoặc
+ * dẫn mắt; những chấm nhấp nháy trước đó không làm cả hai việc.
  */
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +57,6 @@ const TOOLS = [
         body: 'Write and run code with every edit, paste and save recorded in order.',
         ink: 'text-brand-sky',
         glow: 'bg-brand-sky',
-        wash: 'from-brand-sky/10',
         edge: 'hover:border-brand-sky/45',
     },
     {
@@ -63,7 +66,6 @@ const TOOLS = [
         body: 'Build flowcharts and system diagrams from a typed node library.',
         ink: 'text-brand-violet',
         glow: 'bg-brand-violet',
-        wash: 'from-brand-violet/10',
         edge: 'hover:border-brand-violet/45',
     },
 ] as const;
@@ -79,7 +81,9 @@ export default async function DashboardPage() {
         db.assessment.count({
             where: {
                 dueAt: { gt: new Date() },
-                offering: { roleAssignments: { some: { userId, roleRevokedAt: null } } },
+                offering: {
+                    roleAssignments: { some: { userId, roleRevokedAt: null } },
+                },
             },
         }),
         db.assessmentAttempt.count({ where: { userId } }),
@@ -93,9 +97,8 @@ export default async function DashboardPage() {
             caption: 'running this term',
             icon: BookOpen01Icon,
             ink: 'text-brand-teal',
-            wash: 'from-brand-teal/14',
             chip: 'bg-brand-teal/12',
-            glow: 'bg-brand-teal',
+            bar: 'bg-brand-teal',
             edge: 'hover:border-brand-teal/45',
         },
         {
@@ -104,9 +107,8 @@ export default async function DashboardPage() {
             caption: 'assessments ahead',
             icon: TaskDone01Icon,
             ink: 'text-brand-amber',
-            wash: 'from-brand-amber/14',
             chip: 'bg-brand-amber/12',
-            glow: 'bg-brand-amber',
+            bar: 'bg-brand-amber',
             edge: 'hover:border-brand-amber/45',
         },
         {
@@ -115,9 +117,8 @@ export default async function DashboardPage() {
             caption: 'recorded, replayable',
             icon: TimeQuarterPassIcon,
             ink: 'text-brand-sky',
-            wash: 'from-brand-sky/14',
             chip: 'bg-brand-sky/12',
-            glow: 'bg-brand-sky',
+            bar: 'bg-brand-sky',
             edge: 'hover:border-brand-sky/45',
         },
         {
@@ -126,9 +127,8 @@ export default async function DashboardPage() {
             caption: 'personal workspaces',
             icon: Note01Icon,
             ink: 'text-brand-violet',
-            wash: 'from-brand-violet/14',
             chip: 'bg-brand-violet/12',
-            glow: 'bg-brand-violet',
+            bar: 'bg-brand-violet',
             edge: 'hover:border-brand-violet/45',
         },
     ];
@@ -136,16 +136,23 @@ export default async function DashboardPage() {
     return (
         <div className="flex flex-col gap-6 pt-1">
             {/* ─── Lời chào ───────────────────────────────────────────────── */}
-            <section className="relative overflow-hidden rounded-3xl border p-6 md:p-8">
+            <section className="relative overflow-hidden rounded-xl border p-6 md:p-8">
                 {/* Ba màu chuyển vào nhau — cả bảng màu thương hiệu xuất hiện một lần, rất nhạt. */}
                 <div
                     aria-hidden
                     className="from-brand-teal/18 via-brand-sky/10 to-brand-violet/18 absolute inset-0 bg-linear-120"
                 />
                 <DotGrid opacity={0.06} size={18} />
-                <Glow className="-top-28 -right-20 size-72" color="bg-brand-teal" opacity="opacity-25" />
-                <Glow className="-bottom-32 left-1/3 size-64" color="bg-brand-violet" opacity="opacity-15" />
-                <Particles className="text-brand-teal" />
+                <Glow
+                    className="-top-28 -right-20 size-72"
+                    color="bg-brand-teal"
+                    opacity="opacity-25"
+                />
+                <Glow
+                    className="-bottom-32 left-1/3 size-64"
+                    color="bg-brand-violet"
+                    opacity="opacity-15"
+                />
 
                 {/*
                     Logo cỡ lớn làm hình chìm ở góc. Nó bị cắt bởi mép thẻ nên đọc như hoa văn
@@ -157,7 +164,7 @@ export default async function DashboardPage() {
                 />
 
                 <div className="relative flex flex-col gap-2">
-                    <p className="text-brand-teal border-brand-teal/30 bg-brand-teal/10 inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase">
+                    <p className="text-brand-teal border-brand-teal/30 bg-brand-teal/10 inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-[0.7rem] font-semibold tracking-wide uppercase">
                         {new Date().toLocaleDateString('en-AU', {
                             weekday: 'long',
                             day: 'numeric',
@@ -165,13 +172,15 @@ export default async function DashboardPage() {
                         })}
                     </p>
                     <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
+                        {/*
+                            Tên người dùng tô MỘT màu đặc, không phải gradient. Chữ tiêu đề đổ
+                            gradient là dấu hiệu bị nhận diện mạnh nhất của giao diện máy sinh —
+                            gần như không thương hiệu thật nào làm vậy trên chữ đang chạy.
+                        */}
                         {session ? (
                             <>
                                 Welcome back,{' '}
-                                <span className="from-brand-teal via-brand-sky to-brand-violet bg-linear-to-r bg-clip-text text-transparent">
-                                    {session.user.firstName}
-                                </span>
-                                .
+                                <span className="text-brand-teal">{session.user.firstName}</span>.
                             </>
                         ) : (
                             'Welcome back.'
@@ -189,18 +198,14 @@ export default async function DashboardPage() {
                 {stats.map((stat) => (
                     <div
                         key={stat.label}
-                        className={`bg-card relative overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5 hover:shadow-md ${stat.edge}`}
+                        className={`bg-card relative overflow-hidden rounded-lg border p-5 transition-all hover:-translate-y-0.5 hover:shadow-md ${stat.edge}`}
                     >
-                        {/* Vệt màu đổ từ góc trên trái, tắt dần — đủ để nhuộm thẻ, không đủ để đọ với chữ. */}
-                        <div
-                            aria-hidden
-                            className={`absolute inset-0 bg-linear-to-br to-transparent ${stat.wash}`}
-                        />
-                        <Glow
-                            className="-top-14 -right-10 size-28"
-                            color={stat.glow}
-                            opacity="opacity-20"
-                        />
+                        {/*
+                            Thẻ số dùng MỘT vạch màu ở mép trái, không phải nền gradient. Gradient
+                            lặp trên mọi bề mặt là dấu hiệu bị nhận diện; một vạch đặc thì nói cùng
+                            một điều — "ô này thuộc nhóm màu nào" — mà không góp vào cái tell đó.
+                        */}
+                        <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${stat.bar}`} />
 
                         <div className="relative">
                             <div
@@ -268,7 +273,7 @@ export default async function DashboardPage() {
                     {/* Thanh gạch nhỏ có màu — dấu hiệu mở đầu một mục, thay cho chữ in đậm trơn. */}
                     <span
                         aria-hidden
-                        className="from-brand-sky to-brand-violet h-4 w-1 rounded-full bg-linear-to-b"
+                        className="bg-brand-sky h-4 w-1 rounded-xs"
                     />
                     <h2 className="font-heading text-lg font-medium">Your tools</h2>
                 </div>
@@ -278,12 +283,8 @@ export default async function DashboardPage() {
                         <Link
                             key={tool.href}
                             href={tool.href}
-                            className={`bg-card group relative overflow-hidden rounded-2xl border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md ${tool.edge}`}
+                            className={`bg-card group relative overflow-hidden rounded-lg border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md ${tool.edge}`}
                         >
-                            <div
-                                aria-hidden
-                                className={`absolute inset-0 bg-linear-to-br to-transparent ${tool.wash}`}
-                            />
                             <div
                                 aria-hidden
                                 className={`pointer-events-none absolute -top-16 -right-12 size-40 rounded-full opacity-20 blur-3xl transition-opacity group-hover:opacity-30 ${tool.glow}`}
@@ -346,9 +347,7 @@ function PanelCard({
     children: React.ReactNode;
 }) {
     return (
-        <section
-            className={`bg-card relative overflow-hidden rounded-2xl border ${className}`}
-        >
+        <section className={`bg-card relative overflow-hidden rounded-lg border ${className}`}>
             <Glow className="-top-20 -right-16 size-40" color={glow} opacity="opacity-15" />
 
             <div className="relative flex items-center gap-2.5 px-5 pt-5 pb-3">
@@ -384,8 +383,8 @@ function EmptyBlock({
     body: string;
 }) {
     return (
-        <div className="border-border/70 flex flex-col items-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center">
-            <div className={`mb-1 flex size-11 items-center justify-center rounded-full ${chip}`}>
+        <div className="border-border/70 flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center">
+            <div className={`mb-1 flex size-11 items-center justify-center rounded-lg ${chip}`}>
                 <HugeiconsIcon icon={icon} strokeWidth={2} className={`size-5 ${ink}`} />
             </div>
             <p className="text-sm font-medium">{title}</p>

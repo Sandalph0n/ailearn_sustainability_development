@@ -121,10 +121,19 @@
   --chart-5: oklch(0.7600 0.0120 220);
 
   /*
-   * Thang bo góc trong `@theme inline` nhân với giá trị này, nên đổi một số là đổi cả hệ.
-   * Nâng từ 0.625rem của preset Maia lên để thẻ và nút tròn hơn, hợp với khối sidebar nổi.
+   * ─── Bo góc: nhỏ và có chủ đích ─────────────────────────────────────────
+   *
+   * "Một bán kính lớn dùng đều cho mọi thứ" là một trong những dấu hiệu bị nhận diện nhiều
+   * nhất của giao diện do máy sinh. Thiết kế thật dùng bán kính theo VAI TRÒ: ô nhập và nút
+   * nhỏ, thẻ vừa, và không phải thứ gì cũng bo tối đa.
+   *
+   * 0.375rem là gốc, và nó là một con số CHỌN chứ không phải giá trị mặc định. 0.5rem là
+   * đúng số shadcn phát hành sẵn, nên để nguyên là tự khai "chưa ai đụng vào theme".
+   *
+   * Chọn nhỏ hơn vì sản phẩm này là công cụ làm việc — trình soạn mã, trình vẽ sơ đồ, bảng
+   * dữ liệu. Góc gãy gọn đọc như phần mềm kỹ thuật; góc bo tròn đọc như trang giới thiệu.
    */
-  --radius: 0.875rem;
+  --radius: 0.375rem;
 
   /* base44 gọi token này là `--sidebar-background`; shadcn v4 gọi là `--sidebar`. Đổi tên cho khớp. */
   --sidebar: oklch(0.9848 0 0);

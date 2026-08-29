@@ -29,7 +29,7 @@
  * danh sách bước vào một công cụ vẫn là điều hướng phía client.
  */
 import type { Metadata } from 'next';
-import { Figtree, Geist_Mono } from 'next/font/google';
+import { Figtree, IBM_Plex_Mono } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import './globals.css';
 
@@ -38,7 +38,14 @@ import './globals.css';
 // Tên biến phải đúng `--font-sans` và `--font-mono`, vì `globals.css` ánh xạ token của Tailwind
 // vào chính hai tên đó. Đặt tên khác thì `font-sans` lặng lẽ rơi về mặc định trình duyệt.
 const fontSans = Figtree({ variable: '--font-sans', subsets: ['latin'] });
-const fontMono = Geist_Mono({ variable: '--font-mono', subsets: ['latin'] });
+// IBM Plex Mono chứ không phải Geist Mono: Geist nằm trong nhóm font mặc định người ta với lấy
+// theo quán tính, nên nó đọc như "chưa ai chọn gì". Plex Mono có tính cách riêng, và với một sản
+// phẩm mà công cụ chính là trình soạn mã thì mặt chữ máy đánh chữ là một lựa chọn có lý do.
+const fontMono = IBM_Plex_Mono({
+    variable: '--font-mono',
+    subsets: ['latin'],
+    weight: ['400', '500', '600'],
+});
 
 export const metadata: Metadata = {
     title: 'AI-Learn',

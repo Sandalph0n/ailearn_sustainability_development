@@ -50,7 +50,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
                     <SidebarTrigger className="-ml-1.5" />
                     <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
                     {/* Nhãn cảnh báo: mọi thay đổi ở khu này ảnh hưởng toàn hệ thống. */}
-                    <span className="text-destructive bg-destructive/10 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                    <span className="text-destructive bg-destructive/10 rounded-sm px-2 py-0.5 text-xs font-semibold tracking-wide uppercase">
                         Administration
                     </span>
                     <div className="flex-1" />
