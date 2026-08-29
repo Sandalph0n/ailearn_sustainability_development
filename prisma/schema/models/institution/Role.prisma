@@ -9,11 +9,14 @@ model Role {
 
   roleName String
 
-  /// Biểu thức khớp email để tự động gán vai trò lúc gia nhập.
+  /// Biểu thức khớp email để TỰ ĐỘNG cấp vai trò lúc gia nhập, không cần ai duyệt.
   ///
-  /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, không
-  /// phải lúc vào một lớp. Database không kiểm được điều đó, phải kiểm bằng mã.
-  emailRegex String?
+  /// Khớp thì vào thẳng; không khớp thì phải qua `RoleRequest` và chờ người duyệt. Đây là lối
+  /// tắt để không phải duyệt tay hàng nghìn sinh viên mỗi kỳ.
+  ///
+  /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, khi chưa
+  /// có lượt mở môn nào để nói tới. Database không kiểm được điều đó, phải kiểm bằng mã.
+  autoGrantEmailRegex String?
 
   /// Vai trò này gán ở tầng nào. Quyết định `RoleAssignment.offeringId` phải rỗng hay phải có.
   scopeType RoleScopeType

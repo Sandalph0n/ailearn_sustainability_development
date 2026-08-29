@@ -5,7 +5,7 @@ import type { RoleModel } from '@/app/generated/prisma/models';
 
 export type RoleSchemaValue = Pick<
     RoleModel,
-    'institutionId' | 'roleName' | 'scopeType' | 'emailRegex' | 'includedById'
+    'institutionId' | 'roleName' | 'scopeType' | 'autoGrantEmailRegex' | 'includedById'
 >;
 
 /** Chuỗi rỗng từ ô nhập quy về `null`; cột cho phép NULL còn ô nhập thì không. */
@@ -37,7 +37,7 @@ export const RoleSchema = z
          * Kiểm bằng cách THỬ BIÊN DỊCH: một regex hỏng lưu xuống database sẽ làm sập luồng gia
          * nhập sau này, và lúc đó không ai biết nó đến từ đâu.
          */
-        emailRegex: z
+        autoGrantEmailRegex: z
             .string()
             .max(200)
             .nullable()
@@ -70,9 +70,9 @@ export const RoleSchema = z
      * Prisma không khai được ràng buộc này (`CHECK` phải viết tay vào migration), nên nó sống ở
      * đây — và vì cùng một schema chạy ở cả client lẫn server, luật chỉ viết một lần.
      */
-    .refine((value) => value.emailRegex === null || value.scopeType === 'INSTITUTION', {
+    .refine((value) => value.autoGrantEmailRegex === null || value.scopeType === 'INSTITUTION', {
         message: 'Email matching only applies to institution-wide roles',
-        path: ['emailRegex'],
+        path: ['autoGrantEmailRegex'],
     }) satisfies z.ZodType<RoleSchemaValue>;
 
 export type RoleFormValue = z.input<typeof RoleSchema>;
@@ -81,6 +81,6 @@ export const EMPTY_ROLE_FORM = {
     institutionId: '',
     roleName: '',
     scopeType: 'OFFERING',
-    emailRegex: '',
+    autoGrantEmailRegex: '',
     includedById: '',
 } as unknown as RoleFormValue;

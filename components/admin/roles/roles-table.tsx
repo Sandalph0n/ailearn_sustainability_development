@@ -36,7 +36,7 @@ export type RoleListItem = {
     id: string;
     roleName: string;
     scopeType: 'INSTITUTION' | 'OFFERING';
-    emailRegex: string | null;
+    autoGrantEmailRegex: string | null;
     includedBy: { id: string; roleName: string } | null;
     institution: { id: string; name: string };
     counts: { assignments: number; requests: number };
@@ -105,7 +105,7 @@ export function RolesTable({
                           }),
                       ]),
 
-                column.accessor('emailRegex', {
+                column.accessor('autoGrantEmailRegex', {
                     header: 'Email rule',
                     enableSorting: false,
                     cell: (info) =>
@@ -240,7 +240,7 @@ function RoleDialog({
                         institutionId: role.institution.id,
                         roleName: role.roleName,
                         scopeType: role.scopeType,
-                        emailRegex: role.emailRegex ?? '',
+                        autoGrantEmailRegex: role.autoGrantEmailRegex ?? '',
                         includedById: role.includedBy?.id ?? '',
                     } as unknown as RoleFormValue,
                 }
@@ -297,7 +297,7 @@ function RoleDialog({
 
                         <FormInput
                             control={form.control}
-                            name="emailRegex"
+                            name="autoGrantEmailRegex"
                             label="Email rule"
                             description="Optional, institution-wide roles only. Grants this role automatically on join."
                             placeholder="@students\.mq\.edu\.au$"

@@ -1,0 +1,18 @@
+-- Đổi tên `Role.emailRegex` thành `Role.autoGrantEmailRegex`.
+--
+-- ─── Vì sao SQL này được VIẾT TAY ────────────────────────────────────────────
+--
+-- `prisma migrate dev` không nhìn thấy phép đổi tên. Nó so hai trạng thái schema, thấy một cột
+-- biến mất và một cột mới xuất hiện, rồi sinh ra:
+--
+--     ALTER TABLE "Role" DROP COLUMN "emailRegex",
+--     ADD COLUMN     "autoGrantEmailRegex" TEXT;
+--
+-- Chạy cái đó là mất sạch giá trị trong cột — Prisma có cảnh báo, nhưng cảnh báo thì dễ bấm qua.
+--
+-- `RENAME COLUMN` giữ nguyên dữ liệu, và Postgres tự cập nhật mọi index, ràng buộc, khung nhìn
+-- trỏ tới cột đó.
+--
+-- Cách làm: `prisma migrate dev --create-only` để sinh thư mục migration mà CHƯA chạy, rồi sửa
+-- file này, rồi mới `prisma migrate dev`.
+ALTER TABLE "Role" RENAME COLUMN "emailRegex" TO "autoGrantEmailRegex";
