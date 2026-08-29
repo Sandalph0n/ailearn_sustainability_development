@@ -13,6 +13,11 @@ import {
 
 import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
 import {
+    JOIN_REQUEST_ICON,
+    NotificationsPanel,
+    type AdminNotification,
+} from '@/components/admin/notifications-panel';
+import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
@@ -142,100 +147,126 @@ export default async function InstitutionSettingsPage({
         },
     ];
 
+    /**
+     * Thông báo — hiện chỉ có MỘT nguồn thật.
+     *
+     * Chưa có bảng `Notification` và chưa có hàng đợi nào. Thứ duy nhất đã tồn tại và đáng để
+     * người quản trị phải quyết là đơn xin vai trò đang chờ, nên nó là mục duy nhất ở đây.
+     *
+     * Không bịa thêm mục cho bảng trông đầy: đến lúc nối nguồn thật sẽ phải gỡ, và trong lúc đó
+     * không ai phân biệt được cái nào thật.
+     */
+    const notifications: AdminNotification[] =
+        pendingRequests > 0
+            ? [
+                  {
+                      id: 'join-requests',
+                      icon: JOIN_REQUEST_ICON,
+                      title: `${pendingRequests} join request${pendingRequests === 1 ? '' : 's'}`,
+                      body: 'Someone is waiting for a role at this institution.',
+                      at: 'Waiting for a decision',
+                      tone: 'attention',
+                  },
+              ]
+            : [];
+
     return (
-        <div className="flex max-w-4xl flex-col gap-6 pt-1">
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink render={<Link href="/admin/institutions" />}>
-                            Institutions
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>{institution.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+        <NotificationsPanel notifications={notifications}>
+            <div className="flex flex-col gap-6 pt-1">
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        <BreadcrumbItem>
+                            <BreadcrumbLink render={<Link href="/admin/institutions" />}>
+                                Institutions
+                            </BreadcrumbLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                            <BreadcrumbPage>{institution.name}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
 
-            <section className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                    <h1 className="font-heading text-xl font-semibold tracking-tight">
-                        {institution.name}
-                    </h1>
-                    {institution.website ? (
-                        <a
-                            href={institution.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
-                        >
-                            {institution.website.replace(/^https?:\/\//, '')}
-                            <HugeiconsIcon
-                                icon={LinkSquare02Icon}
-                                strokeWidth={2}
-                                className="size-3.5"
-                            />
-                        </a>
-                    ) : (
-                        <span className="text-muted-foreground text-sm">No website set</span>
-                    )}
-                </div>
+                <section className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex flex-col gap-2">
+                        <h1 className="font-heading text-xl font-semibold tracking-tight">
+                            {institution.name}
+                        </h1>
+                        {institution.website ? (
+                            <a
+                                href={institution.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
+                            >
+                                {institution.website.replace(/^https?:\/\//, '')}
+                                <HugeiconsIcon
+                                    icon={LinkSquare02Icon}
+                                    strokeWidth={2}
+                                    className="size-3.5"
+                                />
+                            </a>
+                        ) : (
+                            <span className="text-muted-foreground text-sm">No website set</span>
+                        )}
+                    </div>
 
-                <InstitutionFormDialog
-                    institution={{
-                        id: institution.id,
-                        name: institution.name,
-                        website: institution.website,
-                    }}
-                    trigger={<Button variant="outline">Edit details</Button>}
-                />
-            </section>
+                    <InstitutionFormDialog
+                        institution={{
+                            id: institution.id,
+                            name: institution.name,
+                            website: institution.website,
+                        }}
+                        trigger={<Button variant="outline">Edit details</Button>}
+                    />
+                </section>
 
-            <section className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                    <h2 className="font-heading text-base font-semibold">Setup</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Everything below belongs to this institution alone. None of it is built yet.
-                    </p>
-                </div>
+                <section className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                        <h2 className="font-heading text-base font-semibold">Setup</h2>
+                        <p className="text-muted-foreground text-sm">
+                            Everything below belongs to this institution alone. None of it is built
+                            yet.
+                        </p>
+                    </div>
 
-                {/*
+                    {/*
                     Danh sách dày, cùng ngôn ngữ với trang tổng quan quản trị. Sáu thẻ có biểu
                     tượng và câu mô tả là khuôn của trang tiếp thị; ở đây người đọc cần liếc một
                     lượt xem trường này đã cấu hình tới đâu.
                 */}
-                <div className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
-                    {sections.map((section) => (
-                        <div key={section.key} className="flex items-center gap-4 px-4 py-3.5">
-                            <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-                                <HugeiconsIcon
-                                    icon={section.icon}
-                                    strokeWidth={2}
-                                    className="size-4"
-                                />
+                    <div className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
+                        {sections.map((section) => (
+                            <div key={section.key} className="flex items-center gap-4 px-4 py-3.5">
+                                <div className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
+                                    <HugeiconsIcon
+                                        icon={section.icon}
+                                        strokeWidth={2}
+                                        className="size-4"
+                                    />
+                                </div>
+
+                                {/* `min-w-0` để mô tả dài bị cắt chứ không đẩy vỡ hàng. */}
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium">{section.title}</p>
+                                    <p className="text-muted-foreground truncate text-sm">
+                                        {section.description}
+                                    </p>
+                                </div>
+
+                                <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+                                    {section.count} {section.unit}
+                                    {section.count === 1 ? '' : 's'}
+                                </span>
+
+                                <Badge variant="secondary" className="shrink-0">
+                                    Not built
+                                </Badge>
                             </div>
-
-                            {/* `min-w-0` để mô tả dài bị cắt chứ không đẩy vỡ hàng. */}
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium">{section.title}</p>
-                                <p className="text-muted-foreground truncate text-sm">
-                                    {section.description}
-                                </p>
-                            </div>
-
-                            <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-                                {section.count} {section.unit}
-                                {section.count === 1 ? '' : 's'}
-                            </span>
-
-                            <Badge variant="secondary" className="shrink-0">
-                                Not built
-                            </Badge>
-                        </div>
-                    ))}
-                </div>
-            </section>
-        </div>
+                        ))}
+                    </div>
+                </section>
+            </div>
+        </NotificationsPanel>
     );
 }
