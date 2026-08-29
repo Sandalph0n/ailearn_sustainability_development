@@ -149,7 +149,7 @@ export function DataTable<TData extends RowData>({
     return (
         <div className="flex flex-col gap-4">
             {((filterColumnId && !server) || toolbar) && (
-                <div className="flex items-center gap-2">
+                <div className="flex w-full items-center gap-2">
                     {filterColumnId && !server && (
                         <Input
                             value={filter}
@@ -164,8 +164,22 @@ export function DataTable<TData extends RowData>({
                             className="max-w-xs"
                         />
                     )}
-                    <div className="flex-1" />
-                    {toolbar}
+
+                    {/*
+                        Thanh đệm CHỈ khi ô tìm kiếm nội bộ đang hiện — lúc đó nó có việc: đẩy
+                        `toolbar` sang phải, tách khỏi ô tìm kiếm bên trái.
+
+                        Ở chế độ server thì ô tìm kiếm nằm trong chính `toolbar`, nên thanh đệm
+                        này lại đẩy cả cụm — kể cả ô tìm kiếm — ra giữa hàng. Khi đó `toolbar`
+                        chiếm trọn chiều ngang và tự lo bố cục của nó.
+                    */}
+                    {filterColumnId && !server && <div className="flex-1" />}
+
+                    {server ? (
+                        <div className="flex w-full items-center gap-2">{toolbar}</div>
+                    ) : (
+                        toolbar
+                    )}
                 </div>
             )}
 
