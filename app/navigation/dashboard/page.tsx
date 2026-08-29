@@ -285,9 +285,12 @@ export default async function DashboardPage() {
                             href={tool.href}
                             className={`bg-card group relative overflow-hidden rounded-lg border p-6 transition-all hover:-translate-y-0.5 hover:shadow-md ${tool.edge}`}
                         >
-                            <div
-                                aria-hidden
-                                className={`pointer-events-none absolute -top-16 -right-12 size-40 rounded-full opacity-20 blur-3xl transition-opacity group-hover:opacity-30 ${tool.glow}`}
+                            {/* Dùng lại `Glow` thay vì tự viết một div nữa — cùng hoạ tiết thì
+                                nên cùng một chỗ định nghĩa, để độ mờ không trôi mỗi nơi một kiểu. */}
+                            <Glow
+                                className="-top-16 -right-12 size-40"
+                                color={tool.glow}
+                                opacity="opacity-20"
                             />
                             <DotGrid opacity={0.04} size={16} />
 

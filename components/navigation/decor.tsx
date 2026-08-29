@@ -53,11 +53,9 @@ export function Glow({
     color?: string;
     opacity?: string;
 }) {
-    return (
-        <div
-            aria-hidden
-            // unslop-ignore — `rounded-full` ở đây là một HÌNH TRÒN, không phải hộp bo góc.
-            className={`pointer-events-none absolute rounded-full blur-3xl ${color} ${opacity} ${className}`}
-        />
-    );
+    // `rounded-full` ở đây là một HÌNH TRÒN thật, không phải hộp bo góc — nên nó không thuộc
+    // dấu hiệu "bo tròn mọi thứ". Đánh dấu để lần quét sau không hỏi lại.
+    const classes = `pointer-events-none absolute rounded-full blur-3xl ${color} ${opacity} ${className}`; // unslop-ignore
+
+    return <div aria-hidden className={classes} />;
 }
