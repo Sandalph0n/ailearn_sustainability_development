@@ -163,7 +163,7 @@ function NotificationsAside({ notifications }: { notifications: AdminNotificatio
             >
                 {/* `overflow-hidden` + `w-80` cố định để chữ không xô lại khi cột đang thu. */}
                 <div className="flex w-80 flex-1 flex-col overflow-hidden">
-                    <div className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <div className="flex h-16 shrink-0 items-center gap-2 px-4">
                         <h2 className="flex-1 text-sm font-semibold">Notifications</h2>
 
                         {count > 0 && (
