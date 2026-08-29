@@ -10,15 +10,6 @@
  * dựng lại từ đầu.
  *
  * `app/tools/` cố ý KHÔNG có layout, nên công cụ chiếm trọn màn hình, không kèm sidebar.
- *
- * ─── Vì sao `variant="inset"` ────────────────────────────────────────────────
- *
- * Nó đổi hẳn bố cục: nền của cả trang thành `--sidebar` (teal đậm), còn phần nội dung co lại
- * thành một tấm thẻ bo góc, có bóng, nổi lên trên. Sidebar không còn là một cột dán mép màn hình
- * mà là mảng màu phía sau.
- *
- * Cách này hợp với bảng màu đang có: teal đậm làm nền, trắng làm mặt giấy, và màu thương hiệu
- * dành riêng cho những chỗ cần nhấn bên trong nội dung.
  */
 import { redirect } from 'next/navigation';
 
@@ -49,12 +40,9 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
         <SidebarProvider>
             <AppSidebar />
 
-            <SidebarInset className="overflow-hidden">
-                {/*
-                    Header trong suốt, không viền — tấm thẻ nội dung đã tự tách khỏi nền teal rồi,
-                    thêm một đường kẻ nữa là chia đôi thứ vốn liền mạch.
-                */}
-                <header className="flex h-16 shrink-0 items-center gap-3 px-5 md:px-6">
+            <SidebarInset>
+                {/* Header dính trên cùng, có viền dưới để tách khỏi vùng nội dung cuộn. */}
+                <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-5 md:px-6">
                     <SidebarTrigger className="-ml-1.5" />
                     <div className="flex-1" />
                     <HeaderAccount />

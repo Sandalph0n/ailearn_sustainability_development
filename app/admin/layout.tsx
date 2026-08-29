@@ -45,8 +45,8 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
     return (
         <SidebarProvider>
             <AdminSidebar />
-            <SidebarInset className="overflow-hidden">
-                <header className="flex h-16 shrink-0 items-center gap-3 px-5 md:px-6">
+            <SidebarInset>
+                <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-5 md:px-6">
                     <SidebarTrigger className="-ml-1.5" />
                     <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
                     {/* Nhãn cảnh báo: mọi thay đổi ở khu này ảnh hưởng toàn hệ thống. */}
