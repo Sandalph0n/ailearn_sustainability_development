@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, ArrowRight01Icon, LinkSquare02Icon } from '@hugeicons/core-free-icons';
 
+import { useListQuery } from '@/components/admin/use-list-query';
+import { Input } from '@/components/ui/input';
+
 import { type InstitutionDeleteTarget } from '@/components/admin/institutions/delete-institution-dialog';
 import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -25,12 +28,29 @@ const column = columnHelperFor<InstitutionListItem>();
  * xếp, lọc, hộp thoại — mới cần chạy ở client, nên ranh giới đặt đúng ở đây. Dữ liệu đi qua một
  * lần dưới dạng props; client không tự gọi API để lấy danh sách.
  */
-export function InstitutionsTable({ institutions }: { institutions: InstitutionListItem[] }) {
+export function InstitutionsTable({
+    institutions,
+    page,
+    pageCount,
+    total,
+    sort,
+    dir,
+}: {
+    institutions: InstitutionListItem[];
+    page: number;
+    pageCount: number;
+    total: number;
+    sort: string;
+    dir: 'asc' | 'desc';
+    /** Từ khoá hiện tại trên URL. Ô nhập tự giữ giá trị riêng, xem `useListQuery`. */
+    query: string;
+}) {
+    const list = useListQuery();
     /**
      * Định nghĩa cột nằm trong `useMemo` vì đây là mảng dựng mới mỗi lần render, mà bảng lại lấy
      * nó làm phụ thuộc — không ghi nhớ thì mỗi lần gõ vào ô tìm kiếm là dựng lại toàn bộ cột.
      */
-    
+
     const columns = useMemo(
         () =>
             [
@@ -101,19 +121,60 @@ export function InstitutionsTable({ institutions }: { institutions: InstitutionL
         <DataTable
             columns={columns}
             data={institutions}
-            filterColumnId="name"
-            filterPlaceholder="Search institutions…"
-            emptyMessage="No institutions yet. Create the first one."
-            toolbar={
-                <InstitutionFormDialog
-                    trigger={
-                        <Button>
-                            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                            New institution
-                        </Button>
-                    }
-                />
+            emptyMessage={
+                // Ba ca rỗng khác nhau, và nói nhầm ca thì người dùng đi tìm sai chỗ:
+                // hết kết quả tìm kiếm, quá số trang, hay thật sự chưa có gì.
+                list.input
+                    ? `No institutions match "${list.input}".`
+                    : page > 1
+                      ? `Page ${page} is past the end. There ${total === 1 ? 'is' : 'are'} only ${total}.`
+                      : 'No institutions yet. Create the first one.'
             }
+            toolbar={
+                <>
+                    {/*
+                        Ô tìm kiếm nằm NGOÀI `DataTable` ở chế độ server: nó ghi vào URL chứ không
+                        đổi state của bảng, nên nó thuộc về nơi biết đường dẫn — chính là đây.
+                    */}
+                    <Input
+                        value={list.input}
+                        onChange={(event) => list.setInput(event.target.value)}
+                        placeholder="Search institutions…"
+                        className="max-w-xs"
+                        aria-label="Search institutions"
+                    />
+
+                    <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+                        {total} total
+                    </span>
+
+                    <div className="flex-1" />
+
+                    <InstitutionFormDialog
+                        trigger={
+                            <Button>
+                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                                New institution
+                            </Button>
+                        }
+                    />
+                </>
+            }
+            server={{
+                page,
+                pageCount,
+                sort,
+                dir,
+                pending: list.isPending,
+                // Bấm lại đúng cột đang sắp thì đảo chiều; bấm cột khác thì bắt đầu từ tăng dần.
+                onSort: (columnId) =>
+                    list.setParams({
+                        sort: columnId,
+                        dir: sort === columnId && dir === 'asc' ? 'desc' : 'asc',
+                        page: null,
+                    }),
+                onPage: (next) => list.setParams({ page: next === 1 ? null : next }),
+            }}
         />
     );
 }

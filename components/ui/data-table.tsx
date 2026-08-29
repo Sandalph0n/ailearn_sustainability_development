@@ -28,6 +28,7 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import {
     Table,
@@ -80,6 +81,30 @@ export function columnHelperFor<TData extends RowData>() {
 
 export type AdminColumnDef<TData extends RowData> = ColumnDef<typeof FEATURES, TData, unknown>;
 
+/**
+ * Điều khiển từ phía server. Có mặt nghĩa là bảng KHÔNG tự lọc và tự phân trang nữa — dữ liệu
+ * truyền vào đã là đúng một trang, đã lọc, đã sắp xếp.
+ *
+ * ─── Vì sao giữ cả hai chế độ ────────────────────────────────────────────────
+ *
+ * Bảng lớn (người dùng, môn học) phải để database lọc: chỉ một trang đi qua đường truyền, và
+ * bộ lọc nằm trên URL nên chia sẻ được. Bảng nhỏ có trần rõ ràng — danh sách công cụ chẳng hạn —
+ * thì lọc tại chỗ nhạy hơn và không phải đẩy gì lên URL.
+ *
+ * Khác biệt chỉ ở chỗ AI cung cấp dữ liệu; phần vẽ bảng dùng chung.
+ */
+export type ServerControls = {
+    page: number;
+    pageCount: number;
+    /** Cột đang sắp xếp, `null` nếu chưa chọn. */
+    sort: string | null;
+    dir: 'asc' | 'desc';
+    onSort: (columnId: string) => void;
+    onPage: (page: number) => void;
+    /** Đang chờ trang mới. Bảng cũ mờ đi chứ KHÔNG biến mất. */
+    pending?: boolean;
+};
+
 export function DataTable<TData extends RowData>({
     columns,
     data,
@@ -89,6 +114,7 @@ export function DataTable<TData extends RowData>({
     emptyMessage = 'Nothing here yet.',
     toolbar,
     pageSize = 10,
+    server,
 }: {
     columns: Array<AdminColumnDef<TData>>;
     data: TData[];
@@ -98,6 +124,8 @@ export function DataTable<TData extends RowData>({
     /** Nút bấm đặt bên phải ô tìm kiếm — thường là "New …". */
     toolbar?: ReactNode;
     pageSize?: number;
+    /** Bỏ trống = bảng tự lọc và tự phân trang ở client. */
+    server?: ServerControls;
 }) {
     const [filter, setFilter] = useState('');
 
@@ -112,13 +140,17 @@ export function DataTable<TData extends RowData>({
     });
 
     const rows = table.getRowModel().rows;
-    const pageCount = table.getPageCount();
+    // Ở chế độ server, `getPageCount()` chỉ nhìn thấy một trang dữ liệu nên luôn trả về 1.
+    const pageCount = server ? server.pageCount : table.getPageCount();
+    const pageIndex = server ? server.page - 1 : table.state.pagination.pageIndex;
+    const canPrevious = server ? server.page > 1 : table.getCanPreviousPage();
+    const canNext = server ? server.page < server.pageCount : table.getCanNextPage();
 
     return (
         <div className="flex flex-col gap-4">
-            {(filterColumnId || toolbar) && (
+            {((filterColumnId && !server) || toolbar) && (
                 <div className="flex items-center gap-2">
-                    {filterColumnId && (
+                    {filterColumnId && !server && (
                         <Input
                             value={filter}
                             onChange={(event) => {
@@ -137,21 +169,38 @@ export function DataTable<TData extends RowData>({
                 </div>
             )}
 
-            <div className="overflow-hidden rounded-xl border">
+            {/*
+                Đang chờ thì làm MỜ bảng cũ, không xoá nó. Xoá rồi vẽ lại khiến trang nhảy và
+                người dùng mất chỗ đang nhìn; mờ đi thì họ vẫn đọc được và biết là sắp có bản mới.
+            */}
+            <div
+                className={cn(
+                    'overflow-hidden rounded-xl border transition-opacity',
+                    server?.pending && 'pointer-events-none opacity-60',
+                )}
+            >
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     const sortable = header.column.getCanSort();
-                                    const sorted = header.column.getIsSorted();
+                                    const sorted = server
+                                        ? server.sort === header.column.id
+                                            ? server.dir
+                                            : false
+                                        : header.column.getIsSorted();
 
                                     return (
                                         <TableHead key={header.id}>
                                             {header.isPlaceholder ? null : sortable ? (
                                                 <button
                                                     type="button"
-                                                    onClick={header.column.getToggleSortingHandler()}
+                                                    onClick={
+                                                        server
+                                                            ? () => server.onSort(header.column.id)
+                                                            : header.column.getToggleSortingHandler()
+                                                    }
                                                     className="hover:text-foreground -ml-2 inline-flex items-center gap-1 rounded px-2 py-1 transition-colors"
                                                 >
                                                     <table.FlexRender header={header} />
@@ -212,14 +261,16 @@ export function DataTable<TData extends RowData>({
             {pageCount > 1 && (
                 <div className="flex items-center justify-between">
                     <span className="text-muted-foreground text-sm tabular-nums">
-                        Page {table.state.pagination.pageIndex + 1} of {pageCount}
+                        Page {pageIndex + 1} of {pageCount}
                     </span>
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() =>
+                                server ? server.onPage(server.page - 1) : table.previousPage()
+                            }
+                            disabled={!canPrevious}
                         >
                             <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
                             Previous
@@ -227,8 +278,10 @@ export function DataTable<TData extends RowData>({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() =>
+                                server ? server.onPage(server.page + 1) : table.nextPage()
+                            }
+                            disabled={!canNext}
                         >
                             Next
                             <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />

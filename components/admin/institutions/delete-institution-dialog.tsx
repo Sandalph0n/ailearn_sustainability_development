@@ -104,7 +104,8 @@ export function DeleteInstitutionDialog({
                                 This also deletes{' '}
                                 {cascade.map((item, index) => (
                                     <span key={item.label}>
-                                        {index > 0 && (index === cascade.length - 1 ? ' and ' : ', ')}
+                                        {index > 0 &&
+                                            (index === cascade.length - 1 ? ' and ' : ', ')}
                                         <strong className="text-foreground">
                                             {item.count} {item.label}
                                             {item.count === 1 ? '' : 's'}
