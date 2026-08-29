@@ -5,7 +5,11 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import { InstitutionFilter, type InstitutionOption } from '@/components/admin/institution-filter';
+import {
+    InstitutionFilter,
+    institutionItems,
+    type InstitutionOption,
+} from '@/components/admin/institution-filter';
 import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
@@ -230,6 +234,7 @@ function TermDialog({
                             control={form.control}
                             name="institutionId"
                             label="Institution"
+                            items={institutionItems(institutions)}
                             description="A year and session can only exist once per institution."
                         >
                             {institutions.map((institution) => (

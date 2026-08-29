@@ -5,7 +5,11 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import { InstitutionFilter, type InstitutionOption } from '@/components/admin/institution-filter';
+import {
+    InstitutionFilter,
+    institutionItems,
+    type InstitutionOption,
+} from '@/components/admin/institution-filter';
 import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
@@ -263,6 +267,7 @@ function RoleDialog({
                                 control={form.control}
                                 name="institutionId"
                                 label="Institution"
+                                items={institutionItems(institutions)}
                             >
                                 {institutions.map((institution) => (
                                     <SelectItem key={institution.id} value={institution.id}>
@@ -304,6 +309,9 @@ function RoleDialog({
                             control={form.control}
                             name="includedById"
                             label="Included by"
+                            items={Object.fromEntries(
+                                candidates.map((candidate) => [candidate.id, candidate.roleName]),
+                            )}
                             description={
                                 candidates.length > 0
                                     ? 'Optional. A role that also grants this one.'

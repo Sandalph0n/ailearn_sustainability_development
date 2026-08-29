@@ -30,8 +30,7 @@ export async function SubjectsSection({
     const raw = Array.isArray(searchParams.institution)
         ? searchParams.institution[0]
         : searchParams.institution;
-    const institutionId =
-        lockedInstitutionId ?? (raw && /^[0-9a-f-]{36}$/i.test(raw) ? raw : null);
+    const institutionId = lockedInstitutionId ?? (raw && /^[0-9a-f-]{36}$/i.test(raw) ? raw : null);
 
     const where = {
         ...(institutionId ? { institutionId } : {}),

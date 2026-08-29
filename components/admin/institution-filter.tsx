@@ -16,6 +16,18 @@ import {
 export type InstitutionOption = { id: string; name: string };
 
 /**
+ * Ánh xạ id → tên cho prop `items` của Base UI `Select`.
+ *
+ * Không có nó thì ô hiện GIÁ TRỊ THÔ (một chuỗi uuid) mỗi khi đã có lựa chọn sẵn — Base UI chỉ
+ * biết nhãn của một mục sau khi popup mở lần đầu.
+ */
+export function institutionItems(institutions: InstitutionOption[]): Record<string, string> {
+    return Object.fromEntries(
+        institutions.map((institution) => [institution.id, institution.name]),
+    );
+}
+
+/**
  * Lọc một bảng theo cơ sở giáo dục, trạng thái nằm trên URL.
  *
  * ─── Vì sao một bộ lọc thay vì mỗi trường một trang riêng ───────────────────
@@ -40,6 +52,8 @@ export function InstitutionFilter({
     return (
         <div className="flex shrink-0 items-center gap-1">
             <Select
+                // Không có `items` thì ô hiện uuid thay vì tên — xem chú thích ở `FormSelect`.
+                items={institutionItems(institutions)}
                 value={value ?? ''}
                 onValueChange={(next) =>
                     // Đổi bộ lọc thì về trang 1: đang ở trang 5 mà lọc còn 2 trang sẽ ra bảng trống.
