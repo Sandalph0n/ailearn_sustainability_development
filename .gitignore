@@ -56,3 +56,6 @@ next-env.d.ts
 /.agents/
 /.claude/
 /.windsurf/
+
+# Anh chup man hinh cua scripts/shot.mjs
+.screenshots/
