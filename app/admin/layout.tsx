@@ -26,11 +26,27 @@
 import { redirect } from 'next/navigation';
 
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
+import {
+    JOIN_REQUEST_ICON,
+    NotificationsProvider,
+    NotificationsTrigger,
+    type AdminNotification,
+} from '@/components/admin/notifications-sidebar';
 import { HeaderAccount } from '@/components/navigation/header-account';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { getCurrentSession } from '@/lib/auth/session/service';
+import { db } from '@/lib/db';
 
+/**
+ * ─── Vì sao thông báo nằm ở LAYOUT, không phải một trang ─────────────────────
+ *
+ * Nó là sidebar thứ hai, nên nó phải có mặt ở mọi trang quản trị và giữ nguyên khi chuyển trang.
+ * Đặt trong một trang thì mỗi lần điều hướng là một lần dựng lại, và trạng thái đóng/mở mất.
+ *
+ * Kéo theo một hệ quả về phạm vi: nguồn thông báo phải là TOÀN HỆ THỐNG, không riêng một cơ sở.
+ * Bản trước tôi đặt nó trong trang chi tiết Institution nên nó chỉ đếm đơn của trường đó.
+ */
 export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
     const session = await getCurrentSession();
 
@@ -42,20 +58,72 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
         redirect('/navigation/dashboard');
     }
 
+    /**
+     * Hiện chỉ có MỘT nguồn thật.
+     *
+     * Chưa có bảng `Notification`, chưa có hàng đợi. Thứ duy nhất đã tồn tại và thật sự cần
+     * người quản trị quyết là đơn xin vai trò đang chờ.
+     *
+     * Không bịa thêm mục cho cột trông đầy — đến lúc nối nguồn thật sẽ phải gỡ, và trong lúc đó
+     * không ai phân biệt được cái nào thật.
+     */
+    const pendingRequests = await db.roleRequest.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { institution: { name: 'asc' } },
+        select: { institution: { select: { id: true, name: true } } },
+    });
+    const byInstitution = new Map<string, { name: string; count: number }>();
+    for (const request of pendingRequests) {
+        const current = byInstitution.get(request.institution.id);
+        byInstitution.set(request.institution.id, {
+            name: request.institution.name,
+            count: (current?.count ?? 0) + 1,
+        });
+    }
+
+    const notifications: AdminNotification[] = Array.from(byInstitution, ([id, item]) => ({
+        id: `join-requests-${id}`,
+        icon: JOIN_REQUEST_ICON,
+        title: `${item.count} join request${item.count === 1 ? '' : 's'}`,
+        body: item.name,
+        at: 'Waiting for a decision',
+        tone: 'attention',
+        href: `/admin/institutions/${id}/requests`,
+    }));
+
     return (
         <SidebarProvider>
             <AdminSidebar />
-            <SidebarInset>
-                <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator orientation="vertical" className="my-2" />
-                    <span className="text-muted-foreground text-sm">Administration</span>
-                    {/* Đẩy mọi thứ sau nó sang phải. */}
-                    <div className="flex-1" />
+            <SidebarInset className="overflow-hidden">
+                <NotificationsProvider notifications={notifications}>
+                    <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-5 md:px-6">
+                        <SidebarTrigger className="-ml-1.5" />
+                        <Separator
+                            orientation="vertical"
+                            className="h-5 data-vertical:self-center"
+                        />
+                        {/* Nhãn cảnh báo: mọi thay đổi ở khu này ảnh hưởng toàn hệ thống. */}
+                        <span className="text-destructive bg-destructive/10 rounded-sm px-2 py-0.5 text-xs font-semibold tracking-wide uppercase">
+                            Administration
+                        </span>
+                        <div className="flex-1" />
+                        <HeaderAccount />
+                        <NotificationsTrigger />
+                    </header>
 
-                    <HeaderAccount />
-                </header>
-                <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+                    <div className="relative flex-1 overflow-y-auto">
+                        <div
+                            aria-hidden
+                            className="text-foreground pointer-events-none absolute inset-0 opacity-[0.035]"
+                            style={{
+                                backgroundImage:
+                                    'radial-gradient(currentColor 1px, transparent 1px)',
+                                backgroundSize: '22px 22px',
+                            }}
+                        />
+                        <div className="relative px-5 pb-10 md:px-6">{children}</div>
+                    </div>
+                </NotificationsProvider>
             </SidebarInset>
         </SidebarProvider>
     );

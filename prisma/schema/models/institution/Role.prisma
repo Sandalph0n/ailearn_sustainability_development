@@ -9,24 +9,26 @@ model Role {
 
   roleName String
 
-  /// Biểu thức khớp email để tự động gán vai trò lúc gia nhập.
+  /// Biểu thức khớp email để TỰ ĐỘNG cấp vai trò lúc gia nhập, không cần ai duyệt.
   ///
-  /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, không
-  /// phải lúc vào một lớp. Database không kiểm được điều đó, phải kiểm bằng mã.
-  emailRegex String?
+  /// Khớp thì vào thẳng; không khớp thì phải qua `RoleRequest` và chờ người duyệt. Đây là lối
+  /// tắt để không phải duyệt tay hàng nghìn sinh viên mỗi kỳ.
+  ///
+  /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, khi chưa
+  /// có lượt mở môn nào để nói tới. Check constraint trong migration giữ bất biến này ở database.
+  autoGrantEmailRegex String?
 
   /// Vai trò này gán ở tầng nào. Quyết định `RoleAssignment.offeringId` phải rỗng hay phải có.
   scopeType RoleScopeType
 
-  /// Vai trò bao gồm vai trò khác — "Phụ trách môn" bao gồm "Trợ giảng".
-  ///
-  /// Cây, không phải đồ thị: mỗi vai trò nhiều nhất một cha. `SetNull` vì xoá vai trò cha thì
-  /// vai trò con vẫn tồn tại, chỉ mất phần kế thừa.
-  includedById String? @db.Uuid
-
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  includedBy  Role?       @relation("roleHierarchy", fields: [includedById], references: [id], onDelete: SetNull)
-  includes    Role[]      @relation("roleHierarchy")
+
+  /// Các cạnh của đồ thị kế thừa quyền.
+  ///
+  /// Một vai trò có thể bao gồm nhiều vai trò và đồng thời được nhiều vai trò khác bao gồm.
+  /// Diamond hợp lệ; chu trình bị trigger trong migration chặn để phép duyệt quyền luôn dừng.
+  includedRoles RoleInclusion[] @relation("includingRole")
+  parentRoles   RoleInclusion[] @relation("includedRole")
 
   permissions     RolePermission[]
   /// `Restrict`: còn ai đang giữ vai trò này thì không xoá được nó.

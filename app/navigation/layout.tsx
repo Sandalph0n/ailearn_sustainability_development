@@ -1,5 +1,5 @@
 /**
- * Khung chung cho các trang ĐIỀU HƯỚNG: trang chủ, môn học, bài tập, lịch.
+ * Khung chung cho các trang ĐIỀU HƯỚNG: bảng điều khiển, môn học, bài tập, lịch.
  *
  * Sidebar bên trái chỉ để ĐIỀU HƯỚNG. Tài khoản nằm ở góc phải header — xem `HeaderAccount`.
  *
@@ -10,7 +10,15 @@
  * dựng lại từ đầu.
  *
  * `app/tools/` cố ý KHÔNG có layout, nên công cụ chiếm trọn màn hình, không kèm sidebar.
- *
+ */
+import { redirect } from 'next/navigation';
+
+import { AppSidebar } from '@/components/navigation/app-sidebar';
+import { HeaderAccount } from '@/components/navigation/header-account';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { getCurrentSession } from '@/lib/auth/session/service';
+
+/**
  * ─── ĐÂY LÀ CHỐT CHẶN THẬT ───────────────────────────────────────────────────
  *
  * `proxy.ts` cũng đá người chưa đăng nhập về `/auth`, nhưng nó chỉ trả lời được "có cookie phiên
@@ -18,17 +26,8 @@
  * request kể cả những request Next tự nạp trước, nên không được phép đụng database.
  *
  * Chốt chặn ở đây băm token rồi tra bảng `LoginSession` kèm điều kiện còn hạn. Đặt ở layout chứ
- * không ở từng trang: thêm trang mới dưới `/navigation/` là tự động được bảo vệ, không phải nhớ
- * chép lại đoạn kiểm tra.
+ * không ở từng trang: thêm trang mới dưới `/navigation/` là tự động được bảo vệ.
  */
-import { redirect } from 'next/navigation';
-
-import { AppSidebar } from '@/components/navigation/app-sidebar';
-import { HeaderAccount } from '@/components/navigation/header-account';
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
-import { getCurrentSession } from '@/lib/auth/session/service';
-
 export default async function NavigationLayout({ children }: LayoutProps<'/navigation'>) {
     const session = await getCurrentSession();
     if (!session) {
@@ -40,16 +39,30 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
     return (
         <SidebarProvider>
             <AppSidebar />
-            <SidebarInset>
-                <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-4">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator orientation="vertical" className="my-2"/>
-                    {/* Đẩy mọi thứ sau nó sang phải. */}
-                    <div className="flex-1" />
 
+            <SidebarInset>
+                {/* Header dính trên cùng, có viền dưới để tách khỏi vùng nội dung cuộn. */}
+                <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-5 md:px-6">
+                    <SidebarTrigger className="-ml-1.5" />
+                    <div className="flex-1" />
                     <HeaderAccount />
                 </header>
-                <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+
+                {/*
+                    Lưới chấm rất mờ, cùng thủ pháp với trang giới thiệu và trang đăng nhập. Nó
+                    giữ cho vùng nội dung không phẳng lì mà không tranh chỗ với dữ liệu thật.
+                */}
+                <div className="relative flex-1 overflow-y-auto">
+                    <div
+                        aria-hidden
+                        className="text-foreground pointer-events-none absolute inset-0 opacity-[0.035]"
+                        style={{
+                            backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)',
+                            backgroundSize: '22px 22px',
+                        }}
+                    />
+                    <div className="relative px-5 pb-10 md:px-6">{children}</div>
+                </div>
             </SidebarInset>
         </SidebarProvider>
     );

@@ -23,10 +23,11 @@ model RoleRequest {
   approvedAssignmentId String? @unique @db.Uuid
 
   user               User            @relation("requestedBy", fields: [userId], references: [id], onDelete: Restrict)
-  institution        Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  /// `Restrict`: đơn là lịch sử đã xảy ra, không biến mất khi xoá institution.
+  institution        Institution     @relation(fields: [institutionId], references: [id], onDelete: Restrict)
   role               Role            @relation(fields: [roleId], references: [id], onDelete: Restrict)
   processedBy        User?           @relation("processedBy", fields: [processedByUserId], references: [id], onDelete: SetNull)
-  approvedAssignment RoleAssignment? @relation(fields: [approvedAssignmentId], references: [id], onDelete: SetNull)
+  approvedAssignment RoleAssignment? @relation(fields: [approvedAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([institutionId, status])
   @@index([userId])

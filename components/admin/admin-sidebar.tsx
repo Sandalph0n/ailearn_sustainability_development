@@ -6,10 +6,9 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Home01Icon,
     UniversityIcon,
-    BookOpen01Icon,
-    Calendar03Icon,
     UserMultipleIcon,
     Shield01Icon,
+    Key01Icon,
     ToolboxIcon,
     ArrowLeft01Icon,
 } from '@hugeicons/core-free-icons';
@@ -32,19 +31,18 @@ import {
  * Mục điều hướng của khu quản trị, để thành DỮ LIỆU giống `AppSidebar` — thêm một mục là thêm
  * một dòng.
  *
- * Chia nhóm vì hai loại việc khác hẳn nhau: một bên là dữ liệu học vụ (ai dạy môn gì, kỳ nào),
- * một bên là quyền hạn. Gộp chung thì danh sách dài dần rồi không ai tìm thấy gì.
+ * Chỉ đặt ở đây những tài nguyên có nghĩa trên TOÀN nền tảng. Subject và term thuộc về một cơ
+ * sở cụ thể, nên lối vào của chúng nằm trong trang institution thay vì xuất hiện ở cấp này.
  */
-const CATALOGUE_ITEMS = [
+const PLATFORM_ITEMS = [
     { href: '/admin/institutions', label: 'Institutions', icon: UniversityIcon },
-    { href: '/admin/subjects', label: 'Subjects', icon: BookOpen01Icon },
-    { href: '/admin/terms', label: 'Terms', icon: Calendar03Icon },
     { href: '/admin/tools', label: 'Tools', icon: ToolboxIcon },
 ] as const;
 
 const ACCESS_ITEMS = [
     { href: '/admin/users', label: 'Users', icon: UserMultipleIcon },
     { href: '/admin/roles', label: 'Roles', icon: Shield01Icon },
+    { href: '/admin/permissions', label: 'Permissions', icon: Key01Icon },
 ] as const;
 
 export function AdminSidebar() {
@@ -56,8 +54,12 @@ export function AdminSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" render={<Link href="/admin" />}>
-                            <div className="bg-destructive text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <HugeiconsIcon icon={Shield01Icon} strokeWidth={2} className="size-4" />
+                            <div className="bg-destructive text-destructive-foreground flex aspect-square size-8 items-center justify-center rounded-xl">
+                                <HugeiconsIcon
+                                    icon={Shield01Icon}
+                                    strokeWidth={2}
+                                    className="size-4"
+                                />
                             </div>
                             <div className="grid flex-1 text-left leading-tight">
                                 <span className="font-heading truncate font-medium">AI-Learn</span>
@@ -92,10 +94,10 @@ export function AdminSidebar() {
                 </SidebarGroup>
 
                 <SidebarGroup>
-                    <SidebarGroupLabel>Catalogue</SidebarGroupLabel>
+                    <SidebarGroupLabel>Platform</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {CATALOGUE_ITEMS.map((item) => (
+                            {PLATFORM_ITEMS.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}

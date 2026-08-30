@@ -1,0 +1,16 @@
+/// Một cạnh trong đồ thị kế thừa vai trò.
+///
+/// `includingRole` nhận toàn bộ quyền của `includedRole`. Ví dụ Convenor bao gồm Tutor thì
+/// cạnh là Convenor -> Tutor. Một vai trò có nhiều cha/con và diamond được phép; chỉ chu trình
+/// bị cấm. PostgreSQL trigger trong migration kiểm cả chu trình lẫn cùng cơ sở để các lối ghi
+/// ngoài ứng dụng cũng không tạo được trạng thái sai.
+model RoleInclusion {
+  includingRoleId String @db.Uuid
+  includedRoleId  String @db.Uuid
+
+  includingRole Role @relation("includingRole", fields: [includingRoleId], references: [id], onDelete: Cascade)
+  includedRole  Role @relation("includedRole", fields: [includedRoleId], references: [id], onDelete: Cascade)
+
+  @@id([includingRoleId, includedRoleId])
+  @@index([includedRoleId])
+}
