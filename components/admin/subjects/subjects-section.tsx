@@ -1,5 +1,10 @@
 import { SubjectsTable, type SubjectListItem } from '@/components/admin/subjects/subjects-table';
-import { PAGE_SIZE, pageCountOf, parseListParams } from '@/lib/admin/list-params';
+import {
+    PAGE_SIZE,
+    pageCountOf,
+    parseListParams,
+    parseOptionalUuid,
+} from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
 
 /**
@@ -27,10 +32,8 @@ export async function SubjectsSection({
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
 
     // Trang con khoá cứng theo đường dẫn; trang toàn hệ thống đọc từ `?institution=`.
-    const raw = Array.isArray(searchParams.institution)
-        ? searchParams.institution[0]
-        : searchParams.institution;
-    const institutionId = lockedInstitutionId ?? (raw && /^[0-9a-f-]{36}$/i.test(raw) ? raw : null);
+    const institutionId =
+        lockedInstitutionId ?? parseOptionalUuid(searchParams.institution);
 
     const where = {
         ...(institutionId ? { institutionId } : {}),
@@ -56,7 +59,7 @@ export async function SubjectsSection({
     const [rows, total, institutions] = await Promise.all([
         db.subject.findMany({
             where,
-            orderBy,
+            orderBy: [orderBy, { id: 'asc' }],
             take: PAGE_SIZE,
             skip,
             select: {

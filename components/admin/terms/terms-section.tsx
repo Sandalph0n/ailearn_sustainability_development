@@ -1,5 +1,10 @@
 import { TermsTable, type TermListItem } from '@/components/admin/terms/terms-table';
-import { PAGE_SIZE, pageCountOf, parseListParams } from '@/lib/admin/list-params';
+import {
+    PAGE_SIZE,
+    pageCountOf,
+    parseListParams,
+    parseOptionalUuid,
+} from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
 
 /** Ngày hiển thị gọn. Định dạng ở SERVER để hai bên không lệch múi giờ. */
@@ -21,10 +26,8 @@ export async function TermsSection({
     const SORT_FIELDS = ['year', 'institution', 'periods', 'offerings'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
 
-    const raw = Array.isArray(searchParams.institution)
-        ? searchParams.institution[0]
-        : searchParams.institution;
-    const institutionId = lockedInstitutionId ?? (raw && /^[0-9a-f-]{36}$/i.test(raw) ? raw : null);
+    const institutionId =
+        lockedInstitutionId ?? parseOptionalUuid(searchParams.institution);
 
     // Kỳ học không có trường chữ nào để tìm, nên ô tìm kiếm khớp theo NĂM. Chuỗi không phải số
     // thì không khớp gì cả, thay vì báo lỗi.
@@ -47,7 +50,7 @@ export async function TermsSection({
         db.studyTerm.findMany({
             where,
             // Sắp xếp phụ theo `session` để hai kỳ cùng năm luôn ra cùng thứ tự.
-            orderBy: [orderBy, { session: 'asc' }],
+            orderBy: [orderBy, { session: 'asc' }, { id: 'asc' }],
             take: PAGE_SIZE,
             skip,
             select: {

@@ -65,3 +65,10 @@ export function parseListParams<TSortField extends string>(
 export function pageCountOf(total: number): number {
     return Math.max(1, Math.ceil(total / PAGE_SIZE));
 }
+
+/** Đọc một UUID tuỳ chọn từ query string; giá trị gần giống UUID vẫn không được đi vào Prisma. */
+export function parseOptionalUuid(value: string | string[] | undefined): string | null {
+    const first = Array.isArray(value) ? value[0] : value;
+    const parsed = z.uuid().safeParse(first);
+    return parsed.success ? parsed.data : null;
+}

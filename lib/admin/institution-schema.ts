@@ -24,9 +24,15 @@ const websiteSchema = z
     .max(2048, { message: 'Website must not exceed 2048 characters' })
     .nullable()
     .transform((value) => (value === '' ? null : value))
-    .refine((value) => value === null || z.url().safeParse(value).success, {
-        message: 'Website must be a valid URL, including https://',
-    });
+    .refine(
+        (value) => {
+            if (value === null || !z.url().safeParse(value).success) return value === null;
+            // Link do quản trị viên nhập vẫn được render thành href, nên chỉ cho giao thức web.
+            const protocol = new URL(value).protocol;
+            return protocol === 'https:' || protocol === 'http:';
+        },
+        { message: 'Website must be an http:// or https:// URL' },
+    );
 
 export const InstitutionSchema = z.strictObject({
     name: z

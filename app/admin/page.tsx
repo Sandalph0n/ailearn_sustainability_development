@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     ArrowRight01Icon,
-    BookOpen01Icon,
-    Calendar03Icon,
+    Key01Icon,
     Shield01Icon,
     ToolboxIcon,
     UniversityIcon,
@@ -38,27 +37,6 @@ const SECTIONS = [
         count: () => db.institution.count(),
     },
     {
-        href: '/admin/subjects',
-        icon: BookOpen01Icon,
-        title: 'Subjects',
-        description: 'Units offered, and which term they run in.',
-        count: () => db.subject.count(),
-    },
-    {
-        href: '/admin/terms',
-        icon: Calendar03Icon,
-        title: 'Terms',
-        description: 'Study periods and their teaching weeks.',
-        count: () => db.studyTerm.count(),
-    },
-    {
-        href: '/admin/tools',
-        icon: ToolboxIcon,
-        title: 'Tools',
-        description: 'Tools an assessment can hand to students.',
-        count: () => db.tool.count(),
-    },
-    {
         href: '/admin/users',
         icon: UserMultipleIcon,
         title: 'Users',
@@ -72,10 +50,24 @@ const SECTIONS = [
         description: 'Role definitions and the permissions behind them.',
         count: () => db.role.count(),
     },
+    {
+        href: '/admin/permissions',
+        icon: Key01Icon,
+        title: 'Permissions',
+        description: 'Code-owned actions available when composing roles.',
+        count: () => db.permission.count(),
+    },
+    {
+        href: '/admin/tools',
+        icon: ToolboxIcon,
+        title: 'Tools',
+        description: 'Tools an assessment can hand to students.',
+        count: () => db.tool.count(),
+    },
 ] as const;
 
 export default async function AdminOverviewPage() {
-    // Chạy song song: sáu phép đếm độc lập, xếp tuần tự thì tổng thời gian là tổng của cả sáu.
+    // Chạy song song: năm phép đếm độc lập, xếp tuần tự thì tổng thời gian là tổng của cả năm.
     const counts = await Promise.all(SECTIONS.map((section) => section.count()));
 
     return (
@@ -92,7 +84,7 @@ export default async function AdminOverviewPage() {
 
             {/*
                 `divide-y` thay cho khoảng cách giữa các thẻ: một đường kẻ mảnh nói "đây là các
-                mục cùng loại" rõ hơn sáu hộp rời nhau, và tiết kiệm chiều dọc.
+                mục cùng loại" rõ hơn năm hộp rời nhau, và tiết kiệm chiều dọc.
             */}
             <section className="divide-border bg-card divide-y overflow-hidden rounded-lg border">
                 {SECTIONS.map((section, index) => (
@@ -115,7 +107,7 @@ export default async function AdminOverviewPage() {
 
                         {/*
                             Số đếm dùng `tabular-nums` — đây là một CỘT số, và chữ số đều bề rộng
-                            giúp chúng thẳng hàng dọc qua sáu dòng.
+                            giúp chúng thẳng hàng dọc qua năm dòng.
                         */}
                         <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
                             {counts[index]}

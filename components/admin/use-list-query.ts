@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useDebounceValue } from 'usehooks-ts';
 
@@ -33,6 +33,8 @@ export function useListQuery() {
     // Ô nhập giữ giá trị riêng để gõ không bị khựng; URL mới là nguồn sự thật.
     const [input, setInput] = useState(currentQuery);
     const [debounced] = useDebounceValue(input, 300);
+    const previousQuery = useRef(currentQuery);
+    const syncingFromUrl = useRef(false);
 
     /**
      * Ghi một bộ tham số vào URL.
@@ -60,9 +62,25 @@ export function useListQuery() {
         [pathname, router, searchParams],
     );
 
+    // Back/Forward có thể thay URL mà không đi qua ô nhập. Đánh dấu lần đồng bộ này để effect
+    // ghi URL bên dưới không lập tức đẩy giá trị cũ ngược trở lại.
+    useEffect(() => {
+        if (previousQuery.current === currentQuery) return;
+        previousQuery.current = currentQuery;
+
+        if (currentQuery !== debounced) {
+            syncingFromUrl.current = true;
+            setInput(currentQuery);
+        }
+    }, [currentQuery, debounced]);
+
     // Đồng bộ giá trị đã hoãn vào URL. Bỏ qua khi nó đã bằng URL — nếu không thì mỗi lần
     // `searchParams` đổi lại kích hoạt một lượt điều hướng nữa, thành vòng lặp.
     useEffect(() => {
+        if (syncingFromUrl.current) {
+            if (debounced === currentQuery) syncingFromUrl.current = false;
+            return;
+        }
         if (debounced === currentQuery) return;
         // Đổi từ khoá thì phải về trang 1: đang ở trang 5 mà lọc còn 2 trang sẽ ra bảng trống.
         setParams({ q: debounced, page: null });

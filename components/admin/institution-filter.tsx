@@ -3,7 +3,6 @@
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
 
-import { useListQuery } from '@/components/admin/use-list-query';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -42,23 +41,21 @@ export function institutionItems(institutions: InstitutionOption[]): Record<stri
 export function InstitutionFilter({
     institutions,
     value,
+    onChange,
 }: {
     institutions: InstitutionOption[];
     /** Id đang chọn, `null` là "tất cả". */
     value: string | null;
+    /** Dùng cùng một bộ điều khiển URL với bảng để các cập nhật không ghi đè lẫn nhau. */
+    onChange: (value: string | null) => void;
 }) {
-    const list = useListQuery();
-
     return (
         <div className="flex shrink-0 items-center gap-1">
             <Select
                 // Không có `items` thì ô hiện uuid thay vì tên — xem chú thích ở `FormSelect`.
                 items={institutionItems(institutions)}
                 value={value ?? ''}
-                onValueChange={(next) =>
-                    // Đổi bộ lọc thì về trang 1: đang ở trang 5 mà lọc còn 2 trang sẽ ra bảng trống.
-                    list.setParams({ institution: next || null, page: null })
-                }
+                onValueChange={(next) => onChange(next || null)}
             >
                 <SelectTrigger className="w-52" aria-label="Filter by institution">
                     <SelectValue placeholder="All institutions" />
@@ -82,7 +79,7 @@ export function InstitutionFilter({
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Clear institution filter"
-                    onClick={() => list.setParams({ institution: null, page: null })}
+                    onClick={() => onChange(null)}
                 >
                     <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
                 </Button>

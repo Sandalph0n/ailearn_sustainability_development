@@ -1,5 +1,10 @@
 import { RolesTable, type RoleListItem } from '@/components/admin/roles/roles-table';
-import { PAGE_SIZE, pageCountOf, parseListParams } from '@/lib/admin/list-params';
+import {
+    PAGE_SIZE,
+    pageCountOf,
+    parseListParams,
+    parseOptionalUuid,
+} from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
 
 /**
@@ -15,13 +20,11 @@ export async function RolesSection({
     searchParams: Record<string, string | string[] | undefined>;
     lockedInstitutionId?: string | null;
 }) {
-    const SORT_FIELDS = ['roleName', 'scopeType', 'institution', 'assignments'] as const;
+    const SORT_FIELDS = ['roleName', 'scopeType', 'institution'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
 
-    const raw = Array.isArray(searchParams.institution)
-        ? searchParams.institution[0]
-        : searchParams.institution;
-    const institutionId = lockedInstitutionId ?? (raw && /^[0-9a-f-]{36}$/i.test(raw) ? raw : null);
+    const institutionId =
+        lockedInstitutionId ?? parseOptionalUuid(searchParams.institution);
 
     const where = {
         ...(institutionId ? { institutionId } : {}),
@@ -33,14 +36,12 @@ export async function RolesSection({
             ? { scopeType: dir }
             : sort === 'institution'
               ? { institution: { name: dir } }
-              : sort === 'assignments'
-                ? { roleAssignments: { _count: dir } }
-                : { roleName: dir };
+              : { roleName: dir };
 
     const [rows, total, institutions, allRoles, permissions] = await Promise.all([
         db.role.findMany({
             where,
-            orderBy,
+            orderBy: [orderBy, { id: 'asc' }],
             take: PAGE_SIZE,
             skip,
             select: {

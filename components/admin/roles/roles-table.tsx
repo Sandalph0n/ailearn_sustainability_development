@@ -1,8 +1,15 @@
 'use client';
 
 import { useMemo, type ReactElement } from 'react';
+import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
+import {
+    Add01Icon,
+    ArrowRight01Icon,
+    Delete02Icon,
+    Edit02Icon,
+    MoreVerticalIcon,
+} from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
 import { FormCheckboxList } from '@/components/admin/form-checkbox-list';
@@ -136,6 +143,7 @@ export function RolesTable({
                 column.accessor((row) => row.counts.assignments, {
                     id: 'assignments',
                     header: 'Active assignments',
+                    enableSorting: false,
                     cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
                 }),
 
@@ -179,25 +187,33 @@ export function RolesTable({
                         aria-label="Search roles"
                     />
                     {!locked && (
-                        <InstitutionFilter institutions={institutions} value={institutionId} />
+                        <InstitutionFilter
+                            institutions={institutions}
+                            value={institutionId}
+                            onChange={(next) =>
+                                list.setParams({ institution: next, page: null })
+                            }
+                        />
                     )}
                     <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <RoleDialog
-                        institutions={institutions}
-                        rolesByInstitution={rolesByInstitution}
-                        permissions={permissions}
-                        presetInstitutionId={institutionId}
-                        locked={locked}
-                        trigger={
-                            <Button>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New role
-                            </Button>
-                        }
-                    />
+                    {locked && (
+                        <RoleDialog
+                            institutions={institutions}
+                            rolesByInstitution={rolesByInstitution}
+                            permissions={permissions}
+                            presetInstitutionId={institutionId}
+                            locked
+                            trigger={
+                                <Button>
+                                    <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                                    New role
+                                </Button>
+                            }
+                        />
+                    )}
                 </>
             }
             server={{
@@ -359,6 +375,21 @@ function RowActions({
     locked: boolean;
 }) {
     const inUse = role.counts.assignments + role.counts.requests;
+
+    if (!locked) {
+        return (
+            <div className="flex justify-end">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    render={<Link href={`/admin/institutions/${role.institution.id}/roles`} />}
+                >
+                    Manage
+                    <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="flex justify-end">

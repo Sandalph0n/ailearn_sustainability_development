@@ -154,7 +154,13 @@ export function TermsTable({
                         aria-label="Search terms by year"
                     />
                     {!locked && (
-                        <InstitutionFilter institutions={institutions} value={institutionId} />
+                        <InstitutionFilter
+                            institutions={institutions}
+                            value={institutionId}
+                            onChange={(next) =>
+                                list.setParams({ institution: next, page: null })
+                            }
+                        />
                     )}
                     <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
                         {total} total
