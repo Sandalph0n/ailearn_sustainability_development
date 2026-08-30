@@ -53,7 +53,7 @@ export default async function AdminInstitutionsPage({
     const [rows, total] = await Promise.all([
         db.institution.findMany({
             where,
-            orderBy,
+            orderBy: [orderBy, { id: 'asc' }],
             take: PAGE_SIZE,
             skip,
             select: {
@@ -62,7 +62,9 @@ export default async function AdminInstitutionsPage({
                 website: true,
                 // Đếm ngay trong một truy vấn thay vì gọi `count()` cho từng cơ sở — cách kia là
                 // N+1: mười cơ sở thành ba mươi lượt hỏi database.
-                _count: { select: { subjects: true, studyTerms: true, roles: true } },
+                _count: {
+                    select: { subjects: true, studyTerms: true, roles: true, roleRequests: true },
+                },
             },
         }),
         db.institution.count({ where }),
@@ -76,6 +78,7 @@ export default async function AdminInstitutionsPage({
             subjects: row._count.subjects,
             terms: row._count.studyTerms,
             roles: row._count.roles,
+            requests: row._count.roleRequests,
         },
     }));
 

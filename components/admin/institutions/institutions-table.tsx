@@ -3,15 +3,32 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, ArrowRight01Icon, LinkSquare02Icon } from '@hugeicons/core-free-icons';
+import {
+    Add01Icon,
+    ArrowRight01Icon,
+    Delete02Icon,
+    Edit02Icon,
+    LinkSquare02Icon,
+    MoreVerticalIcon,
+} from '@hugeicons/core-free-icons';
 
 import { useListQuery } from '@/components/admin/use-list-query';
 import { Input } from '@/components/ui/input';
 
-import { type InstitutionDeleteTarget } from '@/components/admin/institutions/delete-institution-dialog';
+import {
+    DeleteInstitutionDialog,
+    type InstitutionDeleteTarget,
+} from '@/components/admin/institutions/delete-institution-dialog';
 import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { DataTable, columnHelperFor, type AdminColumnDef } from '@/components/ui/data-table';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export type InstitutionListItem = InstitutionDeleteTarget & {
     website: string | null;
@@ -111,7 +128,7 @@ export function InstitutionsTable({
                 column.display({
                     id: 'actions',
                     header: '',
-                    cell: (info) => <OpenSetupLink id={info.row.original.id} />,
+                    cell: (info) => <InstitutionActions institution={info.row.original} />,
                 }),
             ] as Array<AdminColumnDef<InstitutionListItem>>,
         [],
@@ -198,6 +215,44 @@ function OpenSetupLink({ id }: { id: string }) {
             >
                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
             </Link>
+        </div>
+    );
+}
+
+function InstitutionActions({ institution }: { institution: InstitutionListItem }) {
+    return (
+        <div className="flex justify-end gap-1">
+            <OpenSetupLink id={institution.id} />
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <Button variant="ghost" size="icon-sm" aria-label="Open actions">
+                            <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
+                        </Button>
+                    }
+                />
+                <DropdownMenuContent align="end">
+                    <InstitutionFormDialog
+                        institution={institution}
+                        trigger={
+                            <DropdownMenuItem closeOnClick={false}>
+                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                                Edit details
+                            </DropdownMenuItem>
+                        }
+                    />
+                    <DropdownMenuSeparator />
+                    <DeleteInstitutionDialog
+                        institution={institution}
+                        trigger={
+                            <DropdownMenuItem variant="destructive" closeOnClick={false}>
+                                <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                                Delete
+                            </DropdownMenuItem>
+                        }
+                    />
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     );
 }

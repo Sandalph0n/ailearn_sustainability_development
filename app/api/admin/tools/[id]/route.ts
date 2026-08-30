@@ -1,7 +1,7 @@
 // Route này sửa và xoá một công cụ.
 import { NextRequest, NextResponse } from 'next/server';
 
-import { jsonResponse } from '@/lib/auth/http/response';
+import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { badId, guardDelete, guardWrite, prismaError } from '@/lib/admin/route-helpers';
 import { ToolSchema } from '@/lib/admin/tool-schema';
 import { db } from '@/lib/db';
@@ -20,6 +20,17 @@ export async function PATCH(
     if (invalid) return invalid;
 
     try {
+        const current = await db.tool.findUnique({ where: { id }, select: { code: true } });
+        if (!current) return errorResponse(404, 'NOT_FOUND', 'Tool does not exist');
+        if (current.code !== guard.data.code) {
+            return errorResponse(
+                400,
+                'VALIDATION_ERROR',
+                'Tool code cannot change after creation',
+                { code: ['Tool code cannot change after creation'] },
+            );
+        }
+
         const tool = await db.tool.update({
             where: { id },
             data: guard.data,

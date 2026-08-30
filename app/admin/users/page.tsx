@@ -19,7 +19,7 @@ import { db } from '@/lib/db';
  */
 export const dynamic = 'force-dynamic';
 
-const SORT_FIELDS = ['lastName', 'createdAt', 'roles', 'attempts', 'isSystemAdmin'] as const;
+const SORT_FIELDS = ['lastName', 'createdAt', 'attempts', 'isSystemAdmin'] as const;
 
 const DATE = new Intl.DateTimeFormat('en-AU', {
     day: 'numeric',
@@ -48,9 +48,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<'/admin
     const orderBy =
         sort === 'createdAt'
             ? { createdAt: dir }
-            : sort === 'roles'
-              ? { roleAssignments: { _count: dir } }
-              : sort === 'attempts'
+            : sort === 'attempts'
                 ? { attempts: { _count: dir } }
                 : sort === 'isSystemAdmin'
                   ? { isSystemAdmin: dir }
@@ -59,7 +57,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<'/admin
     const [rows, total] = await Promise.all([
         db.user.findMany({
             where,
-            orderBy,
+            orderBy: [orderBy, { id: 'asc' }],
             take: PAGE_SIZE,
             skip,
             select: {
@@ -71,7 +69,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps<'/admin
                 createdAt: true,
                 // KHÔNG chọn `passwordHash`. Nó không có việc gì ở tầng giao diện, và mỗi chỗ
                 // đọc nó là thêm một chỗ có thể lỡ tay gửi ra ngoài.
-                _count: { select: { roleAssignments: true, attempts: true } },
+                _count: {
+                    select: {
+                        roleAssignments: { where: { roleRevokedAt: null } },
+                        attempts: true,
+                    },
+                },
             },
         }),
         db.user.count({ where }),

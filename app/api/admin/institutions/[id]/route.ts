@@ -88,8 +88,8 @@ export async function PATCH(
  *
  * ─── Phép xoá này lan RẤT xa ─────────────────────────────────────────────────
  *
- * `Role`, `StudyTerm`, `Subject`, `RoleRequest` đều `onDelete: Cascade` về `Institution`, và
- * chuỗi đó còn chảy tiếp xuống `Offering` rồi `Assessment`.
+ * `Role`, `StudyTerm`, `Subject` cascade xuống `Offering` rồi `Assessment`. RoleRequest và
+ * RoleAssignment là lịch sử nên dùng `Restrict`.
  *
  * Nhưng `AssessmentAttempt` gắn với `Assessment` bằng `Restrict`. Nên một cơ sở đã có sinh viên
  * nộp bài thì KHÔNG xoá được — database chặn giữa chừng, và cả phép xoá bị huỷ.
@@ -127,7 +127,7 @@ export async function DELETE(
             return errorResponse(
                 409,
                 'RESOURCE_IN_USE',
-                'This institution has submitted student work, which cannot be deleted.',
+                'This institution has submitted work, role assignments or join-request history and cannot be deleted.',
             );
         }
 

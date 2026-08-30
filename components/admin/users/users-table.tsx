@@ -63,7 +63,8 @@ export function UsersTable({
 
                 column.accessor((row) => row.counts.roles, {
                     id: 'roles',
-                    header: 'Roles',
+                    header: 'Active roles',
+                    enableSorting: false,
                     cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
                 }),
 

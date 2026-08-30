@@ -20,7 +20,7 @@ export type InstitutionDeleteTarget = {
     id: string;
     name: string;
     /** Số bản ghi con sẽ bị xoá theo. Dùng để cảnh báo trước, không phải để chặn. */
-    counts: { subjects: number; terms: number; roles: number };
+    counts: { subjects: number; terms: number; roles: number; requests: number };
 };
 
 /**
@@ -28,9 +28,8 @@ export type InstitutionDeleteTarget = {
  *
  * ─── Vì sao phải liệt kê số lượng ────────────────────────────────────────────
  *
- * `Subject`, `StudyTerm`, `Role`, `RoleRequest` đều `onDelete: Cascade` về `Institution`, và
- * chuỗi đó chảy tiếp xuống `Offering` rồi `Assessment`. Một cú bấm có thể quét sạch nhiều thứ
- * hơn hẳn những gì tên hộp thoại gợi ý.
+ * `Subject`, `StudyTerm`, `Role` cascade xuống `Offering` và `Assessment`. RoleRequest và dữ liệu
+ * học thuật lại chặn xoá để giữ lịch sử. Một cú bấm vì vậy có thể xoá rất xa hoặc bị từ chối.
  *
  * Câu "Are you sure?" trơn không cho người dùng thêm thông tin gì để quyết định. Con số thì có.
  *
@@ -113,9 +112,19 @@ export function DeleteInstitutionDialog({
                                     </span>
                                 ))}
                                 , along with everything inside them. This cannot be undone.
+                                {institution.counts.requests > 0 && (
+                                    <>
+                                        {' '}This institution also has {institution.counts.requests}{' '}
+                                        join request
+                                        {institution.counts.requests === 1 ? '' : 's'}; the database
+                                        will preserve that history and refuse deletion.
+                                    </>
+                                )}
                             </>
                         ) : (
-                            'This institution has no subjects, terms or roles. This cannot be undone.'
+                            institution.counts.requests > 0
+                                ? `This institution has ${institution.counts.requests} join request${institution.counts.requests === 1 ? '' : 's'}, so its history prevents deletion.`
+                                : 'This institution has no subjects, terms or roles. This cannot be undone.'
                         )}
                     </AlertDialogDescription>
                 </AlertDialogHeader>

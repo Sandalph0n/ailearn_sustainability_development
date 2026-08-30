@@ -43,7 +43,7 @@ export default async function AdminToolsPage({ searchParams }: PageProps<'/admin
     const [rows, total] = await Promise.all([
         db.tool.findMany({
             where,
-            orderBy,
+            orderBy: [orderBy, { id: 'asc' }],
             take: PAGE_SIZE,
             skip,
             select: {

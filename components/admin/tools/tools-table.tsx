@@ -194,10 +194,15 @@ function ToolDialog({ tool, trigger }: { tool?: ToolListItem; trigger: React.Rea
                         control={form.control}
                         name="code"
                         label="Code"
-                        description="Appears in the tool's URL. Lowercase letters, numbers and hyphens."
+                        description={
+                            tool
+                                ? "Permanent identifier used in the tool's URL."
+                                : "Appears in the tool's URL and cannot change after creation."
+                        }
                         placeholder="code"
                         autoComplete="off"
                         className="font-mono"
+                        readOnly={Boolean(tool)}
                     />
                     <FormInput
                         control={form.control}
