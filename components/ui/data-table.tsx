@@ -149,7 +149,7 @@ export function DataTable<TData extends RowData>({
     return (
         <div className="flex flex-col gap-4">
             {((filterColumnId && !server) || toolbar) && (
-                <div className="flex w-full items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2">
                     {filterColumnId && !server && (
                         <Input
                             value={filter}
@@ -176,7 +176,7 @@ export function DataTable<TData extends RowData>({
                     {filterColumnId && !server && <div className="flex-1" />}
 
                     {server ? (
-                        <div className="flex w-full items-center gap-2">{toolbar}</div>
+                        <div className="flex w-full flex-wrap items-center gap-2">{toolbar}</div>
                     ) : (
                         toolbar
                     )}

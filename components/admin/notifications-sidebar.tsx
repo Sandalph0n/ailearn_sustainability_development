@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Alert02Icon,
@@ -26,6 +27,7 @@ export type AdminNotification = {
     /** Chuỗi đã định dạng ở server — `Date` không đi qua ranh giới server → client được. */
     at: string;
     tone: 'info' | 'attention';
+    href?: string;
 };
 
 /** Biểu tượng cho thông báo đơn xin vai trò. Xuất ra để trang server khỏi tự đoán. */
@@ -201,32 +203,38 @@ function NotificationsAside({ notifications }: { notifications: AdminNotificatio
                         ) : (
                             <ul className="divide-border divide-y">
                                 {notifications.map((item) => (
-                                    <li key={item.id} className="flex gap-3 px-4 py-3.5">
-                                        <div
-                                            className={cn(
-                                                'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md',
-                                                item.tone === 'attention'
-                                                    ? 'bg-brand-amber/12 text-brand-amber'
-                                                    : 'bg-muted text-muted-foreground',
-                                            )}
+                                    <li key={item.id}>
+                                        <Link
+                                            href={item.href ?? '/admin/institutions'}
+                                            onClick={close}
+                                            className="hover:bg-muted/50 flex gap-3 px-4 py-3.5 transition-colors"
                                         >
-                                            <HugeiconsIcon
-                                                icon={item.icon}
-                                                strokeWidth={2}
-                                                className="size-3.5"
-                                            />
-                                        </div>
+                                            <div
+                                                className={cn(
+                                                    'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md',
+                                                    item.tone === 'attention'
+                                                        ? 'bg-brand-amber/12 text-brand-amber'
+                                                        : 'bg-muted text-muted-foreground',
+                                                )}
+                                            >
+                                                <HugeiconsIcon
+                                                    icon={item.icon}
+                                                    strokeWidth={2}
+                                                    className="size-3.5"
+                                                />
+                                            </div>
 
-                                        {/* `min-w-0` để tiêu đề dài xuống dòng thay vì đẩy vỡ cột. */}
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium">{item.title}</p>
-                                            <p className="text-muted-foreground text-sm">
-                                                {item.body}
-                                            </p>
-                                            <p className="text-muted-foreground mt-1 text-xs">
-                                                {item.at}
-                                            </p>
-                                        </div>
+                                            {/* `min-w-0` để tiêu đề dài xuống dòng thay vì đẩy vỡ cột. */}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium">{item.title}</p>
+                                                <p className="text-muted-foreground text-sm">
+                                                    {item.body}
+                                                </p>
+                                                <p className="text-muted-foreground mt-1 text-xs">
+                                                    {item.at}
+                                                </p>
+                                            </div>
+                                        </Link>
                                     </li>
                                 ))}
                             </ul>

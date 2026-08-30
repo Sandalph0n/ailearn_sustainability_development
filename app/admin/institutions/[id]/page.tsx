@@ -125,7 +125,7 @@ export default async function InstitutionSettingsPage({
             description: 'Who holds which role here, and in which offering.',
             count: activeAssignments,
             unit: 'active assignment',
-            href: null,
+            href: `/admin/institutions/${id}/people`,
         },
         {
             key: 'requests',
@@ -134,7 +134,7 @@ export default async function InstitutionSettingsPage({
             description: 'People asking for a role here, waiting to be approved or rejected.',
             count: pendingRequests,
             unit: 'pending request',
-            href: null,
+            href: `/admin/institutions/${id}/requests`,
         },
     ];
 

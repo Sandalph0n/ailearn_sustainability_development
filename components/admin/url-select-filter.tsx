@@ -23,6 +23,7 @@ export function UrlSelectFilter({
     ariaLabel,
     onChange,
     className,
+    clearable = true,
 }: {
     value: string | null;
     options: UrlFilterOption[];
@@ -30,6 +31,7 @@ export function UrlSelectFilter({
     ariaLabel: string;
     onChange: (value: string | null) => void;
     className?: string;
+    clearable?: boolean;
 }) {
     return (
         <div className="flex shrink-0 items-center gap-1">
@@ -49,7 +51,7 @@ export function UrlSelectFilter({
                     ))}
                 </SelectContent>
             </Select>
-            {value && (
+            {clearable && value && (
                 <Button
                     variant="ghost"
                     size="icon-sm"

@@ -67,21 +67,29 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
      * Không bịa thêm mục cho cột trông đầy — đến lúc nối nguồn thật sẽ phải gỡ, và trong lúc đó
      * không ai phân biệt được cái nào thật.
      */
-    const pendingRequests = await db.roleRequest.count({ where: { status: 'PENDING' } });
+    const pendingRequests = await db.roleRequest.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { institution: { name: 'asc' } },
+        select: { institution: { select: { id: true, name: true } } },
+    });
+    const byInstitution = new Map<string, { name: string; count: number }>();
+    for (const request of pendingRequests) {
+        const current = byInstitution.get(request.institution.id);
+        byInstitution.set(request.institution.id, {
+            name: request.institution.name,
+            count: (current?.count ?? 0) + 1,
+        });
+    }
 
-    const notifications: AdminNotification[] =
-        pendingRequests > 0
-            ? [
-                  {
-                      id: 'join-requests',
-                      icon: JOIN_REQUEST_ICON,
-                      title: `${pendingRequests} join request${pendingRequests === 1 ? '' : 's'}`,
-                      body: 'People are waiting for a role. Approve or reject them.',
-                      at: 'Waiting for a decision',
-                      tone: 'attention',
-                  },
-              ]
-            : [];
+    const notifications: AdminNotification[] = Array.from(byInstitution, ([id, item]) => ({
+        id: `join-requests-${id}`,
+        icon: JOIN_REQUEST_ICON,
+        title: `${item.count} join request${item.count === 1 ? '' : 's'}`,
+        body: item.name,
+        at: 'Waiting for a decision',
+        tone: 'attention',
+        href: `/admin/institutions/${id}/requests`,
+    }));
 
     return (
         <SidebarProvider>

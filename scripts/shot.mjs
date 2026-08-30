@@ -27,7 +27,7 @@
  * `context.request` dùng CHUNG kho cookie với trang, nên `Set-Cookie` từ lần gọi này tự động
  * theo sang mọi lần điều hướng sau đó.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { chromium } from 'playwright';

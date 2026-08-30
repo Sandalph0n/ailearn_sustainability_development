@@ -12,6 +12,7 @@ import {
     invalidOriginResponse,
 } from '@/lib/auth/http/response';
 import { requireSystemAdmin } from '@/lib/auth/require-admin';
+import type { AuthSession } from '@/lib/auth/session/service';
 import { formatValidationErrors } from '@/lib/auth/validation/credentials';
 
 /** Prisma báo "không tìm thấy bản ghi để thao tác". */
@@ -37,7 +38,9 @@ export async function guardWrite<TOutput>(
     request: NextRequest,
     schema: z.ZodType<TOutput>,
     entityName: string,
-): Promise<{ ok: true; data: TOutput } | { ok: false; response: NextResponse }> {
+): Promise<
+    { ok: true; data: TOutput; session: AuthSession } | { ok: false; response: NextResponse }
+> {
     if (!isSameOriginRequest(request)) {
         return { ok: false, response: invalidOriginResponse() };
     }
@@ -66,13 +69,13 @@ export async function guardWrite<TOutput>(
         };
     }
 
-    return { ok: true, data: parsed.data };
+    return { ok: true, data: parsed.data, session: guard.session };
 }
 
 /** Như `guardWrite` nhưng không có thân request — dùng cho `DELETE`. */
 export async function guardDelete(
     request: NextRequest,
-): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+): Promise<{ ok: true; session: AuthSession } | { ok: false; response: NextResponse }> {
     if (!isSameOriginRequest(request)) {
         return { ok: false, response: invalidOriginResponse() };
     }
@@ -82,7 +85,7 @@ export async function guardDelete(
         return { ok: false, response: guard.response };
     }
 
-    return { ok: true };
+    return { ok: true, session: guard.session };
 }
 
 /**
