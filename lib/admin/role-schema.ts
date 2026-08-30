@@ -5,17 +5,11 @@ import type { RoleModel } from '@/app/generated/prisma/models';
 
 export type RoleSchemaValue = Pick<
     RoleModel,
-    'institutionId' | 'roleName' | 'scopeType' | 'autoGrantEmailRegex' | 'includedById'
->;
-
-/** Chuỗi rỗng từ ô nhập quy về `null`; cột cho phép NULL còn ô nhập thì không. */
-const optionalId = z
-    .string()
-    .nullable()
-    .transform((value) => (value === '' || value === null ? null : value))
-    .refine((value) => value === null || z.uuid().safeParse(value).success, {
-        message: 'Invalid selection',
-    });
+    'institutionId' | 'roleName' | 'scopeType' | 'autoGrantEmailRegex'
+> & {
+    includedRoleIds: string[];
+    permissionIds: string[];
+};
 
 export const RoleSchema = z
     .strictObject({
@@ -58,8 +52,28 @@ export const RoleSchema = z
                 { message: 'Not a valid regular expression' },
             ),
 
-        /** Vai trò này bao gồm vai trò kia — quan hệ tự trỏ, một tầng. */
-        includedById: optionalId,
+        /** Các vai trò mà vai trò hiện tại kế thừa quyền. Diamond được phép, chu trình bị cấm. */
+        includedRoleIds: z.array(z.uuid({ message: 'Invalid role selection' })).max(100),
+
+        /** Permission là từ vựng toàn hệ thống, role chỉ chọn những quyền đã tồn tại. */
+        permissionIds: z.array(z.uuid({ message: 'Invalid permission selection' })).max(200),
+    })
+    .superRefine((value, context) => {
+        if (new Set(value.includedRoleIds).size !== value.includedRoleIds.length) {
+            context.addIssue({
+                code: 'custom',
+                message: 'A role can only be included once',
+                path: ['includedRoleIds'],
+            });
+        }
+
+        if (new Set(value.permissionIds).size !== value.permissionIds.length) {
+            context.addIssue({
+                code: 'custom',
+                message: 'A permission can only be selected once',
+                path: ['permissionIds'],
+            });
+        }
     })
     /**
      * Luật nghiệp vụ: ánh xạ email chỉ có nghĩa ở cấp CƠ SỞ.
@@ -82,5 +96,6 @@ export const EMPTY_ROLE_FORM = {
     roleName: '',
     scopeType: 'OFFERING',
     autoGrantEmailRegex: '',
-    includedById: '',
+    includedRoleIds: [],
+    permissionIds: [],
 } as unknown as RoleFormValue;

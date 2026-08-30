@@ -2,10 +2,12 @@
 ///
 /// Một lượt trải qua NHIỀU buổi ngồi máy, cách nhau nhiều ngày — buổi không phải lượt.
 ///
-/// Khoá chính tổ hợp `(userId, assessmentId)` cũng chính là luật "một lượt cho mỗi cặp". Chuỗi
-/// lan dừng ngay ở đây: `AssignmentWorkspace` mang hai cột này, nhưng bản thân nó có khoá riêng
-/// nên các bảng dưới không phải mang tiếp.
+/// Một người có thể bắt đầu nhiều lượt cho cùng một bài. Giới hạn số lượt là chính sách tương
+/// lai, không phải ràng buộc hiện tại, nên mỗi lượt có khoá riêng thay vì dùng cặp
+/// `(userId, assessmentId)` làm khoá.
 model AssessmentAttempt {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
   userId       String @db.Uuid
   assessmentId String @db.Uuid
 
@@ -20,6 +22,6 @@ model AssessmentAttempt {
 
   workspace AssignmentWorkspace?
 
-  @@id([userId, assessmentId])
+  @@index([userId, assessmentId])
   @@index([assessmentId])
 }

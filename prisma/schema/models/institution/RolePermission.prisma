@@ -1,10 +1,12 @@
 /// Vai trò gồm những quyền gì.
 ///
-/// Khoá chính tổ hợp — không thực thể nào khác trỏ vào bảng này, nên không cần khoá thay thế.
-///
 /// `grantedAt`/`revokedAt` để trả lời "vai trò này có quyền đó từ bao giờ", thứ cần tới khi điều
-/// tra một sự cố phân quyền.
+/// tra một sự cố phân quyền. Một cặp role/quyền có thể được cấp, thu hồi rồi cấp lại nhiều lần,
+/// nên mỗi lần cấp có khoá riêng. Partial unique index trong migration chỉ cấm hai lần CÒN HIỆU
+/// LỰC cùng lúc.
 model RolePermission {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
   roleId       String @db.Uuid
   permissionId String @db.Uuid
 
@@ -14,6 +16,6 @@ model RolePermission {
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@id([roleId, permissionId])
+  @@index([roleId, permissionId])
   @@index([permissionId])
 }

@@ -6,14 +6,10 @@
 model AssignmentWorkspace {
   workspaceId String @id @db.Uuid
 
-  attemptUserId       String @db.Uuid
-  attemptAssessmentId String @db.Uuid
+  attemptId String @unique @db.Uuid
 
   workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  attempt   AssessmentAttempt @relation(fields: [attemptUserId, attemptAssessmentId], references: [userId, assessmentId], onDelete: Cascade)
+  attempt   AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   workSessions AssignmentWorkSession[]
-
-  /// Một lượt làm bài có đúng một workspace.
-  @@unique([attemptUserId, attemptAssessmentId])
 }

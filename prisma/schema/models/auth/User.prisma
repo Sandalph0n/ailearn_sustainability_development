@@ -22,8 +22,8 @@ model User {
   ///
   /// Khác hẳn `Membership.role` — cái kia là vai trò TRONG một môn, cái này là quyền vận hành
   /// toàn hệ thống.
-  isSystemAdmin Boolean @default(false)
-  createdAt DateTime @default(now())
+  isSystemAdmin Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   // ─── Quan hệ ─────────────────────────────────────────────────────────────
 
@@ -35,8 +35,8 @@ model User {
   /// Với một hệ thống lấy liêm chính học thuật làm cốt lõi, cho phép xoá tài khoản là mở một
   /// đường xoá sạch bằng chứng. Muốn ngừng cho ai đó dùng thì vô hiệu hoá, không phải xoá.
   roleAssignments   RoleAssignment[]
-  roleRequests      RoleRequest[]      @relation("requestedBy")
-  processedRequests RoleRequest[]      @relation("processedBy")
+  roleRequests      RoleRequest[]       @relation("requestedBy")
+  processedRequests RoleRequest[]       @relation("processedBy")
   attempts          AssessmentAttempt[]
 
   /// Workspace cá nhân thì ngược lại — dữ liệu riêng, không có giá trị đối chứng, xoá theo được.

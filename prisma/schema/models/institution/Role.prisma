@@ -21,15 +21,14 @@ model Role {
   /// Vai trò này gán ở tầng nào. Quyết định `RoleAssignment.offeringId` phải rỗng hay phải có.
   scopeType RoleScopeType
 
-  /// Vai trò bao gồm vai trò khác — "Phụ trách môn" bao gồm "Trợ giảng".
-  ///
-  /// Cây, không phải đồ thị: mỗi vai trò nhiều nhất một cha. `SetNull` vì xoá vai trò cha thì
-  /// vai trò con vẫn tồn tại, chỉ mất phần kế thừa.
-  includedById String? @db.Uuid
-
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  includedBy  Role?       @relation("roleHierarchy", fields: [includedById], references: [id], onDelete: SetNull)
-  includes    Role[]      @relation("roleHierarchy")
+
+  /// Các cạnh của đồ thị kế thừa quyền.
+  ///
+  /// Một vai trò có thể bao gồm nhiều vai trò và đồng thời được nhiều vai trò khác bao gồm.
+  /// Diamond hợp lệ; chu trình bị trigger trong migration chặn để phép duyệt quyền luôn dừng.
+  includedRoles RoleInclusion[] @relation("includingRole")
+  parentRoles   RoleInclusion[] @relation("includedRole")
 
   permissions     RolePermission[]
   /// `Restrict`: còn ai đang giữ vai trò này thì không xoá được nó.

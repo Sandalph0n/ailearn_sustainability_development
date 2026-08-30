@@ -5,6 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
+import { FormCheckboxList } from '@/components/admin/form-checkbox-list';
 import {
     InstitutionFilter,
     institutionItems,
@@ -37,7 +38,8 @@ export type RoleListItem = {
     roleName: string;
     scopeType: 'INSTITUTION' | 'OFFERING';
     autoGrantEmailRegex: string | null;
-    includedBy: { id: string; roleName: string } | null;
+    includedRoles: Array<{ id: string; roleName: string }>;
+    permissions: Array<{ id: string; permission: string; description: string | null }>;
     institution: { id: string; name: string };
     counts: { assignments: number; requests: number };
 };
@@ -52,6 +54,7 @@ export function RolesTable({
     locked,
     /** Vai trò có thể chọn làm "bao gồm bởi" — cùng cơ sở với vai trò đang sửa. */
     rolesByInstitution,
+    permissions,
     page,
     pageCount,
     total,
@@ -64,6 +67,7 @@ export function RolesTable({
     /** Đang ở trang con của một cơ sở: cột và bộ lọc cơ sở đều thừa. */
     locked: boolean;
     rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
+    permissions: Array<{ id: string; permission: string; description: string | null }>;
     page: number;
     pageCount: number;
     total: number;
@@ -118,9 +122,9 @@ export function RolesTable({
                         ),
                 }),
 
-                column.accessor((row) => row.includedBy?.roleName ?? '', {
-                    id: 'includedBy',
-                    header: 'Included by',
+                column.accessor((row) => row.includedRoles.map((role) => role.roleName).join(', '), {
+                    id: 'includedRoles',
+                    header: 'Includes',
                     enableSorting: false,
                     cell: (info) => (
                         <span className="text-muted-foreground text-sm">
@@ -131,7 +135,7 @@ export function RolesTable({
 
                 column.accessor((row) => row.counts.assignments, {
                     id: 'assignments',
-                    header: 'Holders',
+                    header: 'Active assignments',
                     cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
                 }),
 
@@ -143,12 +147,13 @@ export function RolesTable({
                             role={info.row.original}
                             institutions={institutions}
                             rolesByInstitution={rolesByInstitution}
+                            permissions={permissions}
                             locked={locked}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<RoleListItem>>,
-        [institutions, rolesByInstitution, locked],
+        [institutions, rolesByInstitution, permissions, locked],
     );
 
     return (
@@ -183,6 +188,7 @@ export function RolesTable({
                     <RoleDialog
                         institutions={institutions}
                         rolesByInstitution={rolesByInstitution}
+                        permissions={permissions}
                         presetInstitutionId={institutionId}
                         locked={locked}
                         trigger={
@@ -216,6 +222,7 @@ function RoleDialog({
     role,
     institutions,
     rolesByInstitution,
+    permissions,
     presetInstitutionId,
     locked = false,
     trigger,
@@ -223,6 +230,7 @@ function RoleDialog({
     role?: RoleListItem;
     institutions: InstitutionOption[];
     rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
+    permissions: Array<{ id: string; permission: string; description: string | null }>;
     presetInstitutionId?: string | null;
     locked?: boolean;
     trigger: ReactElement;
@@ -241,7 +249,8 @@ function RoleDialog({
                         roleName: role.roleName,
                         scopeType: role.scopeType,
                         autoGrantEmailRegex: role.autoGrantEmailRegex ?? '',
-                        includedById: role.includedBy?.id ?? '',
+                        includedRoleIds: role.includedRoles.map((included) => included.id),
+                        permissionIds: role.permissions.map((permission) => permission.id),
                     } as unknown as RoleFormValue,
                 }
             }
@@ -253,7 +262,7 @@ function RoleDialog({
             }}
             trigger={trigger}
             fields={(form) => {
-                // Vai trò cha phải cùng cơ sở — bao gồm một vai trò của trường khác là vô nghĩa.
+                // Chỉ chào các vai trò cùng cơ sở; backend và trigger vẫn kiểm lại độc lập.
                 const chosenInstitution = form.watch('institutionId');
                 const candidates = (rolesByInstitution[chosenInstitution] ?? []).filter(
                     (candidate) => candidate.id !== role?.id,
@@ -305,25 +314,30 @@ function RoleDialog({
                             className="font-mono"
                         />
 
-                        <FormSelect
+                        <FormCheckboxList
                             control={form.control}
-                            name="includedById"
-                            label="Included by"
-                            items={Object.fromEntries(
-                                candidates.map((candidate) => [candidate.id, candidate.roleName]),
-                            )}
-                            description={
-                                candidates.length > 0
-                                    ? 'Optional. A role that also grants this one.'
-                                    : 'No other roles at this institution yet.'
-                            }
-                        >
-                            {candidates.map((candidate) => (
-                                <SelectItem key={candidate.id} value={candidate.id}>
-                                    {candidate.roleName}
-                                </SelectItem>
-                            ))}
-                        </FormSelect>
+                            name="includedRoleIds"
+                            label="Includes roles"
+                            description="This role inherits every active permission from the selected roles."
+                            emptyMessage="No other roles at this institution yet."
+                            options={candidates.map((candidate) => ({
+                                value: candidate.id,
+                                label: candidate.roleName,
+                            }))}
+                        />
+
+                        <FormCheckboxList
+                            control={form.control}
+                            name="permissionIds"
+                            label="Direct permissions"
+                            description="Permissions granted directly, before inherited roles are considered."
+                            emptyMessage="No permissions have been registered by the platform yet."
+                            options={permissions.map((permission) => ({
+                                value: permission.id,
+                                label: permission.permission,
+                                description: permission.description ?? undefined,
+                            }))}
+                        />
                     </>
                 );
             }}
@@ -335,11 +349,13 @@ function RowActions({
     role,
     institutions,
     rolesByInstitution,
+    permissions,
     locked,
 }: {
     role: RoleListItem;
     institutions: InstitutionOption[];
     rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
+    permissions: Array<{ id: string; permission: string; description: string | null }>;
     locked: boolean;
 }) {
     const inUse = role.counts.assignments + role.counts.requests;
@@ -360,6 +376,7 @@ function RowActions({
                         role={role}
                         institutions={institutions}
                         rolesByInstitution={rolesByInstitution}
+                        permissions={permissions}
                         locked={locked}
                         trigger={
                             <DropdownMenuItem closeOnClick={false}>

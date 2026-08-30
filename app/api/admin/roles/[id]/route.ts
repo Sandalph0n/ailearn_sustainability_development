@@ -4,6 +4,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { badId, guardDelete, guardWrite, prismaError } from '@/lib/admin/route-helpers';
 import { RoleSchema } from '@/lib/admin/role-schema';
+import {
+    RoleConfigurationError,
+    syncRolePermissions,
+    validateRoleConfiguration,
+} from '@/lib/admin/role-configuration';
 import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -19,27 +24,35 @@ export async function PATCH(
     const invalid = badId(id);
     if (invalid) return invalid;
 
-    /**
-     * Vai trò không được bao gồm CHÍNH NÓ.
-     *
-     * `includedById` là quan hệ tự trỏ, nên một vòng lặp ở đây sẽ khiến bất kỳ phép duyệt cây
-     * quyền nào chạy vô tận. Đây là ca ngắn nhất và cũng là ca dễ bấm nhầm nhất; vòng dài hơn
-     * (A gồm B, B gồm A) cần một phép duyệt đầy đủ, để lại khi dựng phần phân quyền.
-     */
-    if (guard.data.includedById === id) {
-        return errorResponse(400, 'VALIDATION_ERROR', 'A role cannot include itself', {
-            includedById: ['A role cannot include itself'],
-        });
-    }
-
     try {
-        const role = await db.role.update({
-            where: { id },
-            data: guard.data,
-            select: { id: true, roleName: true },
+        const role = await db.$transaction(async (tx) => {
+            await validateRoleConfiguration(tx, guard.data, id);
+            const { includedRoleIds, permissionIds, ...roleData } = guard.data;
+            const updated = await tx.role.update({
+                where: { id },
+                data: roleData,
+                select: { id: true, roleName: true },
+            });
+
+            await tx.roleInclusion.deleteMany({ where: { includingRoleId: id } });
+            if (includedRoleIds.length > 0) {
+                await tx.roleInclusion.createMany({
+                    data: includedRoleIds.map((includedRoleId) => ({
+                        includingRoleId: id,
+                        includedRoleId,
+                    })),
+                });
+            }
+            await syncRolePermissions(tx, id, permissionIds);
+            return updated;
         });
         return jsonResponse({ role });
     } catch (error) {
+        if (error instanceof RoleConfigurationError) {
+            return errorResponse(400, 'VALIDATION_ERROR', error.message, {
+                [error.field]: [error.message],
+            });
+        }
         return prismaError(error, 'Role');
     }
 }
@@ -48,8 +61,7 @@ export async function PATCH(
  * Xoá một vai trò.
  *
  * `RoleAssignment` và `RoleRequest` trỏ tới `Role` bằng `Restrict`: vai trò đã gán cho ai, hoặc
- * đã có người xin, thì không xoá được. Vai trò con (`includes`) thì `SetNull` — chúng mất liên
- * kết cha chứ không chết theo.
+ * đã có người xin, thì không xoá được. Các cạnh kế thừa bị xoá theo, vai trò ở đầu kia vẫn còn.
  */
 export async function DELETE(
     request: NextRequest,

@@ -196,25 +196,25 @@ async function main() {
 
     let sessionsCreated = 0;
     for (const [index, assessment] of assessments.entries()) {
-        const attempt = await db.assessmentAttempt.upsert({
-            where: { userId_assessmentId: { userId: user.id, assessmentId: assessment.id } },
-            update: {},
-            create: {
-                userId: user.id,
-                assessmentId: assessment.id,
-                startAt: daysFromNow(-30 + index * 4, 10, 0),
-                // Bài đã quá hạn thì coi như đã nộp.
-                submitAt: index >= 4 ? daysFromNow(-30 + index * 4 + 3, 22, 0) : null,
-            },
-        });
+        // Một người được có nhiều lượt cho cùng bài. Seed chỉ tái dùng lượt đầu tiên của chính
+        // nó để chạy lại script không nhân đôi dữ liệu demo.
+        const attempt =
+            (await db.assessmentAttempt.findFirst({
+                where: { userId: user.id, assessmentId: assessment.id },
+                orderBy: { startAt: 'asc' },
+            })) ??
+            (await db.assessmentAttempt.create({
+                data: {
+                    userId: user.id,
+                    assessmentId: assessment.id,
+                    startAt: daysFromNow(-30 + index * 4, 10, 0),
+                    // Bài đã quá hạn thì coi như đã nộp.
+                    submitAt: index >= 4 ? daysFromNow(-30 + index * 4 + 3, 22, 0) : null,
+                },
+            }));
 
         const workspace = await db.assignmentWorkspace.findUnique({
-            where: {
-                attemptUserId_attemptAssessmentId: {
-                    attemptUserId: attempt.userId,
-                    attemptAssessmentId: attempt.assessmentId,
-                },
-            },
+            where: { attemptId: attempt.id },
         });
 
         const assignmentWorkspace =
@@ -224,14 +224,7 @@ async function main() {
                     // Nối bằng `connect` chứ không gán thẳng hai cột khoá ngoại: khi trong cùng
                     // một `create` đã có quan hệ lồng (`workspace`), Prisma đòi mọi quan hệ khác
                     // cũng phải khai theo lối quan hệ, không trộn hai cách.
-                    attempt: {
-                        connect: {
-                            userId_assessmentId: {
-                                userId: attempt.userId,
-                                assessmentId: attempt.assessmentId,
-                            },
-                        },
-                    },
+                    attempt: { connect: { id: attempt.id } },
                     workspace: {
                         create: {
                             name: assessment.name,

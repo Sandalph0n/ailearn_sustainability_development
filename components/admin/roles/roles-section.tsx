@@ -37,7 +37,7 @@ export async function RolesSection({
                 ? { roleAssignments: { _count: dir } }
                 : { roleName: dir };
 
-    const [rows, total, institutions, allRoles] = await Promise.all([
+    const [rows, total, institutions, allRoles, permissions] = await Promise.all([
         db.role.findMany({
             where,
             orderBy,
@@ -48,9 +48,22 @@ export async function RolesSection({
                 roleName: true,
                 scopeType: true,
                 autoGrantEmailRegex: true,
-                includedBy: { select: { id: true, roleName: true } },
+                includedRoles: {
+                    select: { includedRole: { select: { id: true, roleName: true } } },
+                },
+                permissions: {
+                    where: { revokedAt: null },
+                    select: {
+                        permission: { select: { id: true, permission: true, description: true } },
+                    },
+                },
                 institution: { select: { id: true, name: true } },
-                _count: { select: { roleAssignments: true, roleRequests: true } },
+                _count: {
+                    select: {
+                        roleAssignments: { where: { roleRevokedAt: null } },
+                        roleRequests: { where: { status: 'PENDING' } },
+                    },
+                },
             },
         }),
         db.role.count({ where }),
@@ -70,6 +83,10 @@ export async function RolesSection({
             orderBy: { roleName: 'asc' },
             select: { id: true, roleName: true, institutionId: true },
         }),
+        db.permission.findMany({
+            orderBy: { permission: 'asc' },
+            select: { id: true, permission: true, description: true },
+        }),
     ]);
 
     const rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>> = {};
@@ -85,7 +102,8 @@ export async function RolesSection({
         roleName: row.roleName,
         scopeType: row.scopeType,
         autoGrantEmailRegex: row.autoGrantEmailRegex,
-        includedBy: row.includedBy,
+        includedRoles: row.includedRoles.map((edge) => edge.includedRole),
+        permissions: row.permissions.map((edge) => edge.permission),
         institution: row.institution,
         counts: { assignments: row._count.roleAssignments, requests: row._count.roleRequests },
     }));
@@ -97,6 +115,7 @@ export async function RolesSection({
             institutionId={institutionId}
             locked={lockedInstitutionId !== null}
             rolesByInstitution={rolesByInstitution}
+            permissions={permissions}
             page={page}
             pageCount={pageCountOf(total)}
             total={total}
