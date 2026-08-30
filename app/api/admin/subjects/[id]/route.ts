@@ -1,7 +1,7 @@
 // Route này sửa và xoá một môn học.
 import { NextRequest, NextResponse } from 'next/server';
 
-import { jsonResponse } from '@/lib/auth/http/response';
+import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { badId, guardDelete, guardWrite, prismaError } from '@/lib/admin/route-helpers';
 import { SubjectSchema } from '@/lib/admin/subject-schema';
 import { db } from '@/lib/db';
@@ -20,6 +20,20 @@ export async function PATCH(
     if (invalid) return invalid;
 
     try {
+        const current = await db.subject.findUnique({
+            where: { id },
+            select: { institutionId: true },
+        });
+        if (!current) return errorResponse(404, 'NOT_FOUND', 'Subject does not exist');
+        if (current.institutionId !== guard.data.institutionId) {
+            return errorResponse(
+                400,
+                'VALIDATION_ERROR',
+                'A subject cannot be moved to another institution',
+                { institutionId: ['A subject cannot be moved to another institution'] },
+            );
+        }
+
         const subject = await db.subject.update({
             where: { id },
             data: guard.data,

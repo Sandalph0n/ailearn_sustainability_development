@@ -1,8 +1,15 @@
 'use client';
 
 import { useMemo, type ReactElement } from 'react';
+import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
+import {
+    Add01Icon,
+    Calendar03Icon,
+    Delete02Icon,
+    Edit02Icon,
+    MoreVerticalIcon,
+} from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
 import {
@@ -74,9 +81,12 @@ export function TermsTable({
                 column.accessor('year', {
                     header: 'Term',
                     cell: (info) => (
-                        <span className="font-medium tabular-nums">
+                        <Link
+                            href={`/admin/institutions/${info.row.original.institution.id}/terms/${info.row.original.id}`}
+                            className="hover:text-primary font-medium tabular-nums transition-colors"
+                        >
                             {info.getValue()} · Session {info.row.original.session}
-                        </span>
+                        </Link>
                     ),
                 }),
 
@@ -297,6 +307,17 @@ function RowActions({
                 />
 
                 <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                        render={
+                            <Link
+                                href={`/admin/institutions/${term.institution.id}/terms/${term.id}`}
+                            />
+                        }
+                    >
+                        <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
+                        Manage periods
+                    </DropdownMenuItem>
+
                     <TermDialog
                         term={term}
                         institutions={institutions}
