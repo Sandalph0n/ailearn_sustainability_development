@@ -94,7 +94,7 @@ export function InstitutionFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={trigger} />
+            <DialogTrigger nativeButton={!editing} render={trigger} />
 
             <DialogContent className="sm:max-w-lg">
                 <form onSubmit={form.handleSubmit(onSubmit)} noValidate>

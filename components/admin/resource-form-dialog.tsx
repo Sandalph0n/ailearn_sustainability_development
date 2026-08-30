@@ -100,7 +100,7 @@ export function ResourceFormDialog<TInput extends FieldValues, TOutput extends F
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={trigger} />
+            <DialogTrigger nativeButton={!isEdit} render={trigger} />
 
             <DialogContent className="sm:max-w-lg">
                 <form onSubmit={form.handleSubmit(onSubmit)} noValidate>

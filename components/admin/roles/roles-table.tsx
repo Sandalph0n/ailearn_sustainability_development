@@ -380,6 +380,7 @@ function RowActions({
         return (
             <div className="flex justify-end">
                 <Button
+                    nativeButton={false}
                     variant="ghost"
                     size="sm"
                     render={<Link href={`/admin/institutions/${role.institution.id}/roles`} />}

@@ -57,6 +57,7 @@ export default async function InstitutionTermPeriodsPage({
         <div className="flex flex-col gap-5 pt-2">
             <div>
                 <Button
+                    nativeButton={false}
                     variant="ghost"
                     size="sm"
                     className="-ml-3"

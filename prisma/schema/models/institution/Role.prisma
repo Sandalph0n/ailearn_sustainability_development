@@ -15,7 +15,7 @@ model Role {
   /// tắt để không phải duyệt tay hàng nghìn sinh viên mỗi kỳ.
   ///
   /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, khi chưa
-  /// có lượt mở môn nào để nói tới. Database không kiểm được điều đó, phải kiểm bằng mã.
+  /// có lượt mở môn nào để nói tới. Check constraint trong migration giữ bất biến này ở database.
   autoGrantEmailRegex String?
 
   /// Vai trò này gán ở tầng nào. Quyết định `RoleAssignment.offeringId` phải rỗng hay phải có.

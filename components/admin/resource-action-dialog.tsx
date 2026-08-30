@@ -69,7 +69,7 @@ export function ResourceActionDialog({
                 if (!next) setError(null);
             }}
         >
-            <AlertDialogTrigger render={trigger} />
+            <AlertDialogTrigger nativeButton={false} render={trigger} />
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>{title}</AlertDialogTitle>

@@ -78,7 +78,7 @@ export function DeleteResourceDialog({
                 if (!next) setError(null);
             }}
         >
-            <AlertDialogTrigger render={trigger} />
+            <AlertDialogTrigger nativeButton={false} render={trigger} />
 
             <AlertDialogContent>
                 <AlertDialogHeader>
