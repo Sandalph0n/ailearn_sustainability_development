@@ -24,7 +24,8 @@ model RoleAssignment {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
   role     Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  offering Offering? @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+  /// `Restrict`: lịch sử gán role không biến mất chỉ vì ai đó xoá offering.
+  offering Offering? @relation(fields: [offeringId], references: [id], onDelete: Restrict)
 
   /// Đơn xin đã tạo ra phép gán này, nếu có.
   fromRequest RoleRequest?

@@ -23,8 +23,6 @@ import { db } from '@/lib/db';
  *
  * Kéo theo: chia sẻ đường dẫn thì người nhận vào đúng phạm vi, và breadcrumb có chỗ bám.
  *
- * Trang toàn hệ thống (`/admin/subjects`) vẫn còn, dành cho việc nhìn xuyên mọi cơ sở.
- *
  * ─── Vì sao khung nằm ở layout ──────────────────────────────────────────────
  *
  * Tên trường, breadcrumb và dải tab phải giống nhau ở mọi trang con. Đặt ở layout thì chuyển tab

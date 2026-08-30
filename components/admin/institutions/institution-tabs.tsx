@@ -16,7 +16,7 @@ const TABS = [
     { segment: '/subjects', label: 'Subjects', ready: true },
     { segment: '/terms', label: 'Terms', ready: true },
     { segment: '/roles', label: 'Roles', ready: true },
-    { segment: '/offerings', label: 'Offerings', ready: false },
+    { segment: '/offerings', label: 'Offerings', ready: true },
     { segment: '/people', label: 'People', ready: false },
     { segment: '/requests', label: 'Join requests', ready: false },
 ] as const;

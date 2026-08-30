@@ -126,8 +126,23 @@ export const FormInput: FormControlFunc<FormInputExtraProps> = ({
     );
 };
 
-export const FormTextarea: FormControlFunc = (props) => {
-    return <FormBase {...props}>{(field) => <Textarea {...field} />}</FormBase>;
+type FormTextareaExtraProps = Omit<
+    ComponentProps<typeof Textarea>,
+    'name' | 'value' | 'defaultValue' | 'onChange' | 'onBlur' | 'ref' | 'id'
+>;
+
+export const FormTextarea: FormControlFunc<FormTextareaExtraProps> = ({
+    control,
+    name,
+    label,
+    description,
+    ...textareaProps
+}) => {
+    return (
+        <FormBase control={control} name={name} label={label} description={description}>
+            {(field) => <Textarea {...textareaProps} {...field} />}
+        </FormBase>
+    );
 };
 
 /**

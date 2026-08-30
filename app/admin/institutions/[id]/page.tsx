@@ -39,10 +39,7 @@ type Section = {
     /** Chữ đứng cạnh con số, để "3" không mơ hồ. */
     unit: string;
     /**
-     * Trang quản lý, đã lọc sẵn theo cơ sở này. `null` là chưa dựng.
-     *
-     * Các trang đó là trang TOÀN HỆ THỐNG kèm bộ lọc `?institution=`, không phải trang con của
-     * cơ sở — xem `app/admin/subjects/page.tsx` để biết vì sao.
+     * Trang quản lý nằm dưới chính institution này. `null` là chưa dựng.
      */
     href: string | null;
 };
@@ -109,7 +106,7 @@ export default async function InstitutionSettingsPage({
             description: 'Which subject runs in which term. Assessments hang off these.',
             count: offerings,
             unit: 'offering',
-            href: null,
+            href: `/admin/institutions/${id}/offerings`,
         },
         {
             key: 'roles',

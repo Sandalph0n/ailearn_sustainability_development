@@ -13,7 +13,10 @@ export type CheckboxListOption = {
 };
 
 /** Danh sách chọn nhiều gọn hơn một multi-select và luôn cho thấy mình đang cấp những gì. */
-export function FormCheckboxList<TValues extends FieldValues>({
+export function FormCheckboxList<
+    TValues extends FieldValues,
+    TTransformedValues extends FieldValues = TValues,
+>({
     control,
     name,
     label,
@@ -21,7 +24,7 @@ export function FormCheckboxList<TValues extends FieldValues>({
     emptyMessage,
     options,
 }: {
-    control: Control<TValues>;
+    control: Control<TValues, unknown, TTransformedValues>;
     name: FieldPath<TValues>;
     label: string;
     description?: string;
