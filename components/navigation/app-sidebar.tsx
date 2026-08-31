@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     BookOpen01Icon,
@@ -26,6 +26,7 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from '@/components/ui/sidebar';
+import { CONTEXT_PARAM } from '@/lib/context/context-params';
 
 /**
  * Mục điều hướng, để thành DỮ LIỆU — thêm một mục là thêm một dòng.
@@ -51,6 +52,33 @@ const TOOL_ITEMS = [
 
 export function AppSidebar() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    /**
+     * Mọi liên kết điều hướng mang theo ngữ cảnh đang hoạt động.
+     *
+     * ─── Vì sao không thể bỏ đoạn này ────────────────────────────────────────
+     *
+     * Không có nó thì chuyển trang là mất vai trò: URL mới không mang ba tham số kia, máy chủ rơi
+     * về ngữ cảnh mặc định, và người dùng lặng lẽ bị đổi tư cách giữa chừng — thấy dữ liệu của
+     * một vai trò khác mà không có gì báo.
+     *
+     * Chép qua theo TÊN KHOÁ chứ không chép cả query string: bộ lọc và số trang của trang cũ
+     * không có nghĩa ở trang mới.
+     */
+    function withContext(href: string): string {
+        const carried = new URLSearchParams();
+
+        for (const key of Object.values(CONTEXT_PARAM)) {
+            const value = searchParams.get(key);
+            if (value) {
+                carried.set(key, value);
+            }
+        }
+
+        const query = carried.toString();
+        return query ? href + '?' + query : href;
+    }
 
     return (
         <Sidebar collapsible="icon">
@@ -82,7 +110,7 @@ export function AppSidebar() {
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}
                                         tooltip={item.label}
-                                        render={<Link href={item.href} />}
+                                        render={<Link href={withContext(item.href)} />}
                                     >
                                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                                         <span>{item.label}</span>
@@ -102,7 +130,7 @@ export function AppSidebar() {
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}
                                         tooltip={item.label}
-                                        render={<Link href={item.href} />}
+                                        render={<Link href={withContext(item.href)} />}
                                     >
                                         <HugeiconsIcon icon={item.icon} strokeWidth={2} />
                                         <span>{item.label}</span>
