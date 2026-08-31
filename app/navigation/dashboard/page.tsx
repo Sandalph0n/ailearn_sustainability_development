@@ -14,7 +14,9 @@ import {
 import { BrandLogo } from '@/components/brand-logo';
 import { DotGrid, Glow } from '@/components/navigation/decor';
 import { buttonVariants } from '@/components/ui/button';
+import { AccessPicker } from '@/components/navigation/access-picker';
 import { getCurrentSession } from '@/lib/auth/session/service';
+import { resolveActiveContext } from '@/lib/context/active-context';
 import { db } from '@/lib/db';
 
 /**
@@ -70,23 +72,60 @@ const TOOLS = [
     },
 ] as const;
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+    searchParams,
+}: PageProps<'/navigation/dashboard'>) {
     const session = await getCurrentSession();
     const userId = session?.user.id;
 
+    /**
+     * Ngữ cảnh giải ra Ở ĐÂY, không ở layout: layout của App Router không nhận `searchParams`.
+     * Trang tự đối chiếu URL với database rồi mới truy vấn — xem `lib/context/active-context`.
+     */
+    const { active, options, corrected } = userId
+        ? await resolveActiveContext(userId, await searchParams)
+        : { active: null, options: [], corrected: false };
+
+    /**
+     * Bộ lọc lượt mở môn suy ra TỪ ngữ cảnh, không từ tham số URL thô.
+     *
+     * Vai trò phạm vi OFFERING chỉ nhìn thấy đúng lượt mở đó. Vai trò cấp cơ sở nhìn mọi lượt mở
+     * mà người này có chân, trong đúng cơ sở đang chọn. Không có ngữ cảnh thì không lọc gì —
+     * người chưa được cấp vai trò nào vẫn thấy được phần cá nhân của mình.
+     */
+    const offeringScope = active
+        ? active.offering
+            ? { id: active.offering.id }
+            : {
+                  subject: { institutionId: active.institution.id },
+                  roleAssignments: { some: { userId, roleRevokedAt: null } },
+              }
+        : undefined;
+
     const [enrolled, dueSoon, attempts, notes] = await Promise.all([
         db.roleAssignment.count({
-            where: { userId, offeringId: { not: null }, roleRevokedAt: null },
+            where: {
+                userId,
+                offeringId: { not: null },
+                roleRevokedAt: null,
+                ...(active ? { role: { institutionId: active.institution.id } } : {}),
+            },
         }),
         db.assessment.count({
             where: {
                 dueAt: { gt: new Date() },
-                offering: {
+                offering: offeringScope ?? {
                     roleAssignments: { some: { userId, roleRevokedAt: null } },
                 },
             },
         }),
-        db.assessmentAttempt.count({ where: { userId } }),
+        db.assessmentAttempt.count({
+            where: {
+                userId,
+                ...(offeringScope ? { assessment: { offering: offeringScope } } : {}),
+            },
+        }),
+        // Workspace cá nhân KHÔNG thuộc cơ sở nào — đổi vai trò không đổi con số này.
         db.personalWorkspace.count({ where: { userId } }),
     ]);
 
@@ -190,8 +229,30 @@ export default async function DashboardPage() {
                         Everything you do in a tool here is kept in order, so the whole session can
                         be replayed later.
                     </p>
+
+                    {/*
+                        Vai trò đang giữ, nhắc lại ngay trong dải chào. Bộ chọn trên header nói
+                        cùng điều đó nhưng ở cỡ nhỏ và nằm ngoài luồng đọc; nhầm vai trò là nhìn
+                        nhầm dữ liệu, nên nó đáng được nói hai lần.
+                    */}
+                    {active && (
+                        <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                            Working as
+                            <span className="text-brand-teal border-brand-teal/30 bg-brand-teal/10 rounded-md border px-2 py-0.5 text-xs font-semibold">
+                                {active.role.roleName}
+                            </span>
+                            at {active.institution.name}
+                            {active.offering && (
+                                <span className="text-brand-sky border-brand-sky/30 bg-brand-sky/10 rounded-md border px-2 py-0.5 text-xs font-semibold">
+                                    {active.offering.subjectCode}
+                                </span>
+                            )}
+                        </p>
+                    )}
                 </div>
             </section>
+
+            <AccessPicker options={options} active={active} corrected={corrected} />
 
             {/* ─── Bốn con số ─────────────────────────────────────────────── */}
             <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

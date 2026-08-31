@@ -15,7 +15,9 @@ import { redirect } from 'next/navigation';
 
 import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { HeaderAccount } from '@/components/navigation/header-account';
+import { HeaderContext } from '@/components/navigation/header-context';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { getCurrentSession } from '@/lib/auth/session/service';
 
 /**
@@ -45,6 +47,14 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
                 <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-5 md:px-6">
                     <SidebarTrigger className="-ml-1.5" />
                     <div className="flex-1" />
+
+                    {/*
+                        Bộ chọn vai trò đứng NGAY CẠNH nút tài khoản, ngăn bằng một vạch dọc.
+                        Hai thứ này trả lời hai câu hỏi liền nhau — "tôi đang làm việc với tư cách
+                        gì" và "tôi là ai" — nên chúng thuộc về cùng một góc màn hình.
+                    */}
+                    <HeaderContext />
+                    <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
                     <HeaderAccount />
                 </header>
 
