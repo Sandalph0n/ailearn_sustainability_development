@@ -12,9 +12,8 @@ import {
     UserSharingIcon,
 } from '@hugeicons/core-free-icons';
 
-import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
+import { InstitutionOverview } from '@/components/admin/institutions/institution-overview';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { db } from '@/lib/db';
 
 /**
@@ -139,8 +138,13 @@ export default async function InstitutionSettingsPage({
     ];
 
     return (
-        <div className="flex flex-col gap-6 pt-1">
-            <section className="flex flex-wrap items-start justify-between gap-4">
+        <InstitutionOverview
+            institution={{
+                id: institution.id,
+                name: institution.name,
+                website: institution.website,
+            }}
+            heading={
                 <div className="flex flex-col gap-2">
                     <h1 className="font-heading text-xl font-semibold tracking-tight">
                         {institution.name}
@@ -163,16 +167,8 @@ export default async function InstitutionSettingsPage({
                         <span className="text-muted-foreground text-sm">No website set</span>
                     )}
                 </div>
-
-                <InstitutionFormDialog
-                    institution={{
-                        id: institution.id,
-                        name: institution.name,
-                        website: institution.website,
-                    }}
-                    trigger={<Button variant="outline">Edit details</Button>}
-                />
-            </section>
+            }
+        >
 
             <section className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
@@ -244,6 +240,6 @@ export default async function InstitutionSettingsPage({
                     })}
                 </div>
             </section>
-        </div>
+        </InstitutionOverview>
     );
 }

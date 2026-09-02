@@ -26,8 +26,8 @@ type ApiErrorBody = {
  *
  * ─── Vì sao trả về `boolean` ────────────────────────────────────────────────
  *
- * Chỗ gọi cần biết có nên đóng hộp thoại hay không. Thất bại thì giữ hộp thoại mở, lỗi đã nằm
- * sẵn trong biểu mẫu để người dùng sửa mà không mất những gì vừa gõ.
+ * Chỗ gọi cần biết có nên rời editor hay không. Thất bại thì giữ nguyên editor, lỗi đã nằm sẵn
+ * trong biểu mẫu để người dùng sửa mà không mất những gì vừa gõ.
  */
 export function useResourceForm<
     TFieldValues extends FieldValues,

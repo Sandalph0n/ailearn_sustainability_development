@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
@@ -10,7 +10,10 @@ import {
 import { useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { ResourceActionDialog } from '@/components/admin/resource-action-dialog';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { UrlSelectFilter } from '@/components/admin/url-select-filter';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormSelect } from '@/components/form';
@@ -88,6 +91,7 @@ export function PeopleTable({
     dir: 'asc' | 'desc';
 }) {
     const list = useListQuery();
+    const [granting, setGranting] = useState(false);
 
     const columns = useMemo(
         () =>
@@ -161,6 +165,17 @@ export function PeopleTable({
         [],
     );
 
+    if (granting) {
+        return (
+            <AssignmentForm
+                users={users}
+                roles={roles}
+                offerings={offerings}
+                onCancel={() => setGranting(false)}
+            />
+        );
+    }
+
     return (
         <DataTable
             columns={columns}
@@ -215,17 +230,13 @@ export function PeopleTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <AssignmentDialog
-                        users={users}
-                        roles={roles}
-                        offerings={offerings}
-                        trigger={
-                            <Button disabled={roles.length === 0 || users.length === 0}>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                Grant role
-                            </Button>
-                        }
-                    />
+                    <Button
+                        disabled={roles.length === 0 || users.length === 0}
+                        onClick={() => setGranting(true)}
+                    >
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        Grant role
+                    </Button>
                 </>
             }
             server={{
@@ -246,19 +257,19 @@ export function PeopleTable({
     );
 }
 
-function AssignmentDialog({
+function AssignmentForm({
     users,
     roles,
     offerings,
-    trigger,
+    onCancel,
 }: {
     users: UserOption[];
     roles: RoleOption[];
     offerings: OfferingOption[];
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<RoleAssignmentFormValue, RoleAssignmentSchemaValue>
+        <ResourceFormPage<RoleAssignmentFormValue, RoleAssignmentSchemaValue>
             schema={RoleAssignmentSchema}
             emptyValues={EMPTY_ROLE_ASSIGNMENT_FORM}
             createEndpoint={ENDPOINT}
@@ -268,11 +279,22 @@ function AssignmentDialog({
                 edit: 'Role assignments are revoked and re-granted rather than edited.',
             }}
             submitLabel={{ create: 'Grant role', edit: 'Grant role' }}
-            trigger={trigger}
-            fields={(form) => (
-                <AssignmentFields form={form} users={users} roles={roles} offerings={offerings} />
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <ResourceFormSection
+                    title="Assignment"
+                    description="Choose who receives the role, then narrow it to the exact institution or offering scope."
+                >
+                    <AssignmentFields
+                        form={form}
+                        users={users}
+                        roles={roles}
+                        offerings={offerings}
+                    />
+                </ResourceFormSection>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
@@ -311,7 +333,7 @@ function AssignmentFields({
               : [];
 
     return (
-        <>
+        <div className="grid gap-5 lg:grid-cols-3">
             <FormSelect
                 control={form.control}
                 name="userId"
@@ -362,7 +384,7 @@ function AssignmentFields({
                     </SelectItem>
                 ))}
             </FormSelect>
-        </>
+        </div>
     );
 }
 

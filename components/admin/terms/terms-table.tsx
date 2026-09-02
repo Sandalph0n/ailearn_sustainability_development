@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -17,7 +17,10 @@ import {
     institutionItems,
     type InstitutionOption,
 } from '@/components/admin/institution-filter';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
 import { Button } from '@/components/ui/button';
@@ -74,6 +77,7 @@ export function TermsTable({
     dir: 'asc' | 'desc';
 }) {
     const list = useListQuery();
+    const [editing, setEditing] = useState<TermListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -132,14 +136,25 @@ export function TermsTable({
                     cell: (info) => (
                         <RowActions
                             term={info.row.original}
-                            institutions={institutions}
-                            locked={locked}
+                            onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<TermListItem>>,
-        [institutions, locked],
+        [locked],
     );
+
+    if (editing) {
+        return (
+            <TermForm
+                term={editing === 'create' ? undefined : editing}
+                institutions={institutions}
+                presetInstitutionId={institutionId}
+                locked={locked}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -176,17 +191,10 @@ export function TermsTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <TermDialog
-                        institutions={institutions}
-                        presetInstitutionId={institutionId}
-                        locked={locked}
-                        trigger={
-                            <Button>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New term
-                            </Button>
-                        }
-                    />
+                    <Button onClick={() => setEditing('create')}>
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        New term
+                    </Button>
                 </>
             }
             server={{
@@ -207,21 +215,21 @@ export function TermsTable({
     );
 }
 
-function TermDialog({
+function TermForm({
     term,
     institutions,
     presetInstitutionId,
     locked = false,
-    trigger,
+    onCancel,
 }: {
     term?: TermListItem;
     institutions: InstitutionOption[];
     presetInstitutionId?: string | null;
     locked?: boolean;
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<TermFormValue, TermSchemaValue>
+        <ResourceFormPage<TermFormValue, TermSchemaValue>
             schema={TermSchema}
             emptyValues={{ ...EMPTY_TERM_FORM, institutionId: presetInstitutionId ?? '' }}
             editing={
@@ -241,59 +249,63 @@ function TermDialog({
                 create: 'A year and session that subjects run in.',
                 edit: 'Changes apply to every offering in this term.',
             }}
-            trigger={trigger}
-            fields={(form) => (
-                <>
-                    {/* Ở trang con thì cơ sở đã cố định — ô chọn chỉ có một mục, bỏ đi cho gọn. */}
-                    {!locked && (
-                        <FormSelect
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <ResourceFormSection
+                    title="Study term"
+                    description="Identify this teaching window by year and its institution-specific session number."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        {!locked && (
+                            <div className="md:col-span-2">
+                                <FormSelect
+                                    control={form.control}
+                                    name="institutionId"
+                                    label="Institution"
+                                    items={institutionItems(institutions)}
+                                    description="A year and session can only exist once per institution."
+                                >
+                                    {institutions.map((institution) => (
+                                        <SelectItem key={institution.id} value={institution.id}>
+                                            {institution.name}
+                                        </SelectItem>
+                                    ))}
+                                </FormSelect>
+                            </div>
+                        )}
+                        <FormInput
                             control={form.control}
-                            name="institutionId"
-                            label="Institution"
-                            items={institutionItems(institutions)}
-                            description="A year and session can only exist once per institution."
-                        >
-                            {institutions.map((institution) => (
-                                <SelectItem key={institution.id} value={institution.id}>
-                                    {institution.name}
-                                </SelectItem>
-                            ))}
-                        </FormSelect>
-                    )}
-
-                    <FormInput
-                        control={form.control}
-                        name="year"
-                        label="Year"
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="2026"
-                        autoComplete="off"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="session"
-                        label="Session"
-                        description="A number, not a name — institutions call it session, semester or trimester."
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="1"
-                        autoComplete="off"
-                    />
-                </>
+                            name="year"
+                            label="Year"
+                            type="number"
+                            inputMode="numeric"
+                            placeholder="2026"
+                            autoComplete="off"
+                        />
+                        <FormInput
+                            control={form.control}
+                            name="session"
+                            label="Session"
+                            description="A number, not a name — institutions call it session, semester or trimester."
+                            type="number"
+                            inputMode="numeric"
+                            placeholder="1"
+                            autoComplete="off"
+                        />
+                    </div>
+                </ResourceFormSection>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
 function RowActions({
     term,
-    institutions,
-    locked,
+    onEdit,
 }: {
     term: TermListItem;
-    institutions: InstitutionOption[];
-    locked: boolean;
+    onEdit: () => void;
 }) {
     return (
         <div className="flex justify-end">
@@ -318,17 +330,10 @@ function RowActions({
                         Manage periods
                     </DropdownMenuItem>
 
-                    <TermDialog
-                        term={term}
-                        institutions={institutions}
-                        locked={locked}
-                        trigger={
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 

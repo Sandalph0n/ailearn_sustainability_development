@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
@@ -10,7 +10,10 @@ import {
     institutionItems,
     type InstitutionOption,
 } from '@/components/admin/institution-filter';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
 import { Button } from '@/components/ui/button';
@@ -66,6 +69,7 @@ export function SubjectsTable({
     dir: 'asc' | 'desc';
 }) {
     const list = useListQuery();
+    const [editing, setEditing] = useState<SubjectListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -106,14 +110,25 @@ export function SubjectsTable({
                     cell: (info) => (
                         <RowActions
                             subject={info.row.original}
-                            institutions={institutions}
-                            locked={locked}
+                            onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<SubjectListItem>>,
-        [institutions, locked],
+        [locked],
     );
+
+    if (editing) {
+        return (
+            <SubjectForm
+                subject={editing === 'create' ? undefined : editing}
+                institutions={institutions}
+                presetInstitutionId={institutionId}
+                locked={locked}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -150,19 +165,10 @@ export function SubjectsTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <SubjectDialog
-                        institutions={institutions}
-                        // Đang lọc theo một trường thì điền sẵn trường đó — người dùng gần như
-                        // chắc chắn muốn tạo môn cho đúng trường họ đang xem.
-                        presetInstitutionId={institutionId}
-                        locked={locked}
-                        trigger={
-                            <Button>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New subject
-                            </Button>
-                        }
-                    />
+                    <Button onClick={() => setEditing('create')}>
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        New subject
+                    </Button>
                 </>
             }
             server={{
@@ -183,21 +189,21 @@ export function SubjectsTable({
     );
 }
 
-function SubjectDialog({
+function SubjectForm({
     subject,
     institutions,
     presetInstitutionId,
     locked = false,
-    trigger,
+    onCancel,
 }: {
     subject?: SubjectListItem;
     institutions: InstitutionOption[];
     presetInstitutionId?: string | null;
     locked?: boolean;
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<SubjectFormValue, SubjectSchemaValue>
+        <ResourceFormPage<SubjectFormValue, SubjectSchemaValue>
             schema={SubjectSchema}
             emptyValues={{
                 ...EMPTY_SUBJECT_FORM,
@@ -220,65 +226,65 @@ function SubjectDialog({
                 create: 'A unit an institution teaches.',
                 edit: 'Changes apply everywhere this subject appears.',
             }}
-            trigger={trigger}
-            fields={(form) => (
-                <>
-                    {/*
-                        Ở trang con thì cơ sở đã cố định, ô chọn chỉ có đúng một mục — bỏ đi cho
-                        gọn. Giá trị vẫn nằm trong biểu mẫu qua `presetInstitutionId`.
-                    */}
-                    {!locked && (
-                        <FormSelect
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <ResourceFormSection
+                    title="Subject details"
+                    description="The code identifies the unit inside its institution; the name and description explain it elsewhere in the platform."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        {!locked && (
+                            <div className="md:col-span-2">
+                                <FormSelect
+                                    control={form.control}
+                                    name="institutionId"
+                                    label="Institution"
+                                    items={institutionItems(institutions)}
+                                    description="Subject codes are unique within one institution."
+                                >
+                                    {institutions.map((institution) => (
+                                        <SelectItem key={institution.id} value={institution.id}>
+                                            {institution.name}
+                                        </SelectItem>
+                                    ))}
+                                </FormSelect>
+                            </div>
+                        )}
+                        <FormInput
                             control={form.control}
-                            name="institutionId"
-                            label="Institution"
-                            items={institutionItems(institutions)}
-                            description="Subject codes are unique within one institution."
-                        >
-                            {institutions.map((institution) => (
-                                <SelectItem key={institution.id} value={institution.id}>
-                                    {institution.name}
-                                </SelectItem>
-                            ))}
-                        </FormSelect>
-                    )}
-
-                    <FormInput
-                        control={form.control}
-                        name="subjectCode"
-                        label="Code"
-                        placeholder="COMP3000"
-                        autoComplete="off"
-                        className="font-mono"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="subjectName"
-                        label="Name"
-                        placeholder="Programming Languages"
-                        autoComplete="off"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="subjectDescription"
-                        label="Description"
-                        description="Optional."
-                        autoComplete="off"
-                    />
-                </>
+                            name="subjectCode"
+                            label="Code"
+                            placeholder="COMP3000"
+                            autoComplete="off"
+                            className="font-mono"
+                        />
+                        <FormInput
+                            control={form.control}
+                            name="subjectName"
+                            label="Name"
+                            placeholder="Programming Languages"
+                            autoComplete="off"
+                        />
+                        <div className="md:col-span-2">
+                            <FormInput
+                                control={form.control}
+                                name="subjectDescription"
+                                label="Description"
+                                description="Optional."
+                                autoComplete="off"
+                            />
+                        </div>
+                    </div>
+                </ResourceFormSection>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
-function RowActions({
-    subject,
-    institutions,
-    locked,
-}: {
+function RowActions({ subject, onEdit }: {
     subject: SubjectListItem;
-    institutions: InstitutionOption[];
-    locked: boolean;
+    onEdit: () => void;
 }) {
     return (
         <div className="flex justify-end">
@@ -292,17 +298,10 @@ function RowActions({
                 />
 
                 <DropdownMenuContent align="end">
-                    <SubjectDialog
-                        subject={subject}
-                        institutions={institutions}
-                        locked={locked}
-                        trigger={
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 

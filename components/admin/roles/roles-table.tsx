@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -18,7 +18,10 @@ import {
     institutionItems,
     type InstitutionOption,
 } from '@/components/admin/institution-filter';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput, FormSelect } from '@/components/form';
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +85,7 @@ export function RolesTable({
     dir: 'asc' | 'desc';
 }) {
     const list = useListQuery();
+    const [editing, setEditing] = useState<RoleListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -153,16 +157,28 @@ export function RolesTable({
                     cell: (info) => (
                         <RowActions
                             role={info.row.original}
-                            institutions={institutions}
-                            rolesByInstitution={rolesByInstitution}
-                            permissions={permissions}
                             locked={locked}
+                            onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<RoleListItem>>,
-        [institutions, rolesByInstitution, permissions, locked],
+        [locked],
     );
+
+    if (editing) {
+        return (
+            <RoleForm
+                role={editing === 'create' ? undefined : editing}
+                institutions={institutions}
+                rolesByInstitution={rolesByInstitution}
+                permissions={permissions}
+                presetInstitutionId={institutionId}
+                locked={locked}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -200,19 +216,10 @@ export function RolesTable({
                     </span>
                     <div className="flex-1" />
                     {locked && (
-                        <RoleDialog
-                            institutions={institutions}
-                            rolesByInstitution={rolesByInstitution}
-                            permissions={permissions}
-                            presetInstitutionId={institutionId}
-                            locked
-                            trigger={
-                                <Button>
-                                    <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                    New role
-                                </Button>
-                            }
-                        />
+                        <Button onClick={() => setEditing('create')}>
+                            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                            New role
+                        </Button>
                     )}
                 </>
             }
@@ -234,14 +241,14 @@ export function RolesTable({
     );
 }
 
-function RoleDialog({
+function RoleForm({
     role,
     institutions,
     rolesByInstitution,
     permissions,
     presetInstitutionId,
     locked = false,
-    trigger,
+    onCancel,
 }: {
     role?: RoleListItem;
     institutions: InstitutionOption[];
@@ -249,10 +256,10 @@ function RoleDialog({
     permissions: Array<{ id: string; permission: string; description: string | null }>;
     presetInstitutionId?: string | null;
     locked?: boolean;
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<RoleFormValue, RoleSchemaValue>
+        <ResourceFormPage<RoleFormValue, RoleSchemaValue>
             schema={RoleSchema}
             emptyValues={
                 { ...EMPTY_ROLE_FORM, institutionId: presetInstitutionId ?? '' } as RoleFormValue
@@ -276,8 +283,9 @@ function RoleDialog({
                 create: 'A role someone can hold at an institution.',
                 edit: 'Changes apply to everyone who holds this role.',
             }}
-            trigger={trigger}
-            fields={(form) => {
+            onCancel={onCancel}
+        >
+            {(form) => {
                 // Chỉ chào các vai trò cùng cơ sở; backend và trigger vẫn kiểm lại độc lập.
                 const chosenInstitution = form.watch('institutionId');
                 const candidates = (rolesByInstitution[chosenInstitution] ?? []).filter(
@@ -285,94 +293,108 @@ function RoleDialog({
                 );
 
                 return (
-                    <>
-                        {/* Ở trang con thì cơ sở đã cố định — ô chọn chỉ có một mục, bỏ đi cho gọn. */}
-                        {!locked && (
-                            <FormSelect
-                                control={form.control}
-                                name="institutionId"
-                                label="Institution"
-                                items={institutionItems(institutions)}
-                            >
-                                {institutions.map((institution) => (
-                                    <SelectItem key={institution.id} value={institution.id}>
-                                        {institution.name}
-                                    </SelectItem>
-                                ))}
-                            </FormSelect>
-                        )}
-
-                        <FormInput
-                            control={form.control}
-                            name="roleName"
-                            label="Name"
-                            placeholder="Tutor"
-                            autoComplete="off"
-                        />
-
-                        <FormSelect
-                            control={form.control}
-                            name="scopeType"
-                            label="Scope"
-                            description="Institution-wide, or per offering."
+                    <div className="flex flex-col">
+                        <ResourceFormSection
+                            title="Role identity"
+                            description="Set where this role applies and whether an institution email rule can grant it automatically."
                         >
-                            <SelectItem value="INSTITUTION">Institution</SelectItem>
-                            <SelectItem value="OFFERING">Offering</SelectItem>
-                        </FormSelect>
+                            <div className="grid gap-5 md:grid-cols-2">
+                                {!locked && (
+                                    <div className="md:col-span-2">
+                                        <FormSelect
+                                            control={form.control}
+                                            name="institutionId"
+                                            label="Institution"
+                                            items={institutionItems(institutions)}
+                                        >
+                                            {institutions.map((institution) => (
+                                                <SelectItem
+                                                    key={institution.id}
+                                                    value={institution.id}
+                                                >
+                                                    {institution.name}
+                                                </SelectItem>
+                                            ))}
+                                        </FormSelect>
+                                    </div>
+                                )}
+                                <FormInput
+                                    control={form.control}
+                                    name="roleName"
+                                    label="Name"
+                                    placeholder="Tutor"
+                                    autoComplete="off"
+                                />
+                                <FormSelect
+                                    control={form.control}
+                                    name="scopeType"
+                                    label="Scope"
+                                    description="Institution-wide, or per offering."
+                                >
+                                    <SelectItem value="INSTITUTION">Institution</SelectItem>
+                                    <SelectItem value="OFFERING">Offering</SelectItem>
+                                </FormSelect>
+                                <div className="md:col-span-2">
+                                    <FormInput
+                                        control={form.control}
+                                        name="autoGrantEmailRegex"
+                                        label="Email rule"
+                                        description="Optional, institution-wide roles only. Grants this role automatically on join."
+                                        placeholder="@students\.mq\.edu\.au$"
+                                        autoComplete="off"
+                                        className="font-mono"
+                                    />
+                                </div>
+                            </div>
+                        </ResourceFormSection>
 
-                        <FormInput
-                            control={form.control}
-                            name="autoGrantEmailRegex"
-                            label="Email rule"
-                            description="Optional, institution-wide roles only. Grants this role automatically on join."
-                            placeholder="@students\.mq\.edu\.au$"
-                            autoComplete="off"
-                            className="font-mono"
-                        />
-
-                        <FormCheckboxList
-                            control={form.control}
-                            name="includedRoleIds"
-                            label="Includes roles"
-                            description="This role inherits every active permission from the selected roles."
-                            emptyMessage="No other roles at this institution yet."
-                            options={candidates.map((candidate) => ({
-                                value: candidate.id,
-                                label: candidate.roleName,
-                            }))}
-                        />
-
-                        <FormCheckboxList
-                            control={form.control}
-                            name="permissionIds"
-                            label="Direct permissions"
-                            description="Permissions granted directly, before inherited roles are considered."
-                            emptyMessage="No permissions have been registered by the platform yet."
-                            options={permissions.map((permission) => ({
-                                value: permission.id,
-                                label: permission.permission,
-                                description: permission.description ?? undefined,
-                            }))}
-                        />
-                    </>
+                        <ResourceFormSection
+                            title="Access model"
+                            description="Compose this role from other roles, then add permissions that belong directly to it."
+                        >
+                            <div className="grid items-start gap-6 xl:grid-cols-2">
+                                <FormCheckboxList
+                                    control={form.control}
+                                    name="includedRoleIds"
+                                    label="Includes roles"
+                                    description="Inherit every active permission from these roles."
+                                    emptyMessage="No other roles at this institution yet."
+                                    className="max-h-80"
+                                    options={candidates.map((candidate) => ({
+                                        value: candidate.id,
+                                        label: candidate.roleName,
+                                    }))}
+                                />
+                                <FormCheckboxList
+                                    control={form.control}
+                                    name="permissionIds"
+                                    label="Direct permissions"
+                                    description="Granted before inherited roles are considered."
+                                    emptyMessage="No permissions have been registered by the platform yet."
+                                    className="max-h-80"
+                                    options={permissions.map((permission) => ({
+                                        value: permission.id,
+                                        label: permission.permission,
+                                        description: permission.description ?? undefined,
+                                    }))}
+                                />
+                            </div>
+                        </ResourceFormSection>
+                    </div>
                 );
             }}
-        />
+        </ResourceFormPage>
     );
 }
 
 function RowActions({
     role,
-    institutions,
-    rolesByInstitution,
-    permissions,
     locked,
+    onEdit,
 }: {
     role: RoleListItem;
-    institutions: InstitutionOption[];
-    rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
-    permissions: Array<{ id: string; permission: string; description: string | null }>;
     locked: boolean;
+    onEdit: () => void;
 }) {
     const inUse = role.counts.assignments + role.counts.requests;
 
@@ -404,19 +426,10 @@ function RowActions({
                 />
 
                 <DropdownMenuContent align="end">
-                    <RoleDialog
-                        role={role}
-                        institutions={institutions}
-                        rolesByInstitution={rolesByInstitution}
-                        permissions={permissions}
-                        locked={locked}
-                        trigger={
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 

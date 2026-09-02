@@ -78,7 +78,7 @@ export async function RolesSection({
                   select: { id: true, name: true },
               }),
         // Ô "Included by" chỉ chào vai trò CÙNG cơ sở. Bảng này nhỏ nên nạp hết rẻ hơn một truy
-        // vấn riêng cho mỗi lần mở hộp thoại.
+        // vấn riêng cho mỗi lần mở editor.
         db.role.findMany({
             where: lockedInstitutionId ? { institutionId: lockedInstitutionId } : {},
             orderBy: { roleName: 'asc' },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -19,7 +19,7 @@ import {
     DeleteInstitutionDialog,
     type InstitutionDeleteTarget,
 } from '@/components/admin/institutions/delete-institution-dialog';
-import { InstitutionFormDialog } from '@/components/admin/institutions/institution-form-dialog';
+import { InstitutionFormPage } from '@/components/admin/institutions/institution-form-page';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { DataTable, columnHelperFor, type AdminColumnDef } from '@/components/ui/data-table';
 import {
@@ -42,7 +42,7 @@ const column = columnHelperFor<InstitutionListItem>();
  * ─── Vì sao chỉ phần này là Client Component ────────────────────────────────
  *
  * Trang bọc ngoài là Server Component và đọc thẳng database. Chỉ những gì cần tương tác — sắp
- * xếp, lọc, hộp thoại — mới cần chạy ở client, nên ranh giới đặt đúng ở đây. Dữ liệu đi qua một
+ * xếp, lọc và đổi sang editor — mới cần chạy ở client, nên ranh giới đặt đúng ở đây. Dữ liệu đi qua một
  * lần dưới dạng props; client không tự gọi API để lấy danh sách.
  */
 export function InstitutionsTable({
@@ -63,6 +63,7 @@ export function InstitutionsTable({
     query: string;
 }) {
     const list = useListQuery();
+    const [editing, setEditing] = useState<InstitutionListItem | 'create' | null>(null);
     /**
      * Định nghĩa cột nằm trong `useMemo` vì đây là mảng dựng mới mỗi lần render, mà bảng lại lấy
      * nó làm phụ thuộc — không ghi nhớ thì mỗi lần gõ vào ô tìm kiếm là dựng lại toàn bộ cột.
@@ -128,11 +129,25 @@ export function InstitutionsTable({
                 column.display({
                     id: 'actions',
                     header: '',
-                    cell: (info) => <InstitutionActions institution={info.row.original} />,
+                    cell: (info) => (
+                        <InstitutionActions
+                            institution={info.row.original}
+                            onEdit={() => setEditing(info.row.original)}
+                        />
+                    ),
                 }),
             ] as Array<AdminColumnDef<InstitutionListItem>>,
         [],
     );
+
+    if (editing) {
+        return (
+            <InstitutionFormPage
+                institution={editing === 'create' ? undefined : editing}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -167,14 +182,10 @@ export function InstitutionsTable({
 
                     <div className="flex-1" />
 
-                    <InstitutionFormDialog
-                        trigger={
-                            <Button>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New institution
-                            </Button>
-                        }
-                    />
+                    <Button onClick={() => setEditing('create')}>
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        New institution
+                    </Button>
                 </>
             }
             server={{
@@ -219,7 +230,13 @@ function OpenSetupLink({ id }: { id: string }) {
     );
 }
 
-function InstitutionActions({ institution }: { institution: InstitutionListItem }) {
+function InstitutionActions({
+    institution,
+    onEdit,
+}: {
+    institution: InstitutionListItem;
+    onEdit: () => void;
+}) {
     return (
         <div className="flex justify-end gap-1">
             <OpenSetupLink id={institution.id} />
@@ -232,15 +249,10 @@ function InstitutionActions({ institution }: { institution: InstitutionListItem 
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <InstitutionFormDialog
-                        institution={institution}
-                        trigger={
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit details
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit details
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DeleteInstitutionDialog
                         institution={institution}

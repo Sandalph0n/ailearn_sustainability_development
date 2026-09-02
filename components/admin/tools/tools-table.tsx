@@ -1,11 +1,14 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormInput } from '@/components/form';
 import { Button } from '@/components/ui/button';
@@ -55,6 +58,7 @@ export function ToolsTable({
     dir: 'asc' | 'desc';
 }) {
     const list = useListQuery();
+    const [editing, setEditing] = useState<ToolListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -98,11 +102,25 @@ export function ToolsTable({
                 column.display({
                     id: 'actions',
                     header: '',
-                    cell: (info) => <RowActions tool={info.row.original} />,
+                    cell: (info) => (
+                        <RowActions
+                            tool={info.row.original}
+                            onEdit={() => setEditing(info.row.original)}
+                        />
+                    ),
                 }),
             ] as Array<AdminColumnDef<ToolListItem>>,
         [],
     );
+
+    if (editing) {
+        return (
+            <ToolForm
+                tool={editing === 'create' ? undefined : editing}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -128,14 +146,10 @@ export function ToolsTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <ToolDialog
-                        trigger={
-                            <Button>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New tool
-                            </Button>
-                        }
-                    />
+                    <Button onClick={() => setEditing('create')}>
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        New tool
+                    </Button>
                 </>
             }
             server={{
@@ -156,10 +170,9 @@ export function ToolsTable({
     );
 }
 
-/** Hộp thoại tạo/sửa. Tách ra vì nó xuất hiện ở hai chỗ: thanh công cụ và menu từng hàng. */
-function ToolDialog({ tool, trigger }: { tool?: ToolListItem; trigger: React.ReactElement }) {
+function ToolForm({ tool, onCancel }: { tool?: ToolListItem; onCancel: () => void }) {
     return (
-        <ResourceFormDialog<ToolFormValue, ToolSchemaValue>
+        <ResourceFormPage<ToolFormValue, ToolSchemaValue>
             schema={ToolSchema}
             emptyValues={EMPTY_TOOL_FORM}
             editing={
@@ -180,53 +193,59 @@ function ToolDialog({ tool, trigger }: { tool?: ToolListItem; trigger: React.Rea
                 create: 'A tool an assessment can hand to students.',
                 edit: 'Changes apply everywhere this tool appears.',
             }}
-            trigger={trigger}
-            fields={(form) => (
-                <>
-                    <FormInput
-                        control={form.control}
-                        name="name"
-                        label="Name"
-                        placeholder="Code Workspace"
-                        autoComplete="off"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="code"
-                        label="Code"
-                        description={
-                            tool
-                                ? "Permanent identifier used in the tool's URL."
-                                : "Appears in the tool's URL and cannot change after creation."
-                        }
-                        placeholder="code"
-                        autoComplete="off"
-                        className="font-mono"
-                        readOnly={Boolean(tool)}
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="description"
-                        label="Description"
-                        description="Optional."
-                        placeholder="What students do with it."
-                        autoComplete="off"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="codeBaseLocation"
-                        label="Code base"
-                        description="Optional. Where the tool's source lives."
-                        placeholder="https://github.com/…"
-                        autoComplete="off"
-                    />
-                </>
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <ResourceFormSection
+                    title="Tool identity"
+                    description="Name the tool, choose its permanent path code, and record where its independent codebase lives."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <FormInput
+                            control={form.control}
+                            name="name"
+                            label="Name"
+                            placeholder="Code Workspace"
+                            autoComplete="off"
+                        />
+                        <FormInput
+                            control={form.control}
+                            name="code"
+                            label="Code"
+                            description={
+                                tool
+                                    ? "Permanent identifier used in the tool's URL."
+                                    : "Appears in the tool's URL and cannot change after creation."
+                            }
+                            placeholder="code"
+                            autoComplete="off"
+                            className="font-mono"
+                            readOnly={Boolean(tool)}
+                        />
+                        <FormInput
+                            control={form.control}
+                            name="description"
+                            label="Description"
+                            description="Optional."
+                            placeholder="What students do with it."
+                            autoComplete="off"
+                        />
+                        <FormInput
+                            control={form.control}
+                            name="codeBaseLocation"
+                            label="Code base"
+                            description="Optional. Where the tool's source lives."
+                            placeholder="https://github.com/…"
+                            autoComplete="off"
+                        />
+                    </div>
+                </ResourceFormSection>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
-function RowActions({ tool }: { tool: ToolListItem }) {
+function RowActions({ tool, onEdit }: { tool: ToolListItem; onEdit: () => void }) {
     const inUse = tool.counts.assessments + tool.counts.sessions;
 
     return (
@@ -241,17 +260,10 @@ function RowActions({ tool }: { tool: ToolListItem }) {
                 />
 
                 <DropdownMenuContent align="end">
-                    <ToolDialog
-                        tool={tool}
-                        trigger={
-                            // `closeOnClick={false}` để menu không đóng trước khi hộp thoại kịp
-                            // mở — đóng menu sẽ tháo luôn cái trigger đang mở hộp thoại.
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 

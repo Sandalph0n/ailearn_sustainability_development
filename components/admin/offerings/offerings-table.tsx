@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
@@ -12,7 +12,10 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { UrlSelectFilter } from '@/components/admin/url-select-filter';
 import { useListQuery } from '@/components/admin/use-list-query';
 import { FormSelect } from '@/components/form';
@@ -82,6 +85,7 @@ export function OfferingsTable({
     dir: 'asc' | 'desc';
 }) {
     const list = useListQuery();
+    const [editing, setEditing] = useState<OfferingListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -128,16 +132,26 @@ export function OfferingsTable({
                         <OfferingActions
                             offering={info.row.original}
                             institutionId={institutionId}
-                            subjects={subjects}
-                            terms={terms}
+                            onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<OfferingListItem>>,
-        [institutionId, subjects, terms],
+        [institutionId],
     );
 
     const canCreate = subjects.length > 0 && terms.length > 0;
+
+    if (editing) {
+        return (
+            <OfferingForm
+                offering={editing === 'create' ? undefined : editing}
+                subjects={subjects}
+                terms={terms}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -181,16 +195,10 @@ export function OfferingsTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <OfferingDialog
-                        subjects={subjects}
-                        terms={terms}
-                        trigger={
-                            <Button disabled={!canCreate}>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New offering
-                            </Button>
-                        }
-                    />
+                    <Button disabled={!canCreate} onClick={() => setEditing('create')}>
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        New offering
+                    </Button>
                 </>
             }
             server={{
@@ -211,19 +219,19 @@ export function OfferingsTable({
     );
 }
 
-function OfferingDialog({
+function OfferingForm({
     offering,
     subjects,
     terms,
-    trigger,
+    onCancel,
 }: {
     offering?: OfferingListItem;
     subjects: SubjectOption[];
     terms: TermOption[];
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<OfferingFormValue, OfferingSchemaValue>
+        <ResourceFormPage<OfferingFormValue, OfferingSchemaValue>
             schema={OfferingSchema}
             emptyValues={EMPTY_OFFERING_FORM}
             editing={
@@ -238,49 +246,53 @@ function OfferingDialog({
                 create: 'Choose which subject runs in which study term.',
                 edit: 'An offering with content or assignment history cannot be moved.',
             }}
-            trigger={trigger}
-            fields={(form) => (
-                <>
-                    <FormSelect
-                        control={form.control}
-                        name="subjectId"
-                        label="Subject"
-                        items={subjectItems(subjects)}
-                    >
-                        {subjects.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id}>
-                                {subject.subjectCode} · {subject.subjectName}
-                            </SelectItem>
-                        ))}
-                    </FormSelect>
-                    <FormSelect
-                        control={form.control}
-                        name="termId"
-                        label="Study term"
-                        items={termItems(terms)}
-                    >
-                        {terms.map((term) => (
-                            <SelectItem key={term.id} value={term.id}>
-                                {term.year} · Session {term.session}
-                            </SelectItem>
-                        ))}
-                    </FormSelect>
-                </>
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <ResourceFormSection
+                    title="Offering placement"
+                    description="Connect one subject to one study term. Assessments and scoped roles will belong to this exact pairing."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <FormSelect
+                            control={form.control}
+                            name="subjectId"
+                            label="Subject"
+                            items={subjectItems(subjects)}
+                        >
+                            {subjects.map((subject) => (
+                                <SelectItem key={subject.id} value={subject.id}>
+                                    {subject.subjectCode} · {subject.subjectName}
+                                </SelectItem>
+                            ))}
+                        </FormSelect>
+                        <FormSelect
+                            control={form.control}
+                            name="termId"
+                            label="Study term"
+                            items={termItems(terms)}
+                        >
+                            {terms.map((term) => (
+                                <SelectItem key={term.id} value={term.id}>
+                                    {term.year} · Session {term.session}
+                                </SelectItem>
+                            ))}
+                        </FormSelect>
+                    </div>
+                </ResourceFormSection>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
 function OfferingActions({
     offering,
     institutionId,
-    subjects,
-    terms,
+    onEdit,
 }: {
     offering: OfferingListItem;
     institutionId: string;
-    subjects: SubjectOption[];
-    terms: TermOption[];
+    onEdit: () => void;
 }) {
     const inUse = offering.counts.assessments + offering.counts.assignments;
 
@@ -306,17 +318,10 @@ function OfferingActions({
                         Manage assessments
                     </DropdownMenuItem>
                     {inUse === 0 ? (
-                        <OfferingDialog
-                            offering={offering}
-                            subjects={subjects}
-                            terms={terms}
-                            trigger={
-                                <DropdownMenuItem closeOnClick={false}>
-                                    <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                    Edit
-                                </DropdownMenuItem>
-                            }
-                        />
+                        <DropdownMenuItem onClick={onEdit}>
+                            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                            Edit
+                        </DropdownMenuItem>
                     ) : (
                         <DropdownMenuItem disabled>
                             <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />

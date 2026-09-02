@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
@@ -10,7 +10,10 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { FormInput, FormSelect } from '@/components/form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -63,6 +66,7 @@ export function PeriodsTable({
     termId: string;
 }) {
     const endpoint = `/api/admin/terms/${termId}/periods`;
+    const [editing, setEditing] = useState<TermPeriodListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -99,12 +103,26 @@ export function PeriodsTable({
                     id: 'actions',
                     header: '',
                     cell: (info) => (
-                        <PeriodActions period={info.row.original} endpoint={endpoint} />
+                        <PeriodActions
+                            period={info.row.original}
+                            endpoint={endpoint}
+                            onEdit={() => setEditing(info.row.original)}
+                        />
                     ),
                 }),
             ] as Array<AdminColumnDef<TermPeriodListItem>>,
         [endpoint],
     );
+
+    if (editing) {
+        return (
+            <PeriodForm
+                endpoint={endpoint}
+                period={editing === 'create' ? undefined : editing}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -113,31 +131,26 @@ export function PeriodsTable({
             pageSize={20}
             emptyMessage="No periods yet. Add teaching, break or exam dates to define this term."
             toolbar={
-                <PeriodDialog
-                    endpoint={endpoint}
-                    trigger={
-                        <Button>
-                            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                            New period
-                        </Button>
-                    }
-                />
+                <Button onClick={() => setEditing('create')}>
+                    <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                    New period
+                </Button>
             }
         />
     );
 }
 
-function PeriodDialog({
+function PeriodForm({
     endpoint,
     period,
-    trigger,
+    onCancel,
 }: {
     endpoint: string;
     period?: TermPeriodListItem;
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<TermPeriodFormValue, TermPeriodSchemaValue>
+        <ResourceFormPage<TermPeriodFormValue, TermPeriodSchemaValue>
             schema={TermPeriodSchema}
             emptyValues={EMPTY_TERM_PERIOD_FORM}
             editing={
@@ -157,45 +170,53 @@ function PeriodDialog({
                 create: 'A teaching, break or exam window inside this term.',
                 edit: 'Update this period without changing the rest of the term.',
             }}
-            trigger={trigger}
-            fields={(form) => (
-                <>
-                    <FormInput
-                        control={form.control}
-                        name="name"
-                        label="Name"
-                        placeholder="Teaching weeks 1–7"
-                        autoComplete="off"
-                    />
-                    <FormSelect control={form.control} name="type" label="Type">
-                        <SelectItem value="TEACHING">Teaching</SelectItem>
-                        <SelectItem value="BREAK">Break</SelectItem>
-                        <SelectItem value="EXAM">Exam</SelectItem>
-                    </FormSelect>
-                    <FormInput
-                        control={form.control}
-                        name="startAt"
-                        label="Starts"
-                        type="datetime-local"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="endAt"
-                        label="Ends"
-                        type="datetime-local"
-                    />
-                </>
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <ResourceFormSection
+                    title="Calendar window"
+                    description="Name the period, classify it, and set the exact boundaries used by this term."
+                >
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <FormInput
+                            control={form.control}
+                            name="name"
+                            label="Name"
+                            placeholder="Teaching weeks 1–7"
+                            autoComplete="off"
+                        />
+                        <FormSelect control={form.control} name="type" label="Type">
+                            <SelectItem value="TEACHING">Teaching</SelectItem>
+                            <SelectItem value="BREAK">Break</SelectItem>
+                            <SelectItem value="EXAM">Exam</SelectItem>
+                        </FormSelect>
+                        <FormInput
+                            control={form.control}
+                            name="startAt"
+                            label="Starts"
+                            type="datetime-local"
+                        />
+                        <FormInput
+                            control={form.control}
+                            name="endAt"
+                            label="Ends"
+                            type="datetime-local"
+                        />
+                    </div>
+                </ResourceFormSection>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
 function PeriodActions({
     period,
     endpoint,
+    onEdit,
 }: {
     period: TermPeriodListItem;
     endpoint: string;
+    onEdit: () => void;
 }) {
     return (
         <div className="flex justify-end">
@@ -208,16 +229,10 @@ function PeriodActions({
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <PeriodDialog
-                        endpoint={endpoint}
-                        period={period}
-                        trigger={
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DeleteResourceDialog
                         endpoint={`${endpoint}/${period.id}`}

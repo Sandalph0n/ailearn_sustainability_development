@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
@@ -11,7 +11,10 @@ import {
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
 import { FormCheckboxList } from '@/components/admin/form-checkbox-list';
-import { ResourceFormDialog } from '@/components/admin/resource-form-dialog';
+import {
+    ResourceFormPage,
+    ResourceFormSection,
+} from '@/components/admin/resource-form-page';
 import { FormCheckbox, FormInput, FormTextarea } from '@/components/form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +72,7 @@ export function AssessmentsTable({
 }) {
     const endpoint = `/api/admin/offerings/${offeringId}/assessments`;
     const complete = Math.abs(totalWeight - 100) < 1e-9;
+    const [editing, setEditing] = useState<AssessmentListItem | 'create' | null>(null);
 
     const columns = useMemo(
         () =>
@@ -147,13 +151,24 @@ export function AssessmentsTable({
                         <AssessmentActions
                             assessment={info.row.original}
                             endpoint={endpoint}
-                            tools={tools}
+                            onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<AssessmentListItem>>,
-        [endpoint, tools],
+        [endpoint],
     );
+
+    if (editing) {
+        return (
+            <AssessmentForm
+                endpoint={endpoint}
+                tools={tools}
+                assessment={editing === 'create' ? undefined : editing}
+                onCancel={() => setEditing(null)}
+            />
+        );
+    }
 
     return (
         <DataTable
@@ -172,35 +187,32 @@ export function AssessmentsTable({
                         </span>
                     )}
                     <div className="flex-1" />
-                    <AssessmentDialog
-                        endpoint={endpoint}
-                        tools={tools}
-                        trigger={
-                            <Button disabled={totalWeight >= 100}>
-                                <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                                New assessment
-                            </Button>
-                        }
-                    />
+                    <Button
+                        disabled={totalWeight >= 100}
+                        onClick={() => setEditing('create')}
+                    >
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                        New assessment
+                    </Button>
                 </>
             }
         />
     );
 }
 
-function AssessmentDialog({
+function AssessmentForm({
     endpoint,
     tools,
     assessment,
-    trigger,
+    onCancel,
 }: {
     endpoint: string;
     tools: ToolOption[];
     assessment?: AssessmentListItem;
-    trigger: ReactElement;
+    onCancel: () => void;
 }) {
     return (
-        <ResourceFormDialog<AssessmentFormValue, AssessmentSchemaValue>
+        <ResourceFormPage<AssessmentFormValue, AssessmentSchemaValue>
             schema={AssessmentSchema}
             emptyValues={EMPTY_ASSESSMENT_FORM}
             editing={
@@ -227,95 +239,123 @@ function AssessmentDialog({
                 create: 'Add one item to this offering’s grading plan.',
                 edit: 'Update dates, weight, flags and allowed tools.',
             }}
-            trigger={trigger}
-            fields={(form) => (
-                <>
-                    <FormInput
-                        control={form.control}
-                        name="name"
-                        label="Name"
-                        placeholder="Project report"
-                        autoComplete="off"
-                    />
-                    <FormTextarea
-                        control={form.control}
-                        name="description"
-                        label="Description"
-                        description="Optional."
-                        placeholder="What students are expected to submit."
-                        rows={3}
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="weight"
-                        label="Weight (%)"
-                        description="All assessments in this offering may total at most 100%."
-                        type="number"
-                        min="0.01"
-                        max="100"
-                        step="0.01"
-                        inputMode="decimal"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="publishAt"
-                        label="Publish at"
-                        description="Optional. Leave blank to keep this assessment unpublished."
-                        type="datetime-local"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="expectedDue"
-                        label="Expected due"
-                        description="Optional free-form guidance, such as a teaching week or class window."
-                        placeholder="In week 6, during the registered class"
-                        autoComplete="off"
-                    />
-                    <FormInput
-                        control={form.control}
-                        name="dueAt"
-                        label="Due at"
-                        description="Optional. Use only when an exact date and time are known."
-                        type="datetime-local"
-                    />
-                    <FormCheckbox
-                        control={form.control}
-                        name="hurdle"
-                        label="Hurdle requirement"
-                        description="Failing this item can fail the subject regardless of total marks."
-                    />
-                    <FormCheckbox
-                        control={form.control}
-                        name="isGroup"
-                        label="Group assessment"
-                        description="One attempt may represent work from several students."
-                    />
-                    <FormCheckboxList
-                        control={form.control}
-                        name="toolIds"
-                        label="Allowed tools"
-                        description="No selection means this assessment does not use an embedded tool."
-                        emptyMessage="No tools have been registered by the platform yet."
-                        options={tools.map((tool) => ({
-                            value: tool.id,
-                            label: tool.name,
-                            description: tool.description ?? tool.code,
-                        }))}
-                    />
-                </>
+            onCancel={onCancel}
+        >
+            {(form) => (
+                <div className="flex flex-col">
+                    <ResourceFormSection
+                        title="Assessment details"
+                        description="Define what students submit and how much it contributes to the final result."
+                    >
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <FormInput
+                                control={form.control}
+                                name="name"
+                                label="Name"
+                                placeholder="Project report"
+                                autoComplete="off"
+                            />
+                            <FormInput
+                                control={form.control}
+                                name="weight"
+                                label="Weight (%)"
+                                description="The offering total may not exceed 100%."
+                                type="number"
+                                min="0.01"
+                                max="100"
+                                step="0.01"
+                                inputMode="decimal"
+                            />
+                            <div className="md:col-span-2">
+                                <FormTextarea
+                                    control={form.control}
+                                    name="description"
+                                    label="Description"
+                                    description="Optional."
+                                    placeholder="What students are expected to submit."
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                    </ResourceFormSection>
+
+                    <ResourceFormSection
+                        title="Schedule"
+                        description="Keep approximate guidance alongside exact publish and due times when they are known."
+                    >
+                        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                            <FormInput
+                                control={form.control}
+                                name="publishAt"
+                                label="Publish at"
+                                description="Optional. Blank means unpublished."
+                                type="datetime-local"
+                            />
+                            <FormInput
+                                control={form.control}
+                                name="expectedDue"
+                                label="Expected due"
+                                description="Optional free-form guidance."
+                                placeholder="Week 6, during class"
+                                autoComplete="off"
+                            />
+                            <FormInput
+                                control={form.control}
+                                name="dueAt"
+                                label="Due at"
+                                description="Optional exact date and time."
+                                type="datetime-local"
+                            />
+                        </div>
+                    </ResourceFormSection>
+
+                    <ResourceFormSection
+                        title="Rules and tools"
+                        description="Set assessment-wide rules, then choose the embedded tools available to students."
+                    >
+                        <div className="grid gap-6 xl:grid-cols-[minmax(16rem,0.7fr)_minmax(20rem,1.3fr)]">
+                            <div className="flex flex-col gap-5">
+                                <FormCheckbox
+                                    control={form.control}
+                                    name="hurdle"
+                                    label="Hurdle requirement"
+                                    description="Failing this item can fail the subject regardless of total marks."
+                                />
+                                <FormCheckbox
+                                    control={form.control}
+                                    name="isGroup"
+                                    label="Group assessment"
+                                    description="One attempt may represent work from several students."
+                                />
+                            </div>
+                            <FormCheckboxList
+                                control={form.control}
+                                name="toolIds"
+                                label="Allowed tools"
+                                description="No selection means no embedded tool."
+                                emptyMessage="No tools have been registered by the platform yet."
+                                options={tools.map((tool) => ({
+                                    value: tool.id,
+                                    label: tool.name,
+                                    description: tool.description ?? tool.code,
+                                }))}
+                            />
+                        </div>
+                    </ResourceFormSection>
+                </div>
             )}
-        />
+        </ResourceFormPage>
     );
 }
 
 function AssessmentActions({
     assessment,
     endpoint,
-    tools,
+    onEdit,
 }: {
     assessment: AssessmentListItem;
     endpoint: string;
-    tools: ToolOption[];
+    onEdit: () => void;
 }) {
     return (
         <div className="flex justify-end">
@@ -328,17 +368,10 @@ function AssessmentActions({
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <AssessmentDialog
-                        endpoint={endpoint}
-                        tools={tools}
-                        assessment={assessment}
-                        trigger={
-                            <DropdownMenuItem closeOnClick={false}>
-                                <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                                Edit
-                            </DropdownMenuItem>
-                        }
-                    />
+                    <DropdownMenuItem onClick={onEdit}>
+                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                        Edit
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DeleteResourceDialog
                         endpoint={`${endpoint}/${assessment.id}`}

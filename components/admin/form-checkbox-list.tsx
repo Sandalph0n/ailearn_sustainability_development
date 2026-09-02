@@ -23,6 +23,7 @@ export function FormCheckboxList<
     description,
     emptyMessage,
     options,
+    className,
 }: {
     control: Control<TValues, unknown, TTransformedValues>;
     name: FieldPath<TValues>;
@@ -30,6 +31,7 @@ export function FormCheckboxList<
     description?: string;
     emptyMessage: string;
     options: CheckboxListOption[];
+    className?: string;
 }) {
     return (
         <Controller
@@ -52,6 +54,7 @@ export function FormCheckboxList<
                             <div
                                 className={cn(
                                     'border-border/70 max-h-48 space-y-1 overflow-y-auto rounded-md border p-1.5',
+                                    className,
                                     fieldState.invalid && 'border-destructive',
                                 )}
                             >
