@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-09-02T03:51:28.218Z",
+  "year": 2026,
+  "sessions": [
+    1,
+    2
+  ],
+  "sources": {
+    "handbook": "https://coursehandbook.mq.edu.au",
+    "unitGuides": "https://unitguides.mq.edu.au"
+  },
+  "counts": {
+    "institutions": 1,
+    "terms": 2,
+    "subjects": 131,
+    "offerings": 177,
+    "assessments": 539,
+    "assessmentsWithExactDueAt": 323
+  }
+}

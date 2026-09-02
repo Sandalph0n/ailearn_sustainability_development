@@ -40,9 +40,10 @@ export type AssessmentListItem = {
     hurdle: boolean;
     isGroup: boolean;
     publishAt: string | null;
-    dueAt: string;
+    dueAt: string | null;
+    expectedDue: string | null;
     published: string | null;
-    due: string;
+    due: string | null;
     tools: Array<{ id: string; code: string; name: string }>;
     attempts: number;
 };
@@ -93,16 +94,27 @@ export function AssessmentsTable({
                 }),
                 column.accessor('due', {
                     header: 'Due',
-                    cell: (info) => (
-                        <div className="flex flex-col text-sm tabular-nums">
-                            <span>{info.getValue()}</span>
-                            <span className="text-muted-foreground text-xs">
-                                {info.row.original.published
-                                    ? `Published ${info.row.original.published}`
-                                    : 'Not published'}
-                            </span>
-                        </div>
-                    ),
+                    cell: (info) => {
+                        const assessment = info.row.original;
+
+                        return (
+                            <div className="flex max-w-64 flex-col text-sm">
+                                <span className={assessment.due ? 'tabular-nums' : undefined}>
+                                    {assessment.due ?? assessment.expectedDue ?? 'Not specified'}
+                                </span>
+                                {assessment.due && assessment.expectedDue && (
+                                    <span className="text-muted-foreground line-clamp-1 text-xs">
+                                        Expected: {assessment.expectedDue}
+                                    </span>
+                                )}
+                                <span className="text-muted-foreground text-xs">
+                                    {assessment.published
+                                        ? `Published ${assessment.published}`
+                                        : 'Not published'}
+                                </span>
+                            </div>
+                        );
+                    },
                 }),
                 column.accessor((row) => row.tools.map((tool) => tool.name).join(', '), {
                     id: 'tools',
@@ -203,7 +215,8 @@ function AssessmentDialog({
                         publishAt: assessment.publishAt
                             ? toLocalInput(assessment.publishAt)
                             : '',
-                        dueAt: toLocalInput(assessment.dueAt),
+                        dueAt: assessment.dueAt ? toLocalInput(assessment.dueAt) : '',
+                        expectedDue: assessment.expectedDue ?? '',
                         toolIds: assessment.tools.map((tool) => tool.id),
                     } as AssessmentFormValue,
                 }
@@ -252,8 +265,17 @@ function AssessmentDialog({
                     />
                     <FormInput
                         control={form.control}
+                        name="expectedDue"
+                        label="Expected due"
+                        description="Optional free-form guidance, such as a teaching week or class window."
+                        placeholder="In week 6, during the registered class"
+                        autoComplete="off"
+                    />
+                    <FormInput
+                        control={form.control}
                         name="dueAt"
                         label="Due at"
+                        description="Optional. Use only when an exact date and time are known."
                         type="datetime-local"
                     />
                     <FormCheckbox

@@ -19,6 +19,9 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate",
+    "db:seed": "prisma db seed",
+    "seed:mq:fetch": "node scripts/seeding/fetch-mq-2026.mjs",
+    "seed:mq:generate": "node scripts/seeding/generate-mq-2026-sql.mjs",
     "storage:console": "node -e \"console.log(String.raw`Trinh duyet tep MinIO: http://localhost:9001  (ailearn / ailearn-dev-secret)`)\""
   },
   "dependencies": {
@@ -61,6 +64,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cheerio": "^1.2.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "playwright": "^1.62.1",

@@ -63,3 +63,6 @@ next-env.d.ts
 
 # Screenshot do AI model tự chụp và test
 /.screenshots/
+
+# HTML cache for the reproducible public-data import. Normalised CSV files remain tracked.
+/prisma/seedingdata/source/**/cache/

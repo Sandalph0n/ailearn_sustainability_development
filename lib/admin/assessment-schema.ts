@@ -5,7 +5,14 @@ import type { AssessmentModel } from '@/app/generated/prisma/models';
 
 export type AssessmentSchemaValue = Pick<
     AssessmentModel,
-    'name' | 'description' | 'weight' | 'hurdle' | 'isGroup' | 'publishAt' | 'dueAt'
+    | 'name'
+    | 'description'
+    | 'weight'
+    | 'hurdle'
+    | 'isGroup'
+    | 'publishAt'
+    | 'dueAt'
+    | 'expectedDue'
 > & { toolIds: string[] };
 
 const optionalText = z
@@ -17,14 +24,15 @@ const optionalText = z
         return trimmed === '' ? null : trimmed;
     });
 
-const requiredLocalDateTime = z
+const optionalExpectedDue = z
     .string()
     .trim()
-    .min(1, { message: 'Due date is required' })
-    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
-        message: 'Date and time are invalid',
-    })
-    .transform((value) => new Date(value));
+    .max(500, { message: 'Expected due must not exceed 500 characters' })
+    .nullable()
+    .transform((value) => {
+        const trimmed = value?.trim() ?? '';
+        return trimmed === '' ? null : trimmed;
+    });
 
 const optionalLocalDateTime = z
     .string()
@@ -32,7 +40,8 @@ const optionalLocalDateTime = z
     .transform((value) => (value === '' ? null : new Date(value)))
     .refine((value) => value === null || !Number.isNaN(value.getTime()), {
         message: 'Date and time are invalid',
-    });
+    })
+    .nullable();
 
 export const AssessmentSchema = z
     .strictObject({
@@ -45,11 +54,12 @@ export const AssessmentSchema = z
         hurdle: z.boolean(),
         isGroup: z.boolean(),
         publishAt: optionalLocalDateTime,
-        dueAt: requiredLocalDateTime,
+        dueAt: optionalLocalDateTime,
+        expectedDue: optionalExpectedDue,
         toolIds: z.array(z.uuid({ message: 'Invalid tool selection' })).max(100),
     })
     .superRefine((value, context) => {
-        if (value.publishAt && value.publishAt >= value.dueAt) {
+        if (value.publishAt && value.dueAt && value.publishAt >= value.dueAt) {
             context.addIssue({
                 code: 'custom',
                 message: 'Publish date must be before the due date',
@@ -74,5 +84,6 @@ export const EMPTY_ASSESSMENT_FORM: AssessmentFormValue = {
     isGroup: false,
     publishAt: '',
     dueAt: '',
+    expectedDue: '',
     toolIds: [],
 };

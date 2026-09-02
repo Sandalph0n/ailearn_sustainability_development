@@ -60,13 +60,19 @@ describe('admin validation', () => {
             isGroup: false,
             publishAt: '2026-09-01T09:00',
             dueAt: '2026-09-10T17:00',
+            expectedDue: '  End of week 6  ',
             toolIds: [TOOL_ID],
         });
 
         expect(valid.weight).toBe(40);
         expect(valid.description).toBe('Build a tool');
+        expect(valid.expectedDue).toBe('End of week 6');
         expect(valid.publishAt).toBeInstanceOf(Date);
         expect(valid.dueAt).toBeInstanceOf(Date);
+
+        expect(
+            AssessmentSchema.parse({ ...valid, publishAt: '', dueAt: '', expectedDue: 'Week 12' }),
+        ).toMatchObject({ publishAt: null, dueAt: null, expectedDue: 'Week 12' });
 
         expect(
             AssessmentSchema.safeParse({

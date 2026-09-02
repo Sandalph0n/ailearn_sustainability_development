@@ -2,13 +2,16 @@
 
 import { useMemo } from 'react';
 
+import type { PermissionType } from '@/app/generated/prisma/enums';
 import { useListQuery } from '@/components/admin/use-list-query';
+import { Badge } from '@/components/ui/badge';
 import { DataTable, columnHelperFor, type AdminColumnDef } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 
 export type PermissionListItem = {
     id: string;
     permission: string;
+    type: PermissionType;
     description: string | null;
     activeRoles: number;
 };
@@ -43,6 +46,15 @@ export function PermissionsTable({
                     header: 'Permission',
                     cell: (info) => (
                         <span className="font-mono text-xs font-medium">{info.getValue()}</span>
+                    ),
+                }),
+
+                column.accessor('type', {
+                    header: 'Applies to',
+                    cell: (info) => (
+                        <Badge variant="outline">
+                            {info.getValue() === 'I' ? 'Institution' : 'Institution / Offering'}
+                        </Badge>
                     ),
                 }),
 

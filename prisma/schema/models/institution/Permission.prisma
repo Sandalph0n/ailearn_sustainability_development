@@ -12,7 +12,13 @@ model Permission {
 
   /// Mã quyền, khớp từng ký tự với hằng số trong mã nguồn.
   permission  String  @unique
+  type PermissionType @default(I)
   description String?
 
   roles RolePermission[]
+}
+
+enum PermissionType {
+  I // Institution only
+  IO // Institution and scoped to an offer
 }

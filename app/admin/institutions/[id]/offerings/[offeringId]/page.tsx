@@ -36,7 +36,10 @@ export default async function InstitutionOfferingPage({
                 subject: { select: { subjectCode: true, subjectName: true } },
                 term: { select: { year: true, session: true } },
                 assessments: {
-                    orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+                    orderBy: [
+                        { dueAt: { sort: 'asc', nulls: 'last' } },
+                        { id: 'asc' },
+                    ],
                     select: {
                         id: true,
                         name: true,
@@ -46,6 +49,7 @@ export default async function InstitutionOfferingPage({
                         isGroup: true,
                         publishAt: true,
                         dueAt: true,
+                        expectedDue: true,
                         allowedTools: {
                             select: { tool: { select: { id: true, code: true, name: true } } },
                         },
@@ -69,9 +73,10 @@ export default async function InstitutionOfferingPage({
         hurdle: assessment.hurdle,
         isGroup: assessment.isGroup,
         publishAt: assessment.publishAt?.toISOString() ?? null,
-        dueAt: assessment.dueAt.toISOString(),
+        dueAt: assessment.dueAt?.toISOString() ?? null,
+        expectedDue: assessment.expectedDue,
         published: assessment.publishAt ? DATE_TIME.format(assessment.publishAt) : null,
-        due: DATE_TIME.format(assessment.dueAt),
+        due: assessment.dueAt ? DATE_TIME.format(assessment.dueAt) : null,
         tools: assessment.allowedTools.map((edge) => edge.tool),
         attempts: assessment._count.attempts,
     }));

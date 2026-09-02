@@ -30,6 +30,9 @@ Chạy lại bao nhiêu lần cũng được — mỗi bước tự bỏ qua n�
 | `pnpm db:psql` | Mở psql trong container |
 | `pnpm db:generate` | Sinh lại Prisma Client |
 | `pnpm db:studio` | Mở Prisma Studio |
+| `pnpm db:seed` | Chạy lần lượt mọi file SQL trong `prisma/seedingdata` |
+| `pnpm seed:mq:fetch` | Tải Handbook + Unit Guides 2026 và chuẩn hóa thành CSV |
+| `pnpm seed:mq:generate` | Kiểm định CSV rồi sinh lại các file SQL Macquarie |
 | `pnpm storage:console` | In địa chỉ trình duyệt tệp MinIO |
 
 ## Hạ tầng dev
@@ -52,9 +55,28 @@ prisma/
     schema.prisma        generator + datasource
     models/              mỗi bảng một file
   migrations/
+  seedingdata/           SQL dữ liệu mẫu, chạy theo thứ tự tên file
 scripts/init.mjs         thứ mà app:init chạy
+scripts/seed-demo.mjs    tìm và chạy các file trong seedingdata
 compose.yaml             hạ tầng dev (Postgres + kho tệp MinIO)
 ```
+
+File seed có phụ thuộc nên dùng tiền tố số như `001-users.sql`, `010-institutions.sql`. Toàn bộ
+lượt seed chạy trong một transaction: một file lỗi thì dữ liệu của cả lượt được rollback.
+
+### Dữ liệu công khai Macquarie
+
+Pipeline Macquarie có hai giai đoạn tách biệt để dữ liệu tải về có thể được kiểm tra trước khi
+chạm tới SQL:
+
+1. `pnpm seed:mq:fetch` đọc Handbook và Unit Guides công khai, rồi ghi các bảng chuẩn hóa vào
+   `prisma/seedingdata/source/mq-2026/`.
+2. `pnpm seed:mq:generate` kiểm tra khóa, quan hệ, tổng trọng số và quy tắc ngày, rồi sinh các file
+   `010-mq-institution.sql` đến `050-mq-assessments.sql`.
+3. `pnpm db:seed` thực thi toàn bộ SQL theo thứ tự tên file.
+
+Assessment luôn giữ nguyên nhãn hạn nộp công khai trong `expectedDue`. Chỉ nhãn chứa ngày đúng
+dạng `dd/mm/yyyy` mới có `dueAt`, đặt vào 23:59 ngày đó theo múi giờ Australia/Sydney.
 
 ## Vài chỗ dễ vấp
 
