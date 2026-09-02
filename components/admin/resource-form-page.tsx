@@ -133,14 +133,14 @@ export function ResourceFormSection({
     return (
         <section
             className={cn(
-                'border-border grid gap-5 border-t py-6 first:border-t-0 first:pt-0 lg:grid-cols-[minmax(12rem,0.32fr)_minmax(0,1fr)] lg:gap-10',
+                'border-border flex flex-col gap-4 border-t py-6 first:border-t-0 first:pt-0',
                 className,
             )}
         >
             <div>
                 <h3 className="font-heading text-sm font-semibold">{title}</h3>
                 {description && (
-                    <p className="text-muted-foreground mt-1 max-w-sm text-sm leading-6">
+                    <p className="text-muted-foreground mt-1 max-w-3xl text-sm leading-6">
                         {description}
                     </p>
                 )}
