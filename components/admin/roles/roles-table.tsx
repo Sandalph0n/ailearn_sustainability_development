@@ -13,6 +13,7 @@ import {
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
 import { FormCheckboxList } from '@/components/admin/form-checkbox-list';
+import { FormTransferList } from '@/components/admin/form-transfer-list';
 import {
     InstitutionFilter,
     institutionItems,
@@ -352,26 +353,29 @@ function RoleForm({
                             title="Access model"
                             description="Compose this role from other roles, then add permissions that belong directly to it."
                         >
-                            <div className="grid items-start gap-6 xl:grid-cols-2">
-                                <FormCheckboxList
-                                    control={form.control}
-                                    name="includedRoleIds"
-                                    label="Includes roles"
-                                    description="Inherit every active permission from these roles."
-                                    emptyMessage="No other roles at this institution yet."
-                                    className="max-h-80"
-                                    options={candidates.map((candidate) => ({
-                                        value: candidate.id,
-                                        label: candidate.roleName,
-                                    }))}
-                                />
-                                <FormCheckboxList
+                            <div className="flex flex-col gap-7">
+                                <div className="max-w-2xl">
+                                    <FormCheckboxList
+                                        control={form.control}
+                                        name="includedRoleIds"
+                                        label="Includes roles"
+                                        description="Inherit every active permission from these roles."
+                                        emptyMessage="No other roles at this institution yet."
+                                        className="max-h-56"
+                                        options={candidates.map((candidate) => ({
+                                            value: candidate.id,
+                                            label: candidate.roleName,
+                                        }))}
+                                    />
+                                </div>
+                                <FormTransferList
                                     control={form.control}
                                     name="permissionIds"
                                     label="Direct permissions"
                                     description="Granted before inherited roles are considered."
-                                    emptyMessage="No permissions have been registered by the platform yet."
-                                    className="max-h-80"
+                                    searchPlaceholder="Search permissions…"
+                                    availableEmptyMessage="No permissions are available."
+                                    selectedEmptyMessage="No direct permissions selected."
                                     options={permissions.map((permission) => ({
                                         value: permission.id,
                                         label: permission.permission,
