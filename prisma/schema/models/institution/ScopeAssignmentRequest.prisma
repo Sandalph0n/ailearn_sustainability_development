@@ -1,0 +1,31 @@
+/// Yêu cầu mở rộng một RoleAssignment OFFERING sang một offering cụ thể.
+///
+/// Tách khỏi RoleRequest vì người gửi đã có role identity; thứ họ còn thiếu chỉ là phạm vi mà
+/// role đó có hiệu lực. Khi duyệt, request sinh đúng một ScopeAssignment để giữ đường audit.
+model ScopeAssignmentRequest {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  roleAssignmentId String @db.Uuid
+  offeringId       String @db.Uuid
+
+  requestedAt DateTime                     @default(now())
+  status      ScopeAssignmentRequestStatus @default(PENDING)
+  processedAt DateTime?
+
+  processedByUserId       String? @db.Uuid
+  approvedScopeAssignmentId String? @unique @db.Uuid
+
+  roleAssignment         RoleAssignment  @relation(fields: [roleAssignmentId], references: [id], onDelete: Restrict)
+  offering               Offering        @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  processedBy            User?           @relation("processedScopeAssignmentRequests", fields: [processedByUserId], references: [id], onDelete: SetNull)
+  approvedScopeAssignment ScopeAssignment? @relation(fields: [approvedScopeAssignmentId], references: [id], onDelete: Restrict)
+
+  @@index([roleAssignmentId])
+  @@index([offeringId, status])
+}
+
+enum ScopeAssignmentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

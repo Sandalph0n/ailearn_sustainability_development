@@ -38,6 +38,7 @@ model User {
   directRoleGrants  RoleAssignment[]    @relation("directRoleGrants")
   directScopeAssignments ScopeAssignment[] @relation("directScopeAssignments")
   createdScopeAssignmentCodes ScopeAssignmentCode[] @relation("createdScopeAssignmentCodes")
+  processedScopeAssignmentRequests ScopeAssignmentRequest[] @relation("processedScopeAssignmentRequests")
   roleRequests      RoleRequest[]       @relation("requestedBy")
   processedRequests RoleRequest[]       @relation("processedBy")
   attempts          AssessmentAttempt[]

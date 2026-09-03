@@ -19,6 +19,7 @@ model Offering {
   assessments         Assessment[]
   scopeAssignments    ScopeAssignment[]
   scopeAssignmentCodes ScopeAssignmentCode[]
+  scopeAssignmentRequests ScopeAssignmentRequest[]
 
   /// Một môn chỉ mở một lần trong một kỳ.
   @@unique([subjectId, termId])

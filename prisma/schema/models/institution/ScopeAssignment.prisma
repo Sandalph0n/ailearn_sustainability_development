@@ -19,6 +19,7 @@ model ScopeAssignment {
   offering          Offering            @relation(fields: [offeringId], references: [id], onDelete: Restrict)
   assignedDirectlyBy User?               @relation("directScopeAssignments", fields: [assignedDirectlyById], references: [id], onDelete: Restrict)
   usedCode           ScopeAssignmentCode? @relation("scopeAssignmentCodeUsage", fields: [usedCodeId], references: [id], onDelete: Restrict)
+  fromRequest        ScopeAssignmentRequest?
 
   @@unique([roleAssignmentId, offeringId])
   @@index([roleAssignmentId])

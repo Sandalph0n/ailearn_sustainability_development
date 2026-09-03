@@ -30,6 +30,7 @@ model RoleAssignment {
   /// Rỗng với role INSTITUTION hoặc role OFFERING chưa được scope. Mỗi dòng lưu cả offering và
   /// nguồn đã cấp scope đó (trực tiếp hoặc bằng code).
   scopeAssignments ScopeAssignment[]
+  scopeRequests    ScopeAssignmentRequest[]
 
   /// Đơn xin đã tạo ra phép gán này, nếu có.
   fromRequest RoleRequest?
