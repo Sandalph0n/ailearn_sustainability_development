@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     Add01Icon,
     ArrowLeft01Icon,
+    ArrowRight01Icon,
     BookOpen01Icon,
     Shield01Icon,
     Tick02Icon,
@@ -16,7 +18,10 @@ import {
     type InstitutionRequestOption,
 } from '@/components/navigation/role-request-form';
 import { Button } from '@/components/ui/button';
-import type { ContextOption } from '@/lib/context/context-params';
+import {
+    CONTEXT_PARAM,
+    type ContextOption,
+} from '@/lib/context/context-params';
 
 type AssignedRole = {
     assignmentId: string;
@@ -58,6 +63,10 @@ export function RoleManagement({
     contexts: ContextOption[];
     institutions: InstitutionRequestOption[];
 }) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [isSwitching, startSwitch] = useTransition();
     const assignments = useMemo(() => distinctAssignments(contexts), [contexts]);
     const hasRoles = assignments.length > 0;
     const institutionOptions = useMemo(() => {
@@ -68,23 +77,64 @@ export function RoleManagement({
         return Array.from(unique.values());
     }, [assignments]);
 
+    const activeContext =
+        contexts.find(
+            (context) =>
+                context.institution.id === searchParams.get(CONTEXT_PARAM.institution) &&
+                context.role.id === searchParams.get(CONTEXT_PARAM.role) &&
+                (context.offering?.id ?? null) === searchParams.get(CONTEXT_PARAM.offering),
+        ) ?? contexts.at(0);
+    const activeAssignment = assignments.find(
+        (assignment) => assignment.assignmentId === activeContext?.assignmentId,
+    );
+
     const [requesting, setRequesting] = useState(!hasRoles);
-    const [institutionId, setInstitutionId] = useState(
-        institutionOptions.at(0)?.id ?? null,
+    const [institutionId, setInstitutionId] = useState<string | null>(
+        activeContext?.institution.id ?? institutionOptions.at(0)?.id ?? null,
     );
     const initialRoles = assignments.filter(
-        (assignment) => assignment.institution.id === institutionOptions.at(0)?.id,
+        (assignment) =>
+            assignment.institution.id ===
+            (activeContext?.institution.id ?? institutionOptions.at(0)?.id),
     );
-    const [assignmentId, setAssignmentId] = useState(
-        initialRoles.at(0)?.assignmentId ?? null,
+    const [assignmentId, setAssignmentId] = useState<string | null>(
+        activeContext?.assignmentId ?? initialRoles.at(0)?.assignmentId ?? null,
     );
 
     function chooseInstitution(nextInstitutionId: string) {
         setInstitutionId(nextInstitutionId);
+        const activeRoleAtInstitution = assignments.find(
+            (assignment) =>
+                assignment.institution.id === nextInstitutionId &&
+                assignment.assignmentId === activeContext?.assignmentId,
+        );
         const firstRole = assignments.find(
             (assignment) => assignment.institution.id === nextInstitutionId,
         );
-        setAssignmentId(firstRole?.assignmentId ?? null);
+        setAssignmentId(activeRoleAtInstitution?.assignmentId ?? firstRole?.assignmentId ?? null);
+    }
+
+    function cancelSwitch() {
+        setInstitutionId(activeContext?.institution.id ?? institutionOptions.at(0)?.id ?? null);
+        setAssignmentId(activeContext?.assignmentId ?? null);
+    }
+
+    function confirmSwitch() {
+        const nextContext = contexts.find((context) => context.assignmentId === assignmentId);
+        if (!nextContext || nextContext.assignmentId === activeContext?.assignmentId) return;
+
+        const next = new URLSearchParams(searchParams);
+        next.set(CONTEXT_PARAM.institution, nextContext.institution.id);
+        next.set(CONTEXT_PARAM.role, nextContext.role.id);
+        if (nextContext.offering) {
+            next.set(CONTEXT_PARAM.offering, nextContext.offering.id);
+        } else {
+            next.delete(CONTEXT_PARAM.offering);
+        }
+
+        startSwitch(() => {
+            router.push(`${pathname}?${next.toString()}`, { scroll: false });
+        });
     }
 
     if (requesting) {
@@ -103,6 +153,12 @@ export function RoleManagement({
     const visibleRoles = assignments.filter(
         (assignment) => assignment.institution.id === institutionId,
     );
+    const selectedAssignment = assignments.find(
+        (assignment) => assignment.assignmentId === assignmentId,
+    );
+    const hasPendingSwitch =
+        selectedAssignment !== undefined &&
+        selectedAssignment.assignmentId !== activeContext?.assignmentId;
 
     return (
         <main className="mx-auto w-full max-w-6xl py-8 sm:py-12">
@@ -196,7 +252,7 @@ export function RoleManagement({
                     </ul>
                 </div>
 
-                <div className="p-5 sm:p-6">
+                <div className="flex min-h-120 flex-col p-5 sm:p-6">
                     <div className="mb-4 flex items-center justify-between gap-3">
                         <div>
                             <h2 className="font-heading font-semibold">
@@ -214,6 +270,7 @@ export function RoleManagement({
                     <ul className="space-y-3" aria-label="Your roles">
                         {visibleRoles.map((assignment) => {
                             const selected = assignment.assignmentId === assignmentId;
+                            const active = assignment.assignmentId === activeContext?.assignmentId;
                             const isInstitutionRole = assignment.role.scopeType === 'INSTITUTION';
 
                             return (
@@ -253,6 +310,11 @@ export function RoleManagement({
                                                 <span className="font-heading font-semibold">
                                                     {assignment.role.roleName}
                                                 </span>
+                                                {active && (
+                                                    <span className="bg-brand-teal/10 text-brand-teal rounded-md px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase">
+                                                        Active
+                                                    </span>
+                                                )}
                                                 <span className="text-muted-foreground rounded-md border px-1.5 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase">
                                                     {isInstitutionRole
                                                         ? 'Institution'
@@ -305,6 +367,44 @@ export function RoleManagement({
                             );
                         })}
                     </ul>
+
+                    {hasPendingSwitch && selectedAssignment && (
+                        <div className="border-border/70 mt-auto flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold">Switch active role?</p>
+                                <p className="text-muted-foreground mt-1 text-sm">
+                                    {activeAssignment?.role.roleName ?? 'Current role'}
+                                    <span aria-hidden="true"> → </span>
+                                    <span className="text-foreground font-medium">
+                                        {selectedAssignment.role.roleName}
+                                    </span>
+                                </p>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={isSwitching}
+                                    onClick={cancelSwitch}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    disabled={isSwitching}
+                                    onClick={confirmSwitch}
+                                >
+                                    {isSwitching ? 'Switching…' : 'Switch role'}
+                                    <HugeiconsIcon
+                                        icon={ArrowRight01Icon}
+                                        strokeWidth={2}
+                                        data-icon="inline-end"
+                                    />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
         </main>
