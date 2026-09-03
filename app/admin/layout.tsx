@@ -30,6 +30,7 @@ import {
     JOIN_REQUEST_ICON,
     NotificationsProvider,
     NotificationsTrigger,
+    SUBJECT_ACCESS_REQUEST_ICON,
     type AdminNotification,
 } from '@/components/admin/notifications-sidebar';
 import { HeaderAccount } from '@/components/navigation/header-account';
@@ -58,38 +59,66 @@ export default async function AdminLayout({ children }: LayoutProps<'/admin'>) {
         redirect('/navigation/dashboard');
     }
 
-    /**
-     * Hiện chỉ có MỘT nguồn thật.
-     *
-     * Chưa có bảng `Notification`, chưa có hàng đợi. Thứ duy nhất đã tồn tại và thật sự cần
-     * người quản trị quyết là đơn xin vai trò đang chờ.
-     *
-     * Không bịa thêm mục cho cột trông đầy — đến lúc nối nguồn thật sẽ phải gỡ, và trong lúc đó
-     * không ai phân biệt được cái nào thật.
-     */
-    const pendingRequests = await db.roleRequest.findMany({
-        where: { status: 'PENDING' },
-        orderBy: { institution: { name: 'asc' } },
-        select: { institution: { select: { id: true, name: true } } },
-    });
-    const byInstitution = new Map<string, { name: string; count: number }>();
-    for (const request of pendingRequests) {
-        const current = byInstitution.get(request.institution.id);
-        byInstitution.set(request.institution.id, {
-            name: request.institution.name,
-            count: (current?.count ?? 0) + 1,
-        });
+    const [pendingRoleRequests, pendingScopeRequests] = await Promise.all([
+        db.roleRequest.findMany({
+            where: { status: 'PENDING' },
+            orderBy: { institution: { name: 'asc' } },
+            select: { institution: { select: { id: true, name: true } } },
+        }),
+        db.scopeAssignmentRequest.findMany({
+            where: { status: 'PENDING' },
+            orderBy: { offering: { subject: { institution: { name: 'asc' } } } },
+            select: {
+                offering: {
+                    select: {
+                        subject: {
+                            select: { institution: { select: { id: true, name: true } } },
+                        },
+                    },
+                },
+            },
+        }),
+    ]);
+
+    function groupInstitutions(rows: Array<{ id: string; name: string }>) {
+        const grouped = new Map<string, { name: string; count: number }>();
+        for (const institution of rows) {
+            const current = grouped.get(institution.id);
+            grouped.set(institution.id, {
+                name: institution.name,
+                count: (current?.count ?? 0) + 1,
+            });
+        }
+        return grouped;
     }
 
-    const notifications: AdminNotification[] = Array.from(byInstitution, ([id, item]) => ({
-        id: `join-requests-${id}`,
-        icon: JOIN_REQUEST_ICON,
-        title: `${item.count} join request${item.count === 1 ? '' : 's'}`,
-        body: item.name,
-        at: 'Waiting for a decision',
-        tone: 'attention',
-        href: `/admin/institutions/${id}/requests`,
-    }));
+    const roleRequestsByInstitution = groupInstitutions(
+        pendingRoleRequests.map((request) => request.institution),
+    );
+    const scopeRequestsByInstitution = groupInstitutions(
+        pendingScopeRequests.map((request) => request.offering.subject.institution),
+    );
+
+    const notifications: AdminNotification[] = [
+        ...Array.from(roleRequestsByInstitution, ([id, item]) => ({
+            id: `role-requests-${id}`,
+            icon: JOIN_REQUEST_ICON,
+            title: `${item.count} role request${item.count === 1 ? '' : 's'}`,
+            body: item.name,
+            at: 'Waiting for a decision',
+            tone: 'attention' as const,
+            href: `/admin/institutions/${id}/requests?kind=role`,
+        })),
+        ...Array.from(scopeRequestsByInstitution, ([id, item]) => ({
+            id: `scope-requests-${id}`,
+            icon: SUBJECT_ACCESS_REQUEST_ICON,
+            title: `${item.count} subject access request${item.count === 1 ? '' : 's'}`,
+            body: item.name,
+            at: 'Waiting for a decision',
+            tone: 'attention' as const,
+            href: `/admin/institutions/${id}/requests?kind=scope`,
+        })),
+    ];
 
     return (
         <SidebarProvider>

@@ -18,7 +18,7 @@ const TABS = [
     { segment: '/roles', label: 'Roles', ready: true },
     { segment: '/offerings', label: 'Offerings', ready: true },
     { segment: '/people', label: 'People', ready: true },
-    { segment: '/requests', label: 'Join requests', ready: true },
+    { segment: '/requests', label: 'Requests', ready: true },
 ] as const;
 
 export function InstitutionTabs({ institutionId }: { institutionId: string }) {

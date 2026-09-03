@@ -70,13 +70,17 @@ export default async function InstitutionSettingsPage({
 
     // Ba phép đếm còn lại không nằm trong `_count` của Institution vì chúng đi qua một bảng trung
     // gian. Chạy song song — chúng độc lập, xếp tuần tự thì tổng thời gian là tổng của cả ba.
-    const [offerings, activeAssignments, pendingRequests] = await Promise.all([
+    const [offerings, activeAssignments, pendingRoleRequests, pendingScopeRequests] =
+        await Promise.all([
         db.offering.count({ where: { subject: { institutionId: id } } }),
         // `roleRevokedAt: null` = vai trò còn hiệu lực. Dòng đã thu hồi vẫn nằm trong bảng để
         // giữ lịch sử, nên đếm tất là ra một con số vô nghĩa.
         db.roleAssignment.count({ where: { role: { institutionId: id }, roleRevokedAt: null } }),
-        db.roleRequest.count({ where: { institutionId: id, status: 'PENDING' } }),
-    ]);
+            db.roleRequest.count({ where: { institutionId: id, status: 'PENDING' } }),
+            db.scopeAssignmentRequest.count({
+                where: { offering: { subject: { institutionId: id } }, status: 'PENDING' },
+            }),
+        ]);
 
     const sections: Section[] = [
         {
@@ -129,9 +133,9 @@ export default async function InstitutionSettingsPage({
         {
             key: 'requests',
             icon: UserSharingIcon,
-            title: 'Join requests',
-            description: 'People asking for a role here, waiting to be approved or rejected.',
-            count: pendingRequests,
+            title: 'Requests',
+            description: 'Role membership and subject access waiting for a decision.',
+            count: pendingRoleRequests + pendingScopeRequests,
             unit: 'pending request',
             href: `/admin/institutions/${id}/requests`,
         },

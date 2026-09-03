@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Alert02Icon,
+    BookOpen01Icon,
     Cancel01Icon,
     Notification03Icon,
     UserSharingIcon,
@@ -32,6 +33,7 @@ export type AdminNotification = {
 
 /** Biểu tượng cho thông báo đơn xin vai trò. Xuất ra để trang server khỏi tự đoán. */
 export const JOIN_REQUEST_ICON = UserSharingIcon;
+export const SUBJECT_ACCESS_REQUEST_ICON = BookOpen01Icon;
 
 /**
  * ─── Vì sao KHÔNG dùng `SidebarProvider` của shadcn cho cột này ─────────────
@@ -196,7 +198,7 @@ function NotificationsAside({ notifications }: { notifications: AdminNotificatio
                                 </div>
                                 <p className="text-sm font-medium">Nothing to review</p>
                                 <p className="text-muted-foreground text-sm">
-                                    Join requests and anything else needing a decision will appear
+                                    Role and subject access requests needing a decision will appear
                                     here.
                                 </p>
                             </div>
