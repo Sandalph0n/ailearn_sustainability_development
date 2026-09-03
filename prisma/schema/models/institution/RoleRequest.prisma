@@ -10,6 +10,7 @@ model RoleRequest {
 
   userId        String @db.Uuid
   institutionId String @db.Uuid
+  /// Role OFFERING cũng được xin ở cấp institution; offering cụ thể được gắn sau khi duyệt.
   roleId        String @db.Uuid
 
   requestedAt DateTime          @default(now())

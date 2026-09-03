@@ -1,0 +1,17 @@
+/// Một điều kiện hiển thị cho role có thể được xin.
+///
+/// Không có dòng nào cho `requestableRole` nghĩa là mọi người đều nhìn thấy role đó.
+/// Có nhiều dòng nghĩa là điều kiện OR: người dùng chỉ cần đang giữ một trong các
+/// `requiredRole`. Phép kiểm quyền gửi request vẫn phải được thực hiện riêng ở backend.
+model RoleRequestVisibility {
+  /// Role sẽ xuất hiện trong danh sách xin quyền khi điều kiện được thỏa mãn.
+  requestableRoleId String @db.Uuid
+  /// Role người dùng phải đang giữ, trực tiếp hoặc thông qua quan hệ kế thừa role.
+  requiredRoleId String @db.Uuid
+
+  requestableRole Role @relation("requestableRole", fields: [requestableRoleId], references: [id], onDelete: Cascade)
+  requiredRole    Role @relation("requiredRole", fields: [requiredRoleId], references: [id], onDelete: Cascade)
+
+  @@id([requestableRoleId, requiredRoleId])
+  @@index([requiredRoleId])
+}

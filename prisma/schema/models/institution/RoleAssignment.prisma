@@ -2,7 +2,8 @@
 ///
 /// ─── Vì sao có khoá thay thế thay vì khoá tổ hợp ─────────────────────────────
 ///
-/// `offeringId` rỗng được (vai trò cấp cơ sở), mà cột rỗng không nằm trong khoá chính được. Nên
+/// `offeringId` rỗng được (vai trò cấp cơ sở hoặc role identity chưa scope), mà cột rỗng không
+/// nằm trong khoá chính được. Nên
 /// khoá tổ hợp `(userId, roleId, offeringId)` là bất khả thi — không phải lựa chọn.
 ///
 /// ─── Phạm vi suy ra từ vai trò ───────────────────────────────────────────────
@@ -15,17 +16,23 @@ model RoleAssignment {
   userId String @db.Uuid
   roleId String @db.Uuid
 
-  /// Rỗng = vai trò cấp cơ sở. Có = vai trò trong đúng lượt mở môn này.
-  /// Phải khớp với `role.scopeType` — database không kiểm được, mã phải kiểm.
+  /// Với role INSTITUTION, trường này bắt buộc rỗng và role có hiệu lực trên toàn cơ sở.
+  /// Với role OFFERING, rỗng = mới có role identity nhưng chưa có quyền trên offering nào;
+  /// có giá trị = role có hiệu lực trong đúng lượt mở môn đó.
   offeringId String? @db.Uuid
+
+  /// Ai cấp assignment này mà không đi qua RoleRequest.
+  /// Rỗng khi assignment được sinh ra từ một request đã duyệt.
+  grantDirectlyById String? @db.Uuid
 
   roleGrantedAt DateTime  @default(now())
   roleRevokedAt DateTime?
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  role     Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role            Role      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  grantDirectlyBy User?     @relation("directRoleGrants", fields: [grantDirectlyById], references: [id], onDelete: Restrict)
   /// `Restrict`: lịch sử gán role không biến mất chỉ vì ai đó xoá offering.
-  offering Offering? @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  offering        Offering? @relation(fields: [offeringId], references: [id], onDelete: Restrict)
 
   /// Đơn xin đã tạo ra phép gán này, nếu có.
   fromRequest RoleRequest?
@@ -33,4 +40,5 @@ model RoleAssignment {
   @@index([userId])
   @@index([roleId])
   @@index([offeringId])
+  @@index([grantDirectlyById])
 }

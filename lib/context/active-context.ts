@@ -36,7 +36,14 @@ import { CONTEXT_PARAM, type ContextOption } from '@/lib/context/context-params'
  */
 export async function listContextOptions(userId: string): Promise<ContextOption[]> {
     const assignments = await db.roleAssignment.findMany({
-        where: { userId, roleRevokedAt: null },
+        where: {
+            userId,
+            roleRevokedAt: null,
+            OR: [
+                { role: { scopeType: 'INSTITUTION' }, offeringId: null },
+                { role: { scopeType: 'OFFERING' }, offeringId: { not: null } },
+            ],
+        },
         select: {
             id: true,
             role: {

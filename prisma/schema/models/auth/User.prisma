@@ -35,6 +35,7 @@ model User {
   /// Với một hệ thống lấy liêm chính học thuật làm cốt lõi, cho phép xoá tài khoản là mở một
   /// đường xoá sạch bằng chứng. Muốn ngừng cho ai đó dùng thì vô hiệu hoá, không phải xoá.
   roleAssignments   RoleAssignment[]
+  directRoleGrants  RoleAssignment[]    @relation("directRoleGrants")
   roleRequests      RoleRequest[]       @relation("requestedBy")
   processedRequests RoleRequest[]       @relation("processedBy")
   attempts          AssessmentAttempt[]

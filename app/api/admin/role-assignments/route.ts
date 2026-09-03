@@ -20,7 +20,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const assignment = await db.$transaction(async (tx) => {
             await validateRoleAssignment(tx, guard.data);
             return tx.roleAssignment.create({
-                data: guard.data,
+                data: {
+                    ...guard.data,
+                    grantDirectlyById: guard.session.user.id,
+                },
                 select: { id: true, roleGrantedAt: true },
             });
         });

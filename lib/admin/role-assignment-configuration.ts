@@ -40,12 +40,8 @@ export async function validateRoleAssignment(
             'offeringId',
         );
     }
-    if (role.scopeType === 'OFFERING' && data.offeringId === null) {
-        throw new RoleAssignmentConfigurationError(
-            'This role must be granted for an offering',
-            'offeringId',
-        );
-    }
+    // OFFERING role không có offering là một role identity chưa được scope. Nó không tạo ra
+    // context hay quyền trên offering nào; offering cụ thể có thể được gắn sau.
     if (data.offeringId && (!offering || offering.subject.institutionId !== role.institutionId)) {
         throw new RoleAssignmentConfigurationError(
             'Offering and role must belong to the same institution',

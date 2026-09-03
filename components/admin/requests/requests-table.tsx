@@ -29,7 +29,11 @@ export type RequestListItem = {
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     processed: string | null;
     user: { id: string; firstName: string; lastName: string; email: string };
-    role: { id: string; roleName: string };
+    role: {
+        id: string;
+        roleName: string;
+        scopeType: 'INSTITUTION' | 'OFFERING';
+    };
     processedBy: string | null;
     approvedAssignmentId: string | null;
 };
@@ -83,6 +87,16 @@ export function RequestsTable({
                 column.accessor((row) => row.role.roleName, {
                     id: 'role',
                     header: 'Requested role',
+                    cell: (info) => (
+                        <div className="flex flex-col">
+                            <span className="font-medium">{info.getValue()}</span>
+                            <span className="text-muted-foreground text-xs">
+                                {info.row.original.role.scopeType === 'INSTITUTION'
+                                    ? 'Institution'
+                                    : 'Offering · scope assigned later'}
+                            </span>
+                        </div>
+                    ),
                 }),
                 column.accessor('requested', {
                     header: 'Requested',
@@ -198,7 +212,11 @@ function RequestActions({ request }: { request: RequestListItem }) {
                     <ResourceActionDialog
                         endpoint={`/api/admin/role-requests/${request.id}/approve`}
                         title={`Approve ${request.role.roleName}?`}
-                        description={`This grants ${request.role.roleName} to ${name} institution-wide.`}
+                        description={
+                            request.role.scopeType === 'INSTITUTION'
+                                ? `This grants ${request.role.roleName} to ${name} institution-wide.`
+                                : `This grants ${request.role.roleName} to ${name} without access to any offering yet. An offering scope can be assigned later.`
+                        }
                         confirmLabel="Approve request"
                         trigger={
                             <DropdownMenuItem closeOnClick={false}>

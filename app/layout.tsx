@@ -30,6 +30,8 @@
  */
 import type { Metadata } from 'next';
 import { Figtree, IBM_Plex_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
+
 import { cn } from '@/lib/utils';
 import './globals.css';
 
@@ -58,7 +60,10 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
             lang="en"
             className={cn('h-full antialiased', fontSans.variable, fontMono.variable)}
         >
-            <body className="min-h-full bg-background text-foreground">{children}</body>
+            <body className="min-h-full bg-background text-foreground">
+                {children}
+                <Toaster />
+            </body>
         </html>
     );
 }

@@ -26,7 +26,7 @@ export type ContextOption = {
     assignmentId: string;
     institution: { id: string; name: string };
     role: { id: string; roleName: string; scopeType: 'INSTITUTION' | 'OFFERING' };
-    /** Chỉ có khi vai trò phạm vi OFFERING. */
+    /** Có với context của vai trò OFFERING đã được scope; assignment chưa scope không là context. */
     offering: {
         id: string;
         subjectCode: string;
