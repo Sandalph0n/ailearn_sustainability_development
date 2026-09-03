@@ -20,41 +20,9 @@ import {
 import { Button } from '@/components/ui/button';
 import {
     CONTEXT_PARAM,
+    distinctRoleContexts,
     type ContextOption,
 } from '@/lib/context/context-params';
-
-type AssignedRole = {
-    assignmentId: string;
-    institution: ContextOption['institution'];
-    role: ContextOption['role'];
-    offerings: NonNullable<ContextOption['offering']>[];
-};
-
-function distinctAssignments(contexts: ContextOption[]): AssignedRole[] {
-    const assignments = new Map<string, AssignedRole>();
-
-    for (const context of contexts) {
-        const existing = assignments.get(context.assignmentId);
-        if (existing) {
-            if (
-                context.offering &&
-                !existing.offerings.some((offering) => offering.id === context.offering?.id)
-            ) {
-                existing.offerings.push(context.offering);
-            }
-            continue;
-        }
-
-        assignments.set(context.assignmentId, {
-            assignmentId: context.assignmentId,
-            institution: context.institution,
-            role: context.role,
-            offerings: context.offering ? [context.offering] : [],
-        });
-    }
-
-    return Array.from(assignments.values());
-}
 
 export function RoleManagement({
     contexts,
@@ -67,7 +35,7 @@ export function RoleManagement({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [isSwitching, startSwitch] = useTransition();
-    const assignments = useMemo(() => distinctAssignments(contexts), [contexts]);
+    const assignments = useMemo(() => distinctRoleContexts(contexts), [contexts]);
     const hasRoles = assignments.length > 0;
     const institutionOptions = useMemo(() => {
         const unique = new Map<string, ContextOption['institution']>();
@@ -259,7 +227,7 @@ export function RoleManagement({
                                 Roles at {selectedInstitution?.name}
                             </h2>
                             <p className="text-muted-foreground mt-0.5 text-xs">
-                                Select a role to inspect its assigned scope.
+                                Select the role you want to use.
                             </p>
                         </div>
                         <span className="text-muted-foreground text-xs font-medium">
@@ -324,26 +292,9 @@ export function RoleManagement({
 
                                             <span className="text-muted-foreground mt-1.5 block text-sm leading-5">
                                                 {isInstitutionRole
-                                                    ? 'Access applies across this institution.'
-                                                    : assignment.offerings.length === 0
-                                                      ? 'This role has not been connected to an offering yet.'
-                                                      : `Scoped to ${assignment.offerings.length} ${assignment.offerings.length === 1 ? 'offering' : 'offerings'}.`}
+                                                    ? 'Institution role'
+                                                    : 'Offering role'}
                                             </span>
-
-                                            {!isInstitutionRole &&
-                                                assignment.offerings.length > 0 && (
-                                                    <span className="mt-3 flex flex-wrap gap-1.5">
-                                                        {assignment.offerings.map((offering) => (
-                                                            <span
-                                                                key={offering.id}
-                                                                className="bg-muted text-muted-foreground rounded-md px-2 py-1 text-xs"
-                                                            >
-                                                                {offering.subjectCode} · S
-                                                                {offering.session} {offering.year}
-                                                            </span>
-                                                        ))}
-                                                    </span>
-                                                )}
                                         </span>
 
                                         <span

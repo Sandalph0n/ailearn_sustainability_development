@@ -83,7 +83,7 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
             (context) =>
                 context.institution.id === wantedInstitution &&
                 context.role.id === wantedRole &&
-                (context.offering?.id ?? null) === wantedOffering,
+                (!wantedOffering || context.offering?.id === wantedOffering),
         ) ?? contexts[0];
     const institutionItems = activeContext
         ? INSTITUTION_ITEMS.filter((item) =>

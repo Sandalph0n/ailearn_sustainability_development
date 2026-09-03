@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { contextKey, type ContextOption } from './context-params';
+import { contextKey, contextLabel, distinctRoleContexts, type ContextOption } from './context-params';
 
 function option(offeringId: string | null): ContextOption {
     return {
@@ -30,5 +30,15 @@ describe('contextKey', () => {
 
     it('keeps an institution context stable', () => {
         expect(contextKey(option(null))).toBe('assignment-1:no-offering');
+    });
+});
+
+describe('role navigation', () => {
+    it('shows one entry per role assignment even when it has many offering scopes', () => {
+        const first = option('offering-1');
+        const second = option('offering-2');
+
+        expect(distinctRoleContexts([first, second])).toEqual([first]);
+        expect(contextLabel(first)).toBe('Student');
     });
 });

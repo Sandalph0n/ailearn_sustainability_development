@@ -121,9 +121,9 @@ export type ResolvedContext = {
  *
  * ─── Vì sao khớp cả BA tham số chứ không chỉ `role` ─────────────────────────
  *
- * Một người có thể giữ CÙNG một vai trò ở NHIỀU lượt mở môn — "Convenor của COMP1000" và
- * "Convenor của COMP2000" dùng chung một dòng `Role`. Chỉ khớp `role` thì hai ngữ cảnh đó không
- * phân biệt được, và người dùng chọn cái này lại nhận cái kia.
+ * `offering` chỉ được khớp khi một màn hình đã chọn cụ thể một offering. Navigation chọn role
+ * thì không truyền nó: một RoleAssignment có thể scope tới hàng chục offering nhưng vẫn chỉ là
+ * một vai trò trong bộ chọn.
  *
  * `institution` về mặt kỹ thuật suy ra được từ `role`, nhưng vẫn khớp: nó nằm trên URL nên phải
  * đúng, và một URL tự mâu thuẫn thì rơi về mặc định thay vì âm thầm bỏ qua nửa số tham số.
@@ -154,7 +154,7 @@ export async function resolveActiveContext(
         (option) =>
             option.institution.id === wanted.institution &&
             option.role.id === wanted.role &&
-            (option.offering?.id ?? undefined) === (wanted.offering || undefined),
+            (!wanted.offering || option.offering?.id === wanted.offering),
     );
 
     return {

@@ -18,6 +18,7 @@ import {
     CONTEXT_PARAM,
     contextKey,
     contextLabel,
+    distinctRoleContexts,
     type ContextOption,
 } from '@/lib/context/context-params';
 
@@ -68,8 +69,9 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
             (option) =>
                 option.institution.id === wantedInstitution &&
                 option.role.id === wantedRole &&
-                (option.offering?.id ?? null) === wantedOffering,
+                (!wantedOffering || option.offering?.id === wantedOffering),
         ) ?? options[0];
+    const roleOptions = distinctRoleContexts(options);
 
     function select(option: ContextOption) {
         // Dựng từ tham số HIỆN CÓ, không dựng từ rỗng: trang có thể đang mang bộ lọc, số trang,
@@ -91,7 +93,7 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
 
     // Gom theo cơ sở, giữ nguyên thứ tự máy chủ đã sắp (tên cơ sở, rồi tên vai trò).
     const grouped = new Map<string, { name: string; items: ContextOption[] }>();
-    for (const option of options) {
+    for (const option of roleOptions) {
         const bucket = grouped.get(option.institution.id);
         if (bucket) {
             bucket.items.push(option);
@@ -140,7 +142,7 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
 
                         {group.items.map((option) => {
                             const key = contextKey(option);
-                            const isActive = key === contextKey(active);
+                            const isActive = option.assignmentId === active.assignmentId;
 
                             return (
                                 <DropdownMenuItem
@@ -152,15 +154,7 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
                                         strokeWidth={2}
                                         className={isActive ? 'text-brand-teal' : 'opacity-0'}
                                     />
-                                    <span className="grid flex-1 leading-tight">
-                                        <span className="truncate">{option.role.roleName}</span>
-                                        {option.offering && (
-                                            <span className="text-muted-foreground truncate text-xs">
-                                                {option.offering.subjectCode} · Session{' '}
-                                                {option.offering.session} {option.offering.year}
-                                            </span>
-                                        )}
-                                    </span>
+                                    <span className="truncate">{option.role.roleName}</span>
                                 </DropdownMenuItem>
                             );
                         })}

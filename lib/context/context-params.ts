@@ -65,7 +65,17 @@ export function contextSearchParams(option: ContextOption): Record<string, strin
 
 /** Nhãn ngắn của một ngữ cảnh: `Convenor · COMP1000` hoặc chỉ `Student`. */
 export function contextLabel(option: ContextOption): string {
-    return option.offering
-        ? `${option.role.roleName} · ${option.offering.subjectCode}`
-        : option.role.roleName;
+    return option.role.roleName;
+}
+
+/** Navigation chọn RoleAssignment, không nhân một role thành nhiều dòng theo từng offering. */
+export function distinctRoleContexts<TContext extends ContextOption>(
+    options: readonly TContext[],
+): TContext[] {
+    const seen = new Set<string>();
+    return options.filter((option) => {
+        if (seen.has(option.assignmentId)) return false;
+        seen.add(option.assignmentId);
+        return true;
+    });
 }

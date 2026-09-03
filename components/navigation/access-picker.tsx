@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Alert02Icon,
-    BookOpen01Icon,
     Shield01Icon,
     Tick02Icon,
     UniversityIcon,
@@ -11,6 +10,7 @@ import {
 import {
     contextKey,
     contextSearchParams,
+    distinctRoleContexts,
     type ContextOption,
 } from '@/lib/context/context-params';
 
@@ -64,9 +64,11 @@ export function AccessPicker({
         );
     }
 
+    const roleOptions = distinctRoleContexts(options);
+
     // Gom theo cơ sở, giữ thứ tự máy chủ đã sắp.
     const grouped = new Map<string, { name: string; items: ContextOption[] }>();
-    for (const option of options) {
+    for (const option of roleOptions) {
         const bucket = grouped.get(option.institution.id);
         if (bucket) {
             bucket.items.push(option);
@@ -85,7 +87,7 @@ export function AccessPicker({
                 <span aria-hidden className="bg-brand-teal h-4 w-1 rounded-xs" />
                 <h2 className="font-heading text-lg font-medium">Your access</h2>
                 <span className="text-muted-foreground text-sm">
-                    {options.length} {options.length === 1 ? 'context' : 'contexts'} across{' '}
+                    {roleOptions.length} {roleOptions.length === 1 ? 'role' : 'roles'} across{' '}
                     {grouped.size} {grouped.size === 1 ? 'institution' : 'institutions'}
                 </span>
             </div>
@@ -112,7 +114,9 @@ export function AccessPicker({
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {group.items.map((option) => {
                             const key = contextKey(option);
-                            const isActive = active ? key === contextKey(active) : false;
+                            const isActive = active
+                                ? option.assignmentId === active.assignmentId
+                                : false;
 
                             return (
                                 <Link
@@ -140,23 +144,11 @@ export function AccessPicker({
                                         {option.role.roleName}
                                     </span>
 
-                                    {option.offering ? (
-                                        <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                                            <HugeiconsIcon
-                                                icon={BookOpen01Icon}
-                                                strokeWidth={2}
-                                                className="size-3.5 shrink-0"
-                                            />
-                                            {option.offering.subjectCode} · Session{' '}
-                                            {option.offering.session} {option.offering.year}
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted-foreground text-sm">
-                                            {option.role.scopeType === 'INSTITUTION'
-                                                ? 'Across the whole institution'
-                                                : 'No offering scope yet'}
-                                        </span>
-                                    )}
+                                    <span className="text-muted-foreground text-sm">
+                                        {option.role.scopeType === 'INSTITUTION'
+                                            ? 'Institution role'
+                                            : 'Offering role'}
+                                    </span>
                                 </Link>
                             );
                         })}
