@@ -1,12 +1,12 @@
 // File này định nghĩa thao tác cấp một RoleAssignment mới.
 import { z } from 'zod';
 
-import type { RoleAssignmentModel } from '@/app/generated/prisma/models';
-
-export type RoleAssignmentSchemaValue = Pick<
-    RoleAssignmentModel,
-    'userId' | 'roleId' | 'offeringId'
->;
+/** `offeringId` là initial scope của form/API, không còn là cột trên RoleAssignment. */
+export type RoleAssignmentSchemaValue = {
+    userId: string;
+    roleId: string;
+    offeringId: string | null;
+};
 
 const optionalOfferingId = z
     .string()

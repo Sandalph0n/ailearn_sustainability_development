@@ -26,7 +26,7 @@ export type ContextOption = {
     assignmentId: string;
     institution: { id: string; name: string };
     role: { id: string; roleName: string; scopeType: 'INSTITUTION' | 'OFFERING' };
-    /** Có với context của vai trò OFFERING đã được scope; assignment chưa scope không là context. */
+    /** Có với context OFFERING đã scope; null với role INSTITUTION hoặc OFFERING chưa scope. */
     offering: {
         id: string;
         subjectCode: string;
@@ -35,6 +35,11 @@ export type ContextOption = {
         session: number;
     } | null;
 };
+
+/** Một assignment OFFERING sinh nhiều context, nên `assignmentId` riêng không còn duy nhất. */
+export function contextKey(option: ContextOption): string {
+    return `${option.assignmentId}:${option.offering?.id ?? 'no-offering'}`;
+}
 
 /** Ba tham số của một ngữ cảnh, dạng đã sẵn sàng ghép vào `URLSearchParams`. */
 export function contextSearchParams(option: ContextOption): Record<string, string> {

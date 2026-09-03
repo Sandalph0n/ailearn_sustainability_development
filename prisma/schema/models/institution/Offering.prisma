@@ -5,8 +5,8 @@
 ///
 /// ─── Vì sao có khoá thay thế ─────────────────────────────────────────────────
 ///
-/// Khoá tổ hợp `(subjectId, termId)` cũng chạy được, nhưng `RoleAssignment.offeringId` rỗng được
-/// — nó sẽ phải thành HAI cột rỗng, và database không bảo đảm được chúng rỗng cùng nhau.
+/// Khoá thay thế giúp các bảng assessment và scope của role assignment tham chiếu một offering
+/// bằng đúng một cột ổn định.
 model Offering {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
@@ -16,8 +16,8 @@ model Offering {
   subject Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   term    StudyTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
 
-  assessments     Assessment[]
-  roleAssignments RoleAssignment[]
+  assessments          Assessment[]
+  roleAssignmentScopes RoleAsgmtScopeToOffering[]
 
   /// Một môn chỉ mở một lần trong một kỳ.
   @@unique([subjectId, termId])

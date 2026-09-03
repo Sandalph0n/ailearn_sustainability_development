@@ -39,10 +39,6 @@ export async function listContextOptions(userId: string): Promise<ContextOption[
         where: {
             userId,
             roleRevokedAt: null,
-            OR: [
-                { role: { scopeType: 'INSTITUTION' }, offeringId: null },
-                { role: { scopeType: 'OFFERING' }, offeringId: { not: null } },
-            ],
         },
         select: {
             id: true,
@@ -54,35 +50,57 @@ export async function listContextOptions(userId: string): Promise<ContextOption[
                     institution: { select: { id: true, name: true } },
                 },
             },
-            offering: {
+            offeringScopes: {
                 select: {
-                    id: true,
-                    subject: { select: { subjectCode: true, subjectName: true } },
-                    term: { select: { year: true, session: true } },
+                    offering: {
+                        select: {
+                            id: true,
+                            subject: { select: { subjectCode: true, subjectName: true } },
+                            term: { select: { year: true, session: true } },
+                        },
+                    },
                 },
             },
         },
         orderBy: [{ role: { institution: { name: 'asc' } } }, { role: { roleName: 'asc' } }],
     });
 
-    return assignments.map((assignment) => ({
-        assignmentId: assignment.id,
-        institution: assignment.role.institution,
-        role: {
-            id: assignment.role.id,
-            roleName: assignment.role.roleName,
-            scopeType: assignment.role.scopeType,
-        },
-        offering: assignment.offering
-            ? {
-                  id: assignment.offering.id,
-                  subjectCode: assignment.offering.subject.subjectCode,
-                  subjectName: assignment.offering.subject.subjectName,
-                  year: assignment.offering.term.year,
-                  session: assignment.offering.term.session,
-              }
-            : null,
-    }));
+    return assignments.flatMap<ContextOption>((assignment): ContextOption[] => {
+        const base = {
+            assignmentId: assignment.id,
+            institution: assignment.role.institution,
+            role: {
+                id: assignment.role.id,
+                roleName: assignment.role.roleName,
+                scopeType: assignment.role.scopeType,
+            },
+        };
+
+        if (
+            assignment.role.scopeType === 'INSTITUTION' ||
+            assignment.offeringScopes.length === 0
+        ) {
+            return [{ ...base, offering: null }];
+        }
+
+        return assignment.offeringScopes
+            .map(({ offering }) => ({
+                ...base,
+                offering: {
+                    id: offering.id,
+                    subjectCode: offering.subject.subjectCode,
+                    subjectName: offering.subject.subjectName,
+                    year: offering.term.year,
+                    session: offering.term.session,
+                },
+            }))
+            .sort(
+                (left, right) =>
+                    right.offering.year - left.offering.year ||
+                    left.offering.session - right.offering.session ||
+                    left.offering.subjectCode.localeCompare(right.offering.subjectCode),
+            );
+    });
 }
 
 /** Lấy giá trị đầu — query string lặp khoá được (`?role=a&role=b`) và Next trả về mảng. */

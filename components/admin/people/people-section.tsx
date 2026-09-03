@@ -30,7 +30,7 @@ export async function PeopleSection({
     const where = {
         role: { institutionId },
         ...(roleId ? { roleId } : {}),
-        ...(offeringId ? { offeringId } : {}),
+        ...(offeringId ? { offeringScopes: { some: { offeringId } } } : {}),
         ...(status === 'active'
             ? { roleRevokedAt: null }
             : status === 'revoked'
@@ -67,11 +67,15 @@ export async function PeopleSection({
                 roleRevokedAt: true,
                 user: { select: { id: true, firstName: true, lastName: true, email: true } },
                 role: { select: { id: true, roleName: true, scopeType: true } },
-                offering: {
+                offeringScopes: {
                     select: {
-                        id: true,
-                        subject: { select: { subjectCode: true } },
-                        term: { select: { year: true, session: true } },
+                        offering: {
+                            select: {
+                                id: true,
+                                subject: { select: { subjectCode: true } },
+                                term: { select: { year: true, session: true } },
+                            },
+                        },
                     },
                 },
                 fromRequest: { select: { id: true } },
@@ -108,15 +112,26 @@ export async function PeopleSection({
         year: 'numeric',
         timeZone: 'Australia/Sydney',
     });
-    const assignments: AssignmentListItem[] = rows.map((row) => ({
-        id: row.id,
-        user: row.user,
-        role: row.role,
-        offering: row.offering,
-        granted: date.format(row.roleGrantedAt),
-        revoked: row.roleRevokedAt ? date.format(row.roleRevokedAt) : null,
-        source: row.fromRequest ? 'REQUEST' : 'MANUAL',
-    }));
+    const assignments: AssignmentListItem[] = rows.map((row) => {
+        const scopedOfferings = row.offeringScopes
+            .map((scope) => scope.offering)
+            .sort(
+                (left, right) =>
+                    right.term.year - left.term.year ||
+                    left.term.session - right.term.session ||
+                    left.subject.subjectCode.localeCompare(right.subject.subjectCode),
+            );
+
+        return {
+            id: row.id,
+            user: row.user,
+            role: row.role,
+            offerings: scopedOfferings,
+            granted: date.format(row.roleGrantedAt),
+            revoked: row.roleRevokedAt ? date.format(row.roleRevokedAt) : null,
+            source: row.fromRequest ? 'REQUEST' : 'MANUAL',
+        };
+    });
 
     return (
         <PeopleTable

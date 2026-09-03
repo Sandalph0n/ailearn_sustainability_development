@@ -44,7 +44,10 @@ export async function POST(
             };
             await validateRoleAssignment(tx, assignmentData);
             const assignment = await tx.roleAssignment.create({
-                data: assignmentData,
+                data: {
+                    userId: assignmentData.userId,
+                    roleId: assignmentData.roleId,
+                },
                 select: { id: true },
             });
             await tx.roleRequest.update({

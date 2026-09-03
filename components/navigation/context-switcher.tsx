@@ -14,7 +14,12 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { CONTEXT_PARAM, contextLabel, type ContextOption } from '@/lib/context/context-params';
+import {
+    CONTEXT_PARAM,
+    contextKey,
+    contextLabel,
+    type ContextOption,
+} from '@/lib/context/context-params';
 
 /**
  * Bộ chọn "tôi đang hành động dưới danh nghĩa nào".
@@ -134,11 +139,12 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
                         <DropdownMenuLabel>{group.name}</DropdownMenuLabel>
 
                         {group.items.map((option) => {
-                            const isActive = option.assignmentId === active.assignmentId;
+                            const key = contextKey(option);
+                            const isActive = key === contextKey(active);
 
                             return (
                                 <DropdownMenuItem
-                                    key={option.assignmentId}
+                                    key={key}
                                     onClick={() => select(option)}
                                 >
                                     <HugeiconsIcon

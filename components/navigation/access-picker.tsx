@@ -8,7 +8,11 @@ import {
     UniversityIcon,
 } from '@hugeicons/core-free-icons';
 
-import { contextSearchParams, type ContextOption } from '@/lib/context/context-params';
+import {
+    contextKey,
+    contextSearchParams,
+    type ContextOption,
+} from '@/lib/context/context-params';
 
 /**
  * Bảng chọn quyền trên chính trang bảng điều khiển: đang ở TRƯỜNG nào, dưới VAI TRÒ nào.
@@ -81,7 +85,7 @@ export function AccessPicker({
                 <span aria-hidden className="bg-brand-teal h-4 w-1 rounded-xs" />
                 <h2 className="font-heading text-lg font-medium">Your access</h2>
                 <span className="text-muted-foreground text-sm">
-                    {options.length} {options.length === 1 ? 'role' : 'roles'} across{' '}
+                    {options.length} {options.length === 1 ? 'context' : 'contexts'} across{' '}
                     {grouped.size} {grouped.size === 1 ? 'institution' : 'institutions'}
                 </span>
             </div>
@@ -107,11 +111,12 @@ export function AccessPicker({
 
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {group.items.map((option) => {
-                            const isActive = option.assignmentId === active?.assignmentId;
+                            const key = contextKey(option);
+                            const isActive = active ? key === contextKey(active) : false;
 
                             return (
                                 <Link
-                                    key={option.assignmentId}
+                                    key={key}
                                     href={hrefFor(option)}
                                     aria-current={isActive ? 'true' : undefined}
                                     className={
@@ -147,7 +152,9 @@ export function AccessPicker({
                                         </span>
                                     ) : (
                                         <span className="text-muted-foreground text-sm">
-                                            Across the whole institution
+                                            {option.role.scopeType === 'INSTITUTION'
+                                                ? 'Across the whole institution'
+                                                : 'No offering scope yet'}
                                         </span>
                                     )}
                                 </Link>

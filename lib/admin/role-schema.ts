@@ -18,7 +18,7 @@ export const RoleSchema = z
         roleName: z.string().trim().min(1, { message: 'Name is required' }).max(80),
 
         /**
-         * Phạm vi vai trò quyết định `RoleAssignment.offeringId` có ý nghĩa hay không.
+         * Phạm vi vai trò quyết định assignment có được nối tới offering hay không.
          *
          *   INSTITUTION  áp cho cả trường — quản trị viên khoa, nhân viên học vụ
          *   OFFERING     áp cho một lượt mở môn — sinh viên lớp này, trợ giảng lớp kia

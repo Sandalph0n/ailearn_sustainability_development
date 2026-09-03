@@ -19,10 +19,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const assignment = await db.$transaction(async (tx) => {
             await validateRoleAssignment(tx, guard.data);
+            const { offeringId, ...assignmentData } = guard.data;
             return tx.roleAssignment.create({
                 data: {
-                    ...guard.data,
+                    ...assignmentData,
                     grantDirectlyById: guard.session.user.id,
+                    ...(offeringId
+                        ? { offeringScopes: { create: { offeringId } } }
+                        : {}),
                 },
                 select: { id: true, roleGrantedAt: true },
             });
@@ -35,7 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             });
         }
         return prismaError(error, 'Role assignment', {
-            unique: 'This user already holds that role in the selected scope',
+            unique: 'This user already holds that role',
         });
     }
 }

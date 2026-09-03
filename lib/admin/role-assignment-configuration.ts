@@ -53,14 +53,13 @@ export async function validateRoleAssignment(
         where: {
             userId: data.userId,
             roleId: data.roleId,
-            offeringId: data.offeringId,
             roleRevokedAt: null,
         },
         select: { id: true },
     });
     if (duplicate) {
         throw new RoleAssignmentConfigurationError(
-            'This user already holds that role in the selected scope',
+            'This user already holds that role',
             'roleId',
         );
     }

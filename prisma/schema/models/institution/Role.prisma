@@ -18,7 +18,8 @@ model Role {
   /// có lượt mở môn nào để nói tới. Check constraint trong migration giữ bất biến này ở database.
   autoGrantEmailRegex String?
 
-  /// Vai trò này có hiệu lực ở tầng nào. OFFERING role có thể tạm thời chưa được gắn scope.
+  /// Vai trò này có hiệu lực ở tầng nào. OFFERING role lấy các scope từ
+  /// `RoleAsgmtScopeToOffering` và có thể tạm thời chưa được gắn scope nào.
   scopeType RoleScopeType
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -30,24 +31,24 @@ model Role {
   includedRoles RoleInclusion[] @relation("includingRole")
   parentRoles   RoleInclusion[] @relation("includedRole")
 
-  permissions     RolePermission[]
+  permissions            RolePermission[]
   /// Điều kiện để role này xuất hiện trong danh sách xin quyền.
   requestVisibilityRules RoleRequestVisibility[] @relation("requestableRole")
   /// Những role khác được mở khóa để nhìn thấy nhờ việc người dùng giữ role này.
-  unlocksRoleRequests     RoleRequestVisibility[] @relation("requiredRole")
+  unlocksRoleRequests    RoleRequestVisibility[] @relation("requiredRole")
   /// `Restrict`: còn ai đang giữ vai trò này thì không xoá được nó.
-  roleAssignments RoleAssignment[]
-  roleRequests    RoleRequest[]
+  roleAssignments        RoleAssignment[]
+  roleRequests           RoleRequest[]
 
   @@index([institutionId])
 }
 
 /// Vai trò gán ở tầng nào.
 enum RoleScopeType {
-  /// Gán cho cả cơ sở. `RoleAssignment.offeringId` phải rỗng.
+  /// Có hiệu lực trên toàn cơ sở và không có dòng `RoleAsgmtScopeToOffering`.
   INSTITUTION
 
-  /// Có hiệu lực trên một lượt mở môn cụ thể. `RoleAssignment.offeringId` có thể rỗng khi người
-  /// dùng mới có role identity; assignment đó chưa cấp quyền trên offering nào.
+  /// Có hiệu lực trên các offering nằm trong `RoleAsgmtScopeToOffering`. Không có dòng scope
+  /// nào nghĩa là người dùng mới có role identity, chưa được cấp quyền trên offering nào.
   OFFERING
 }

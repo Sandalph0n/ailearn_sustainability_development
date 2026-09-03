@@ -51,7 +51,7 @@ export type AssignmentListItem = {
     id: string;
     user: UserOption;
     role: RoleOption;
-    offering: OfferingOption | null;
+    offerings: OfferingOption[];
     granted: string;
     revoked: string | null;
     source: 'REQUEST' | 'MANUAL';
@@ -62,6 +62,16 @@ const ENDPOINT = '/api/admin/role-assignments';
 
 const offeringLabel = (offering: OfferingOption) =>
     `${offering.subject.subjectCode} · ${offering.term.year} S${offering.term.session}`;
+
+function assignmentScopeLabel(assignment: AssignmentListItem): string {
+    if (assignment.role.scopeType === 'INSTITUTION') return 'Institution-wide';
+    if (assignment.offerings.length === 0) return 'Not scoped yet';
+
+    const [first, ...rest] = assignment.offerings;
+    return rest.length === 0
+        ? offeringLabel(first)
+        : `${offeringLabel(first)} +${rest.length} more`;
+}
 
 export function PeopleTable({
     assignments,
@@ -123,7 +133,7 @@ export function PeopleTable({
                     ),
                 }),
                 column.accessor(
-                    (row) => (row.offering ? offeringLabel(row.offering) : 'Institution-wide'),
+                    assignmentScopeLabel,
                     {
                         id: 'scope',
                         header: 'Scope',
