@@ -25,7 +25,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                     ...assignmentData,
                     grantDirectlyById: guard.session.user.id,
                     ...(offeringId
-                        ? { offeringScopes: { create: { offeringId } } }
+                        ? {
+                              scopeAssignments: {
+                                  create: {
+                                      offeringId,
+                                      isAssignedDirectlyByUser: true,
+                                      isAssignedUsingCode: false,
+                                      assignedDirectlyById: guard.session.user.id,
+                                  },
+                              },
+                          }
                         : {}),
                 },
                 select: { id: true, roleGrantedAt: true },

@@ -39,15 +39,25 @@ export async function validateOfferingConfiguration(
         select: {
             subjectId: true,
             termId: true,
-            _count: { select: { assessments: true, roleAssignmentScopes: true } },
+            _count: {
+                select: {
+                    assessments: true,
+                    scopeAssignments: true,
+                    scopeAssignmentCodes: true,
+                },
+            },
         },
     });
     if (!current) throw new OfferingConfigurationError('Offering does not exist', 'subjectId');
 
     const identityChanged = current.subjectId !== data.subjectId || current.termId !== data.termId;
-    if (identityChanged && current._count.assessments + current._count.roleAssignmentScopes > 0) {
+    const linkedRecords =
+        current._count.assessments +
+        current._count.scopeAssignments +
+        current._count.scopeAssignmentCodes;
+    if (identityChanged && linkedRecords > 0) {
         throw new OfferingConfigurationError(
-            'An offering with assessments or assignment history cannot change subject or term',
+            'An offering with assessments, scope assignments or codes cannot change subject or term',
             current.subjectId !== data.subjectId ? 'subjectId' : 'termId',
         );
     }

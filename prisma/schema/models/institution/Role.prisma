@@ -18,8 +18,8 @@ model Role {
   /// có lượt mở môn nào để nói tới. Check constraint trong migration giữ bất biến này ở database.
   autoGrantEmailRegex String?
 
-  /// Vai trò này có hiệu lực ở tầng nào. OFFERING role lấy các scope từ
-  /// `RoleAsgmtScopeToOffering` và có thể tạm thời chưa được gắn scope nào.
+  /// Vai trò này có hiệu lực ở tầng nào. OFFERING role lấy các scope từ `ScopeAssignment` và có
+  /// thể tạm thời chưa được gắn scope nào.
   scopeType RoleScopeType
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
@@ -45,10 +45,10 @@ model Role {
 
 /// Vai trò gán ở tầng nào.
 enum RoleScopeType {
-  /// Có hiệu lực trên toàn cơ sở và không có dòng `RoleAsgmtScopeToOffering`.
+  /// Có hiệu lực trên toàn cơ sở và không có dòng `ScopeAssignment`.
   INSTITUTION
 
-  /// Có hiệu lực trên các offering nằm trong `RoleAsgmtScopeToOffering`. Không có dòng scope
+  /// Có hiệu lực trên các offering nằm trong `ScopeAssignment`. Không có dòng scope
   /// nào nghĩa là người dùng mới có role identity, chưa được cấp quyền trên offering nào.
   OFFERING
 }

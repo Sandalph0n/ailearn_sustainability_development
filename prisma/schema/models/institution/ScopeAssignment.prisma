@@ -1,0 +1,27 @@
+/// Một phạm vi offering được cấp cho một RoleAssignment.
+///
+/// RoleAssignment trả lời "người này giữ role nào"; ScopeAssignment trả lời role OFFERING đó
+/// có hiệu lực ở đâu. Nguồn cấp phải là đúng một trong hai: người có thẩm quyền cấp trực tiếp,
+/// hoặc người giữ role tự dùng một ScopeAssignmentCode.
+model ScopeAssignment {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  roleAssignmentId String @db.Uuid
+  offeringId       String @db.Uuid
+
+  isAssignedDirectlyByUser Boolean @default(false)
+  isAssignedUsingCode      Boolean @default(false)
+
+  assignedDirectlyById String? @db.Uuid
+  usedCodeId          String? @unique @db.Uuid
+
+  roleAssignment    RoleAssignment      @relation(fields: [roleAssignmentId], references: [id], onDelete: Cascade)
+  offering          Offering            @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  assignedDirectlyBy User?               @relation("directScopeAssignments", fields: [assignedDirectlyById], references: [id], onDelete: Restrict)
+  usedCode           ScopeAssignmentCode? @relation("scopeAssignmentCodeUsage", fields: [usedCodeId], references: [id], onDelete: Restrict)
+
+  @@unique([roleAssignmentId, offeringId])
+  @@index([roleAssignmentId])
+  @@index([offeringId])
+  @@index([assignedDirectlyById])
+}

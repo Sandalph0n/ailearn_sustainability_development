@@ -50,7 +50,7 @@ export async function listContextOptions(userId: string): Promise<ContextOption[
                     institution: { select: { id: true, name: true } },
                 },
             },
-            offeringScopes: {
+            scopeAssignments: {
                 select: {
                     offering: {
                         select: {
@@ -78,12 +78,12 @@ export async function listContextOptions(userId: string): Promise<ContextOption[
 
         if (
             assignment.role.scopeType === 'INSTITUTION' ||
-            assignment.offeringScopes.length === 0
+            assignment.scopeAssignments.length === 0
         ) {
             return [{ ...base, offering: null }];
         }
 
-        return assignment.offeringScopes
+        return assignment.scopeAssignments
             .map(({ offering }) => ({
                 ...base,
                 offering: {

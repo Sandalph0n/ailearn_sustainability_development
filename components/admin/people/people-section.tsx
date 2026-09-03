@@ -30,7 +30,7 @@ export async function PeopleSection({
     const where = {
         role: { institutionId },
         ...(roleId ? { roleId } : {}),
-        ...(offeringId ? { offeringScopes: { some: { offeringId } } } : {}),
+        ...(offeringId ? { scopeAssignments: { some: { offeringId } } } : {}),
         ...(status === 'active'
             ? { roleRevokedAt: null }
             : status === 'revoked'
@@ -67,7 +67,7 @@ export async function PeopleSection({
                 roleRevokedAt: true,
                 user: { select: { id: true, firstName: true, lastName: true, email: true } },
                 role: { select: { id: true, roleName: true, scopeType: true } },
-                offeringScopes: {
+                scopeAssignments: {
                     select: {
                         offering: {
                             select: {
@@ -113,7 +113,7 @@ export async function PeopleSection({
         timeZone: 'Australia/Sydney',
     });
     const assignments: AssignmentListItem[] = rows.map((row) => {
-        const scopedOfferings = row.offeringScopes
+        const scopedOfferings = row.scopeAssignments
             .map((scope) => scope.offering)
             .sort(
                 (left, right) =>

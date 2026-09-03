@@ -55,7 +55,7 @@ export async function OfferingsSection({
                 _count: {
                     select: {
                         assessments: true,
-                        roleAssignmentScopes: {
+                        scopeAssignments: {
                             where: { roleAssignment: { roleRevokedAt: null } },
                         },
                     },
@@ -81,7 +81,7 @@ export async function OfferingsSection({
         term: row.term,
         counts: {
             assessments: row._count.assessments,
-            assignments: row._count.roleAssignmentScopes,
+            assignments: row._count.scopeAssignments,
         },
     }));
 

@@ -27,9 +27,9 @@ model RoleAssignment {
   role            Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
   grantDirectlyBy User? @relation("directRoleGrants", fields: [grantDirectlyById], references: [id], onDelete: Restrict)
 
-  /// Rỗng với role INSTITUTION hoặc role OFFERING chưa được scope. Một role OFFERING có thể có
-  /// nhiều dòng ở đây, mỗi dòng mở ra một context trên một offering.
-  offeringScopes RoleAsgmtScopeToOffering[]
+  /// Rỗng với role INSTITUTION hoặc role OFFERING chưa được scope. Mỗi dòng lưu cả offering và
+  /// nguồn đã cấp scope đó (trực tiếp hoặc bằng code).
+  scopeAssignments ScopeAssignment[]
 
   /// Đơn xin đã tạo ra phép gán này, nếu có.
   fromRequest RoleRequest?

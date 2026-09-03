@@ -1,0 +1,20 @@
+/// Mã dùng một lần để người giữ role tự nhận scope trên đúng một offering.
+///
+/// Code luôn có người tạo và offering đích ngay từ lúc sinh ra. `usedAt` và `usedFor` còn rỗng
+/// cho tới khi code được redeem; sau đó quan hệ một-một giữ code không thể cấp scope lần hai.
+model ScopeAssignmentCode {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  offeringId String @db.Uuid
+  createdById String @db.Uuid
+
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  offering Offering @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  createdBy User     @relation("createdScopeAssignmentCodes", fields: [createdById], references: [id], onDelete: Restrict)
+  usedFor   ScopeAssignment? @relation("scopeAssignmentCodeUsage")
+
+  @@index([offeringId])
+  @@index([createdById])
+}
