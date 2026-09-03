@@ -236,6 +236,9 @@ export function RoleRequestForm({
                         Requested role
                     </label>
                     <Select
+                        items={Object.fromEntries(
+                            roles.map((role) => [role.id, role.roleName]),
+                        )}
                         value={roleId}
                         onValueChange={(value) => setRoleId(value)}
                         disabled={!institution || loadingRoles || roles.length === 0}
