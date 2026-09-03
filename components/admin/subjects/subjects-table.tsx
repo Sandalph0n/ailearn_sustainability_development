@@ -43,8 +43,20 @@ export type SubjectListItem = {
     counts: { offerings: number };
 };
 
+export type SubjectCapabilities = {
+    create: boolean;
+    view: boolean;
+    update: boolean;
+    delete: boolean;
+};
+
 const column = columnHelperFor<SubjectListItem>();
-const ENDPOINT = '/api/admin/subjects';
+const FULL_CAPABILITIES: SubjectCapabilities = {
+    create: true,
+    view: true,
+    update: true,
+    delete: true,
+};
 
 export function SubjectsTable({
     subjects,
@@ -56,6 +68,9 @@ export function SubjectsTable({
     total,
     sort,
     dir,
+    endpoint = '/api/admin/subjects',
+    contextQuery = '',
+    capabilities = FULL_CAPABILITIES,
 }: {
     subjects: SubjectListItem[];
     institutions: InstitutionOption[];
@@ -67,6 +82,10 @@ export function SubjectsTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    endpoint?: string;
+    /** Active institution/role context, forwarded to protected non-admin endpoints. */
+    contextQuery?: string;
+    capabilities?: SubjectCapabilities;
 }) {
     const list = useListQuery();
     const [editing, setEditing] = useState<SubjectListItem | 'create' | null>(null);
@@ -104,18 +123,28 @@ export function SubjectsTable({
                     cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
                 }),
 
-                column.display({
-                    id: 'actions',
-                    header: '',
-                    cell: (info) => (
-                        <RowActions
-                            subject={info.row.original}
-                            onEdit={() => setEditing(info.row.original)}
-                        />
-                    ),
-                }),
+                ...(capabilities.update || capabilities.delete
+                    ? [
+                          column.display({
+                              id: 'actions',
+                              header: '',
+                              cell: (info) => (
+                                  <RowActions
+                                      subject={info.row.original}
+                                      canUpdate={capabilities.update}
+                                      canDelete={capabilities.delete}
+                                      endpoint={endpointFor(
+                                          `${endpoint}/${info.row.original.id}`,
+                                          contextQuery,
+                                      )}
+                                      onEdit={() => setEditing(info.row.original)}
+                                  />
+                              ),
+                          }),
+                      ]
+                    : []),
             ] as Array<AdminColumnDef<SubjectListItem>>,
-        [locked],
+        [capabilities.delete, capabilities.update, contextQuery, endpoint, locked],
     );
 
     if (editing) {
@@ -125,6 +154,12 @@ export function SubjectsTable({
                 institutions={institutions}
                 presetInstitutionId={institutionId}
                 locked={locked}
+                createEndpoint={endpointFor(endpoint, contextQuery)}
+                editEndpoint={
+                    editing === 'create'
+                        ? undefined
+                        : endpointFor(`${endpoint}/${editing.id}`, contextQuery)
+                }
                 onCancel={() => setEditing(null)}
             />
         );
@@ -135,7 +170,9 @@ export function SubjectsTable({
             columns={columns}
             data={subjects}
             emptyMessage={
-                list.input
+                !capabilities.view
+                    ? 'This role cannot view existing subjects.'
+                    : list.input
                     ? `No subjects match "${list.input}".`
                     : institutionId
                       ? 'This institution has no subjects yet.'
@@ -145,14 +182,16 @@ export function SubjectsTable({
             }
             toolbar={
                 <>
-                    <Input
-                        value={list.input}
-                        onChange={(event) => list.setInput(event.target.value)}
-                        placeholder="Search subjects…"
-                        className="max-w-56"
-                        aria-label="Search subjects"
-                    />
-                    {!locked && (
+                    {capabilities.view && (
+                        <Input
+                            value={list.input}
+                            onChange={(event) => list.setInput(event.target.value)}
+                            placeholder="Search subjects…"
+                            className="max-w-56"
+                            aria-label="Search subjects"
+                        />
+                    )}
+                    {capabilities.view && !locked && (
                         <InstitutionFilter
                             institutions={institutions}
                             value={institutionId}
@@ -161,14 +200,18 @@ export function SubjectsTable({
                             }
                         />
                     )}
-                    <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
-                        {total} total
-                    </span>
+                    {capabilities.view && (
+                        <span className="text-muted-foreground shrink-0 text-sm tabular-nums">
+                            {total} total
+                        </span>
+                    )}
                     <div className="flex-1" />
-                    <Button onClick={() => setEditing('create')}>
-                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                        New subject
-                    </Button>
+                    {capabilities.create && (
+                        <Button onClick={() => setEditing('create')}>
+                            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                            New subject
+                        </Button>
+                    )}
                 </>
             }
             server={{
@@ -194,12 +237,16 @@ function SubjectForm({
     institutions,
     presetInstitutionId,
     locked = false,
+    createEndpoint,
+    editEndpoint,
     onCancel,
 }: {
     subject?: SubjectListItem;
     institutions: InstitutionOption[];
     presetInstitutionId?: string | null;
     locked?: boolean;
+    createEndpoint: string;
+    editEndpoint?: string;
     onCancel: () => void;
 }) {
     return (
@@ -220,7 +267,8 @@ function SubjectForm({
                     },
                 }
             }
-            createEndpoint={ENDPOINT}
+            createEndpoint={createEndpoint}
+            editEndpoint={editEndpoint}
             title={{ create: 'New subject', edit: 'Edit subject' }}
             description={{
                 create: 'A unit an institution teaches.',
@@ -282,8 +330,11 @@ function SubjectForm({
     );
 }
 
-function RowActions({ subject, onEdit }: {
+function RowActions({ subject, canUpdate, canDelete, endpoint, onEdit }: {
     subject: SubjectListItem;
+    canUpdate: boolean;
+    canDelete: boolean;
+    endpoint: string;
     onEdit: () => void;
 }) {
     return (
@@ -298,30 +349,38 @@ function RowActions({ subject, onEdit }: {
                 />
 
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onEdit}>
-                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                        Edit
-                    </DropdownMenuItem>
+                    {canUpdate && (
+                        <DropdownMenuItem onClick={onEdit}>
+                            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                            Edit
+                        </DropdownMenuItem>
+                    )}
 
-                    <DropdownMenuSeparator />
+                    {canUpdate && canDelete && <DropdownMenuSeparator />}
 
-                    <DeleteResourceDialog
-                        endpoint={`${ENDPOINT}/${subject.id}`}
-                        title={`Delete ${subject.subjectCode}?`}
-                        description={
-                            subject.counts.offerings > 0
-                                ? `This also deletes ${subject.counts.offerings} offering${subject.counts.offerings === 1 ? '' : 's'} and everything inside them. If any student work exists, the database will refuse.`
-                                : 'This subject has no offerings. This cannot be undone.'
-                        }
-                        trigger={
-                            <DropdownMenuItem variant="destructive" closeOnClick={false}>
-                                <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                                Delete
-                            </DropdownMenuItem>
-                        }
-                    />
+                    {canDelete && (
+                        <DeleteResourceDialog
+                            endpoint={endpoint}
+                            title={`Delete ${subject.subjectCode}?`}
+                            description={
+                                subject.counts.offerings > 0
+                                    ? `This also deletes ${subject.counts.offerings} offering${subject.counts.offerings === 1 ? '' : 's'} and everything inside them. If any student work exists, the database will refuse.`
+                                    : 'This subject has no offerings. This cannot be undone.'
+                            }
+                            trigger={
+                                <DropdownMenuItem variant="destructive" closeOnClick={false}>
+                                    <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                                    Delete
+                                </DropdownMenuItem>
+                            }
+                        />
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query: string): string {
+    return query ? `${path}?${query}` : path;
 }

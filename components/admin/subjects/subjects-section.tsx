@@ -1,4 +1,8 @@
-import { SubjectsTable, type SubjectListItem } from '@/components/admin/subjects/subjects-table';
+import {
+    SubjectsTable,
+    type SubjectCapabilities,
+    type SubjectListItem,
+} from '@/components/admin/subjects/subjects-table';
 import {
     PAGE_SIZE,
     pageCountOf,
@@ -8,12 +12,13 @@ import {
 import { db } from '@/lib/db';
 
 /**
- * Bảng môn học, dùng chung cho HAI lối vào.
+ * Bảng môn học dùng chung cho các lối vào quản trị hệ thống và quản trị theo institution.
  *
  * ─── Vì sao tách ra khỏi trang ──────────────────────────────────────────────
  *
  *     /admin/institutions/<id>/subjects   lối vào chính — đã khoá theo một cơ sở
  *     /admin/subjects                     nhìn toàn hệ thống, chọn cơ sở bằng bộ lọc
+ *     /navigation/institution/subjects    thao tác theo permission của active role
  *
  * Hai trang, một truy vấn, một bảng. Chép đôi thì sớm muộn hai bên lệch nhau — bên này thêm cột,
  * bên kia quên.
@@ -24,9 +29,15 @@ import { db } from '@/lib/db';
 export async function SubjectsSection({
     searchParams,
     lockedInstitutionId = null,
+    endpoint,
+    contextQuery,
+    capabilities,
 }: {
     searchParams: Record<string, string | string[] | undefined>;
     lockedInstitutionId?: string | null;
+    endpoint?: string;
+    contextQuery?: string;
+    capabilities?: SubjectCapabilities;
 }) {
     const SORT_FIELDS = ['subjectCode', 'subjectName', 'institution', 'offerings'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -56,22 +67,25 @@ export async function SubjectsSection({
                 ? { offerings: { _count: dir } }
                 : { subjectCode: dir };
 
+    const canView = capabilities?.view ?? true;
     const [rows, total, institutions] = await Promise.all([
-        db.subject.findMany({
-            where,
-            orderBy: [orderBy, { id: 'asc' }],
-            take: PAGE_SIZE,
-            skip,
-            select: {
-                id: true,
-                subjectCode: true,
-                subjectName: true,
-                subjectDescription: true,
-                institution: { select: { id: true, name: true } },
-                _count: { select: { offerings: true } },
-            },
-        }),
-        db.subject.count({ where }),
+        canView
+            ? db.subject.findMany({
+                  where,
+                  orderBy: [orderBy, { id: 'asc' }],
+                  take: PAGE_SIZE,
+                  skip,
+                  select: {
+                      id: true,
+                      subjectCode: true,
+                      subjectName: true,
+                      subjectDescription: true,
+                      institution: { select: { id: true, name: true } },
+                      _count: { select: { offerings: true } },
+                  },
+              })
+            : Promise.resolve([]),
+        canView ? db.subject.count({ where }) : Promise.resolve(0),
         // Trang con không cần danh sách để lọc, nhưng biểu mẫu vẫn cần một mục cho ô chọn.
         lockedInstitutionId
             ? db.institution.findMany({
@@ -104,6 +118,9 @@ export async function SubjectsSection({
             total={total}
             sort={sort}
             dir={dir}
+            endpoint={endpoint}
+            contextQuery={contextQuery}
+            capabilities={capabilities}
         />
     );
 }

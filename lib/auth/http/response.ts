@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 type ErrorCode =
     | 'AUTHENTICATION_REQUIRED'
+    | 'AUTHORIZATION_FORBIDDEN'
     | 'EMAIL_ALREADY_EXISTS'
     | 'INTERNAL_ERROR'
     | 'INVALID_CREDENTIALS'

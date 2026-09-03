@@ -25,6 +25,7 @@ export function ResourceFormPage<TInput extends FieldValues, TOutput extends Fie
     emptyValues,
     editing,
     createEndpoint,
+    editEndpoint,
     title,
     description,
     submitLabel,
@@ -36,6 +37,8 @@ export function ResourceFormPage<TInput extends FieldValues, TOutput extends Fie
     emptyValues: TInput;
     editing?: { id: string; values: TInput };
     createEndpoint: string;
+    /** Override when item routes carry context query parameters. */
+    editEndpoint?: string;
     title: { create: string; edit: string };
     description: { create: string; edit: string };
     submitLabel?: { create: string; edit: string };
@@ -52,7 +55,7 @@ export function ResourceFormPage<TInput extends FieldValues, TOutput extends Fie
 
     async function onSubmit(values: TOutput) {
         const succeeded = await submit(
-            isEdit ? `${createEndpoint}/${editing.id}` : createEndpoint,
+            isEdit ? (editEndpoint ?? `${createEndpoint}/${editing.id}`) : createEndpoint,
             isEdit ? 'PATCH' : 'POST',
             values,
         );
