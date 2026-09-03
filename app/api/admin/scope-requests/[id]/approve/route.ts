@@ -37,9 +37,7 @@ export async function POST(
                 data: {
                     roleAssignmentId: scopeRequest.roleAssignmentId,
                     offeringId: scopeRequest.offeringId,
-                    isAssignedDirectlyByUser: true,
-                    isAssignedUsingCode: false,
-                    assignedDirectlyById: guard.session.user.id,
+                    source: 'REQUEST_APPROVED',
                 },
                 select: { id: true, offeringId: true },
             });

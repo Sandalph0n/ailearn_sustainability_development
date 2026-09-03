@@ -32,7 +32,7 @@ export default async function SubjectAccessPage() {
             scopeAssignments: {
                 select: {
                     id: true,
-                    isAssignedUsingCode: true,
+                    source: true,
                     offering: {
                         select: {
                             id: true,
@@ -111,7 +111,7 @@ export default async function SubjectAccessPage() {
         institution: assignment.role.institution,
         scopes: assignment.scopeAssignments.map((scope) => ({
             id: scope.id,
-            source: scope.isAssignedUsingCode ? 'CODE' : 'DIRECT',
+            source: scope.source,
             offering: toOffering(scope.offering),
         })),
         pendingRequests: assignment.scopeRequests.map((request) => ({

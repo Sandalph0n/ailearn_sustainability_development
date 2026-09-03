@@ -29,8 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                               scopeAssignments: {
                                   create: {
                                       offeringId,
-                                      isAssignedDirectlyByUser: true,
-                                      isAssignedUsingCode: false,
+                                      source: 'DIRECT',
                                       assignedDirectlyById: guard.session.user.id,
                                   },
                               },

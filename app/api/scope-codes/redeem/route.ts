@@ -81,8 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 data: {
                     roleAssignmentId,
                     offeringId: code.offeringId,
-                    isAssignedDirectlyByUser: false,
-                    isAssignedUsingCode: true,
+                    source: 'CODE',
                     usedCodeId: codeId,
                 },
                 select: { id: true, offeringId: true },

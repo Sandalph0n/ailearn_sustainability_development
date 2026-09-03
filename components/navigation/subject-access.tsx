@@ -50,7 +50,7 @@ export type SubjectAccessRole = {
     institution: { id: string; name: string };
     scopes: Array<{
         id: string;
-        source: 'DIRECT' | 'CODE';
+        source: 'DIRECT' | 'CODE' | 'REQUEST_APPROVED';
         offering: SubjectAccessOffering;
     }>;
     pendingRequests: Array<{
@@ -500,7 +500,11 @@ export function SubjectAccess({
                                     </span>
                                 </span>
                                 <Badge variant="outline">
-                                    {scope.source === 'CODE' ? 'Access code' : 'Assigned'}
+                                    {scope.source === 'CODE'
+                                        ? 'Access code'
+                                        : scope.source === 'REQUEST_APPROVED'
+                                          ? 'Approved request'
+                                          : 'Assigned directly'}
                                 </Badge>
                             </li>
                         ))}
