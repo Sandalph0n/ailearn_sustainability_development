@@ -38,7 +38,7 @@ import { CONTEXT_PARAM } from '@/lib/context/context-params';
 const STUDY_ITEMS = [
     { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
     { href: '/navigation/roles', label: 'Role Management', icon: Shield01Icon },
-    { href: '/navigation/subjects', label: 'Subjects', icon: BookOpen01Icon },
+    { href: '/navigation/subject-access', label: 'Subject Access', icon: BookOpen01Icon },
     {
         href: '/navigation/assessments',
         label: 'Assessments',
