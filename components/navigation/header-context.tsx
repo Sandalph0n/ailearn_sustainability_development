@@ -1,11 +1,10 @@
 import { Suspense } from 'react';
 
 import { ContextSwitcher } from '@/components/navigation/context-switcher';
-import { listContextOptions } from '@/lib/context/active-context';
-import { getCurrentSession } from '@/lib/auth/session/service';
+import type { ContextOption } from '@/lib/context/context-params';
 
 /**
- * Chỗ nối giữa database và bộ chọn vai trò. Cùng lối với `HeaderAccount`.
+ * Chỗ nối giữa danh sách context mà layout đã nạp và bộ chọn vai trò.
  *
  * ─── Vì sao có `Suspense` ────────────────────────────────────────────────────
  *
@@ -15,15 +14,7 @@ import { getCurrentSession } from '@/lib/auth/session/service';
  *
  * Phần dự phòng giữ đúng chiều cao nút thật để header không giật một nhịp khi nội dung tới.
  */
-export async function HeaderContext() {
-    const current = await getCurrentSession();
-
-    if (!current) {
-        return null;
-    }
-
-    const options = await listContextOptions(current.user.id);
-
+export function HeaderContext({ options }: { options: ContextOption[] }) {
     return (
         <Suspense fallback={<div className="h-11 w-48" />}>
             <ContextSwitcher options={options} />

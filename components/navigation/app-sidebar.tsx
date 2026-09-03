@@ -10,6 +10,7 @@ import {
     Shield01Icon,
     SourceCodeIcon,
     TaskDone01Icon,
+    UniversityIcon,
     WorkflowSquare01Icon,
 } from '@hugeicons/core-free-icons';
 
@@ -27,7 +28,11 @@ import {
     SidebarMenuItem,
     SidebarRail,
 } from '@/components/ui/sidebar';
-import { CONTEXT_PARAM } from '@/lib/context/context-params';
+import {
+    CONTEXT_PARAM,
+    type AuthorizedContextOption,
+} from '@/lib/context/context-params';
+import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
 
 /**
  * Mục điều hướng, để thành DỮ LIỆU — thêm một mục là thêm một dòng.
@@ -35,7 +40,7 @@ import { CONTEXT_PARAM } from '@/lib/context/context-params';
  * Chia hai nhóm vì hai loại việc khác nhau: một bên là xem và theo dõi, một bên là ngồi xuống
  * làm. Gộp chung thì danh sách dài dần rồi không ai tìm thấy gì.
  */
-const STUDY_ITEMS = [
+const PERSONAL_ITEMS = [
     { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
     { href: '/navigation/roles', label: 'Role Management', icon: Shield01Icon },
     { href: '/navigation/subject-access', label: 'Subject Access', icon: BookOpen01Icon },
@@ -47,14 +52,44 @@ const STUDY_ITEMS = [
     { href: '/navigation/calendar', label: 'Calendar', icon: Calendar03Icon },
 ] as const;
 
+const INSTITUTION_ITEMS = [
+    {
+        href: '/navigation/institution/subjects',
+        label: 'Subjects',
+        icon: UniversityIcon,
+        permissions: [
+            PERMISSION_CODE.SUBJECT_CREATE,
+            PERMISSION_CODE.SUBJECT_VIEW,
+            PERMISSION_CODE.SUBJECT_UPDATE,
+            PERMISSION_CODE.SUBJECT_DELETE,
+        ],
+    },
+] as const;
+
 const TOOL_ITEMS = [
     { href: '/tools/code', label: 'Code', icon: SourceCodeIcon },
     { href: '/tools/diagram', label: 'Diagram', icon: WorkflowSquare01Icon },
 ] as const;
 
-export function AppSidebar() {
+export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
+
+    const wantedInstitution = searchParams.get(CONTEXT_PARAM.institution);
+    const wantedRole = searchParams.get(CONTEXT_PARAM.role);
+    const wantedOffering = searchParams.get(CONTEXT_PARAM.offering);
+    const activeContext =
+        contexts.find(
+            (context) =>
+                context.institution.id === wantedInstitution &&
+                context.role.id === wantedRole &&
+                (context.offering?.id ?? null) === wantedOffering,
+        ) ?? contexts[0];
+    const institutionItems = activeContext
+        ? INSTITUTION_ITEMS.filter((item) =>
+              hasAnyPermission(activeContext.permissions, item.permissions),
+          )
+        : [];
 
     /**
      * Mọi liên kết điều hướng mang theo ngữ cảnh đang hoạt động.
@@ -104,10 +139,10 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Study</SidebarGroupLabel>
+                    <SidebarGroupLabel>Personal</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {STUDY_ITEMS.map((item) => (
+                            {PERSONAL_ITEMS.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}
@@ -122,6 +157,28 @@ export function AppSidebar() {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
+
+                {institutionItems.length > 0 && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Institution</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {institutionItems.map((item) => (
+                                    <SidebarMenuItem key={item.href}>
+                                        <SidebarMenuButton
+                                            isActive={pathname.startsWith(item.href)}
+                                            tooltip={item.label}
+                                            render={<Link href={withContext(item.href)} />}
+                                        >
+                                            <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                                            <span>{item.label}</span>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
 
                 <SidebarGroup>
                     <SidebarGroupLabel>Tools</SidebarGroupLabel>

@@ -9,17 +9,16 @@ import {
 } from '@/lib/auth/authorization-policy';
 import type { PermissionCode } from '@/lib/auth/permissions';
 import { listContextOptions } from '@/lib/context/active-context';
-import type { ContextOption } from '@/lib/context/context-params';
+import type {
+    AuthorizedContextOption,
+    ContextOption,
+} from '@/lib/context/context-params';
 import { db } from '@/lib/db';
 
 type AuthorizationClient = Pick<
     Prisma.TransactionClient,
     'roleInclusion' | 'rolePermission'
 >;
-
-export type AuthorizedContextOption = ContextOption & {
-    permissions: PermissionCode[];
-};
 
 /** Add the active permission closure to contexts without changing their ordering. */
 export async function attachContextPermissions(

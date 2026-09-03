@@ -18,6 +18,7 @@ import { HeaderAccount } from '@/components/navigation/header-account';
 import { HeaderContext } from '@/components/navigation/header-context';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { listAuthorizedContextOptions } from '@/lib/auth/authorization-service';
 import { getCurrentSession } from '@/lib/auth/session/service';
 
 /**
@@ -38,9 +39,13 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
         redirect('/auth');
     }
 
+    // Một lần đọc dùng chung cho cả bộ chuyển context và navigation theo quyền. Quyền vẫn được
+    // kiểm lại tại page/API; dữ liệu này chỉ quyết định mục nào nên hiện trong giao diện.
+    const contexts = await listAuthorizedContextOptions(session.user.id);
+
     return (
         <SidebarProvider>
-            <AppSidebar />
+            <AppSidebar contexts={contexts} />
 
             <SidebarInset>
                 {/* Header dính trên cùng, có viền dưới để tách khỏi vùng nội dung cuộn. */}
@@ -53,7 +58,7 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
                         Hai thứ này trả lời hai câu hỏi liền nhau — "tôi đang làm việc với tư cách
                         gì" và "tôi là ai" — nên chúng thuộc về cùng một góc màn hình.
                     */}
-                    <HeaderContext />
+                    <HeaderContext options={contexts} />
                     <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
                     <HeaderAccount />
                 </header>

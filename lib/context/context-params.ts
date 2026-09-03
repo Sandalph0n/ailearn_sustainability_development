@@ -1,4 +1,5 @@
 // File này là phần ngữ cảnh mà CẢ HAI PHÍA dùng chung: tên tham số URL, kiểu, và hai hàm thuần.
+import type { PermissionCode } from '@/lib/auth/permissions';
 
 /**
  * ─── VÌ SAO TÁCH KHỎI `active-context.ts` ────────────────────────────────────
@@ -34,6 +35,11 @@ export type ContextOption = {
         year: number;
         session: number;
     } | null;
+};
+
+/** Context kèm closure quyền hiệu lực, an toàn để truyền từ Server Component xuống client. */
+export type AuthorizedContextOption = ContextOption & {
+    permissions: PermissionCode[];
 };
 
 /** Một assignment OFFERING sinh nhiều context, nên `assignmentId` riêng không còn duy nhất. */
