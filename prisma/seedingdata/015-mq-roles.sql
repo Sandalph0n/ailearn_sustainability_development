@@ -51,6 +51,27 @@ VALUES
     'Subject Manager',
     NULL,
     'INSTITUTION'::"RoleScopeType"
+  ),
+  (
+    '1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid,
+    'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'Term Manager',
+    NULL,
+    'INSTITUTION'::"RoleScopeType"
+  ),
+  (
+    '537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid,
+    'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'Offering Manager',
+    NULL,
+    'INSTITUTION'::"RoleScopeType"
+  ),
+  (
+    '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
+    'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'Institution Manager',
+    NULL,
+    'INSTITUTION'::"RoleScopeType"
   )
 ON CONFLICT ("id") DO UPDATE
 SET "roleName" = EXCLUDED."roleName",
@@ -78,7 +99,34 @@ WITH desired_permissions ("roleId", "permission") AS (
     ('6356d6d1-d512-4de3-bc98-ffc13052122b'::uuid, 'subject.create'),
     ('6356d6d1-d512-4de3-bc98-ffc13052122b'::uuid, 'subject.update'),
 
-    ('3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'::uuid, 'subject.delete')
+    ('3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'::uuid, 'subject.delete'),
+
+    ('1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid, 'term.create'),
+    ('1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid, 'term.view'),
+    ('1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid, 'term.update'),
+    ('1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid, 'term.delete'),
+
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'offering.create'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'offering.view'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'offering.update'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'offering.delete'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'assessment.create'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'assessment.view'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'assessment.update'),
+    ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid, 'assessment.delete'),
+
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'institution.settings.view'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'institution.settings.update'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'role.create'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'role.view'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'role.update'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'role.delete'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'role_request.review'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'member.view'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'role_assignment.manage'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'audit.view'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'attempt.view_all'),
+    ('01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid, 'tool_session.replay_all')
 )
 INSERT INTO "RolePermission" ("roleId", "permissionId")
 SELECT desired_permissions."roleId", permission."id"
@@ -104,6 +152,18 @@ VALUES
   (
     '3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'::uuid,
     '6356d6d1-d512-4de3-bc98-ffc13052122b'::uuid
+  ),
+  (
+    '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
+    '3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'::uuid
+  ),
+  (
+    '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
+    '1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid
+  ),
+  (
+    '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
+    '537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid
   )
 ON CONFLICT ("includingRoleId", "includedRoleId") DO NOTHING;
 
@@ -121,6 +181,18 @@ VALUES
   ),
   (
     '3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'::uuid,
+    '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid
+  ),
+  (
+    '1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid,
+    '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid
+  ),
+  (
+    '537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid,
+    '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid
+  ),
+  (
+    '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
     '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid
   )
 ON CONFLICT ("requestableRoleId", "requiredRoleId") DO NOTHING;
