@@ -20,9 +20,13 @@ export type InstitutionRow = {
 
 export function InstitutionFormPage({
     institution,
+    endpoint = '/api/admin/institutions',
+    editEndpoint,
     onCancel,
 }: {
     institution?: InstitutionRow;
+    endpoint?: string;
+    editEndpoint?: string;
     onCancel: () => void;
 }) {
     return (
@@ -38,7 +42,8 @@ export function InstitutionFormPage({
                     },
                 }
             }
-            createEndpoint="/api/admin/institutions"
+            createEndpoint={endpoint}
+            editEndpoint={editEndpoint}
             title={{ create: 'New institution', edit: 'Edit institution' }}
             description={{
                 create: 'Add a school or university to the platform.',

@@ -32,6 +32,10 @@ import {
     type TermPeriodFormValue,
     type TermPeriodSchemaValue,
 } from '@/lib/admin/term-period-schema';
+import {
+    FULL_CRUD_CAPABILITIES,
+    type CrudCapabilities,
+} from '@/lib/admin/resource-capabilities';
 
 export type TermPeriodListItem = {
     id: string;
@@ -61,11 +65,17 @@ function toLocalInput(iso: string): string {
 export function PeriodsTable({
     periods,
     termId,
+    endpoint: endpointOverride,
+    contextQuery = '',
+    capabilities = FULL_CRUD_CAPABILITIES,
 }: {
     periods: TermPeriodListItem[];
     termId: string;
+    endpoint?: string;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
-    const endpoint = `/api/admin/terms/${termId}/periods`;
+    const endpoint = endpointOverride ?? `/api/admin/terms/${termId}/periods`;
     const [editing, setEditing] = useState<TermPeriodListItem | 'create' | null>(null);
 
     const columns = useMemo(
@@ -106,18 +116,21 @@ export function PeriodsTable({
                         <PeriodActions
                             period={info.row.original}
                             endpoint={endpoint}
+                            contextQuery={contextQuery}
+                            capabilities={capabilities}
                             onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<TermPeriodListItem>>,
-        [endpoint],
+        [capabilities, contextQuery, endpoint],
     );
 
     if (editing) {
         return (
             <PeriodForm
                 endpoint={endpoint}
+                contextQuery={contextQuery}
                 period={editing === 'create' ? undefined : editing}
                 onCancel={() => setEditing(null)}
             />
@@ -130,22 +143,24 @@ export function PeriodsTable({
             data={periods}
             pageSize={20}
             emptyMessage="No periods yet. Add teaching, break or exam dates to define this term."
-            toolbar={
+            toolbar={capabilities.create ? (
                 <Button onClick={() => setEditing('create')}>
                     <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
                     New period
                 </Button>
-            }
+            ) : null}
         />
     );
 }
 
 function PeriodForm({
     endpoint,
+    contextQuery,
     period,
     onCancel,
 }: {
     endpoint: string;
+    contextQuery: string;
     period?: TermPeriodListItem;
     onCancel: () => void;
 }) {
@@ -164,7 +179,8 @@ function PeriodForm({
                     },
                 }
             }
-            createEndpoint={endpoint}
+            createEndpoint={endpointFor(endpoint, contextQuery)}
+            editEndpoint={period ? endpointFor(`${endpoint}/${period.id}`, contextQuery) : undefined}
             title={{ create: 'New period', edit: 'Edit period' }}
             description={{
                 create: 'A teaching, break or exam window inside this term.',
@@ -212,10 +228,14 @@ function PeriodForm({
 function PeriodActions({
     period,
     endpoint,
+    contextQuery,
+    capabilities,
     onEdit,
 }: {
     period: TermPeriodListItem;
     endpoint: string;
+    contextQuery: string;
+    capabilities: CrudCapabilities;
     onEdit: () => void;
 }) {
     return (
@@ -229,13 +249,15 @@ function PeriodActions({
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onEdit}>
-                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                        Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DeleteResourceDialog
-                        endpoint={`${endpoint}/${period.id}`}
+                    {capabilities.update && (
+                        <DropdownMenuItem onClick={onEdit}>
+                            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                            Edit
+                        </DropdownMenuItem>
+                    )}
+                    {capabilities.update && capabilities.delete && <DropdownMenuSeparator />}
+                    {capabilities.delete && <DeleteResourceDialog
+                        endpoint={endpointFor(`${endpoint}/${period.id}`, contextQuery)}
                         title={`Delete ${period.name}?`}
                         description="This removes the period from the term calendar. This cannot be undone."
                         trigger={
@@ -244,9 +266,13 @@ function PeriodActions({
                                 Delete
                             </DropdownMenuItem>
                         }
-                    />
+                    />}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query: string): string {
+    return query ? `${path}?${query}` : path;
 }

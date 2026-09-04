@@ -40,6 +40,10 @@ import {
     type TermFormValue,
     type TermSchemaValue,
 } from '@/lib/admin/term-schema';
+import {
+    FULL_CRUD_CAPABILITIES,
+    type CrudCapabilities,
+} from '@/lib/admin/resource-capabilities';
 
 export type TermListItem = {
     id: string;
@@ -64,6 +68,10 @@ export function TermsTable({
     total,
     sort,
     dir,
+    endpoint = ENDPOINT,
+    detailBasePath,
+    contextQuery,
+    capabilities = FULL_CRUD_CAPABILITIES,
 }: {
     terms: TermListItem[];
     institutions: InstitutionOption[];
@@ -75,6 +83,10 @@ export function TermsTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    endpoint?: string;
+    detailBasePath?: string;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
     const list = useListQuery();
     const [editing, setEditing] = useState<TermListItem | 'create' | null>(null);
@@ -86,7 +98,7 @@ export function TermsTable({
                     header: 'Term',
                     cell: (info) => (
                         <Link
-                            href={`/admin/institutions/${info.row.original.institution.id}/terms/${info.row.original.id}`}
+                            href={`${detailBasePath ?? `/admin/institutions/${info.row.original.institution.id}/terms`}/${info.row.original.id}${contextQuery ? `?${contextQuery}` : ''}`}
                             className="hover:text-primary font-medium tabular-nums transition-colors"
                         >
                             {info.getValue()} · Session {info.row.original.session}
@@ -136,12 +148,16 @@ export function TermsTable({
                     cell: (info) => (
                         <RowActions
                             term={info.row.original}
+                            endpoint={endpoint}
+                            detailBasePath={detailBasePath}
+                            contextQuery={contextQuery}
+                            capabilities={capabilities}
                             onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<TermListItem>>,
-        [locked],
+        [capabilities, contextQuery, detailBasePath, endpoint, locked],
     );
 
     if (editing) {
@@ -151,6 +167,8 @@ export function TermsTable({
                 institutions={institutions}
                 presetInstitutionId={institutionId}
                 locked={locked}
+                endpoint={endpoint}
+                contextQuery={contextQuery}
                 onCancel={() => setEditing(null)}
             />
         );
@@ -191,10 +209,12 @@ export function TermsTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <Button onClick={() => setEditing('create')}>
-                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                        New term
-                    </Button>
+                    {capabilities.create && (
+                        <Button onClick={() => setEditing('create')}>
+                            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                            New term
+                        </Button>
+                    )}
                 </>
             }
             server={{
@@ -220,12 +240,16 @@ function TermForm({
     institutions,
     presetInstitutionId,
     locked = false,
+    endpoint,
+    contextQuery,
     onCancel,
 }: {
     term?: TermListItem;
     institutions: InstitutionOption[];
     presetInstitutionId?: string | null;
     locked?: boolean;
+    endpoint: string;
+    contextQuery?: string;
     onCancel: () => void;
 }) {
     return (
@@ -243,7 +267,8 @@ function TermForm({
                     } as unknown as TermFormValue,
                 }
             }
-            createEndpoint={ENDPOINT}
+            createEndpoint={endpointFor(endpoint, contextQuery)}
+            editEndpoint={term ? endpointFor(`${endpoint}/${term.id}`, contextQuery) : undefined}
             title={{ create: 'New term', edit: 'Edit term' }}
             description={{
                 create: 'A year and session that subjects run in.',
@@ -302,9 +327,17 @@ function TermForm({
 
 function RowActions({
     term,
+    endpoint,
+    detailBasePath,
+    contextQuery,
+    capabilities,
     onEdit,
 }: {
     term: TermListItem;
+    endpoint: string;
+    detailBasePath?: string;
+    contextQuery?: string;
+    capabilities: CrudCapabilities;
     onEdit: () => void;
 }) {
     return (
@@ -319,26 +352,30 @@ function RowActions({
                 />
 
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                        render={
-                            <Link
-                                href={`/admin/institutions/${term.institution.id}/terms/${term.id}`}
-                            />
-                        }
-                    >
-                        <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
-                        Manage periods
-                    </DropdownMenuItem>
+                    {capabilities.view && (
+                        <DropdownMenuItem
+                            render={
+                                <Link
+                                    href={`${detailBasePath ?? `/admin/institutions/${term.institution.id}/terms`}/${term.id}${contextQuery ? `?${contextQuery}` : ''}`}
+                                />
+                            }
+                        >
+                            <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
+                            Manage periods
+                        </DropdownMenuItem>
+                    )}
 
-                    <DropdownMenuItem onClick={onEdit}>
-                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                        Edit
-                    </DropdownMenuItem>
+                    {capabilities.update && (
+                        <DropdownMenuItem onClick={onEdit}>
+                            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                            Edit
+                        </DropdownMenuItem>
+                    )}
 
-                    <DropdownMenuSeparator />
+                    {capabilities.delete && <DropdownMenuSeparator />}
 
-                    <DeleteResourceDialog
-                        endpoint={`${ENDPOINT}/${term.id}`}
+                    {capabilities.delete && <DeleteResourceDialog
+                        endpoint={endpointFor(`${endpoint}/${term.id}`, contextQuery)}
                         title={`Delete ${term.year} session ${term.session}?`}
                         description={
                             term.counts.offerings > 0
@@ -351,9 +388,13 @@ function RowActions({
                                 Delete
                             </DropdownMenuItem>
                         }
-                    />
+                    />}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query = ''): string {
+    return query ? `${path}?${query}` : path;
 }

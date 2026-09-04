@@ -6,6 +6,7 @@ import {
     parseOptionalUuid,
 } from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
+import type { CrudCapabilities } from '@/lib/admin/resource-capabilities';
 
 /** Ngày hiển thị gọn. Định dạng ở SERVER để hai bên không lệch múi giờ. */
 const DATE = new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -19,9 +20,17 @@ const DATE = new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', 
 export async function TermsSection({
     searchParams,
     lockedInstitutionId = null,
+    endpoint,
+    detailBasePath,
+    contextQuery,
+    capabilities,
 }: {
     searchParams: Record<string, string | string[] | undefined>;
     lockedInstitutionId?: string | null;
+    endpoint?: string;
+    detailBasePath?: string;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
     const SORT_FIELDS = ['year', 'institution', 'periods', 'offerings'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -102,6 +111,10 @@ export async function TermsSection({
             total={total}
             sort={sort}
             dir={dir}
+            endpoint={endpoint}
+            detailBasePath={detailBasePath}
+            contextQuery={contextQuery}
+            capabilities={capabilities}
         />
     );
 }

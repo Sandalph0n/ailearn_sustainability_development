@@ -5,12 +5,14 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     BookOpen01Icon,
-    Calendar03Icon,
+    CheckListIcon,
     Home01Icon,
+    Settings01Icon,
     Shield01Icon,
     SourceCodeIcon,
-    TaskDone01Icon,
     UniversityIcon,
+    UserMultipleIcon,
+    UserSharingIcon,
     WorkflowSquare01Icon,
 } from '@hugeicons/core-free-icons';
 
@@ -42,12 +44,6 @@ import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
  */
 const PERSONAL_ITEMS = [
     { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
-    {
-        href: '/navigation/assessments',
-        label: 'Assessments',
-        icon: TaskDone01Icon,
-    },
-    { href: '/navigation/calendar', label: 'Calendar', icon: Calendar03Icon },
 ] as const;
 
 const ACCESS_CONTROL_ITEMS = [
@@ -56,6 +52,15 @@ const ACCESS_CONTROL_ITEMS = [
 ] as const;
 
 const INSTITUTION_ITEMS = [
+    {
+        href: '/navigation/institution/settings',
+        label: 'Settings',
+        icon: Settings01Icon,
+        permissions: [
+            PERMISSION_CODE.INSTITUTION_SETTINGS_VIEW,
+            PERMISSION_CODE.INSTITUTION_SETTINGS_UPDATE,
+        ],
+    },
     {
         href: '/navigation/institution/subjects',
         label: 'Subjects',
@@ -66,6 +71,54 @@ const INSTITUTION_ITEMS = [
             PERMISSION_CODE.SUBJECT_UPDATE,
             PERMISSION_CODE.SUBJECT_DELETE,
         ],
+    },
+    {
+        href: '/navigation/institution/terms',
+        label: 'Terms',
+        icon: CheckListIcon,
+        permissions: [
+            PERMISSION_CODE.TERM_CREATE,
+            PERMISSION_CODE.TERM_VIEW,
+            PERMISSION_CODE.TERM_UPDATE,
+            PERMISSION_CODE.TERM_DELETE,
+        ],
+    },
+    {
+        href: '/navigation/institution/offerings',
+        label: 'Offerings',
+        icon: CheckListIcon,
+        permissions: [
+            PERMISSION_CODE.OFFERING_CREATE,
+            PERMISSION_CODE.OFFERING_VIEW,
+            PERMISSION_CODE.OFFERING_UPDATE,
+            PERMISSION_CODE.OFFERING_DELETE,
+        ],
+    },
+    {
+        href: '/navigation/institution/roles',
+        label: 'Roles',
+        icon: Shield01Icon,
+        permissions: [
+            PERMISSION_CODE.ROLE_CREATE,
+            PERMISSION_CODE.ROLE_VIEW,
+            PERMISSION_CODE.ROLE_UPDATE,
+            PERMISSION_CODE.ROLE_DELETE,
+        ],
+    },
+    {
+        href: '/navigation/institution/people',
+        label: 'People',
+        icon: UserMultipleIcon,
+        permissions: [
+            PERMISSION_CODE.MEMBER_VIEW,
+            PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE,
+        ],
+    },
+    {
+        href: '/navigation/institution/requests',
+        label: 'Requests',
+        icon: UserSharingIcon,
+        permissions: [PERMISSION_CODE.ROLE_REQUEST_REVIEW],
     },
 ] as const;
 

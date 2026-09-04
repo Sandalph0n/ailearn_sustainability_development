@@ -6,13 +6,22 @@ import {
     parseOptionalUuid,
 } from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
+import type { CrudCapabilities } from '@/lib/admin/resource-capabilities';
 
 export async function OfferingsSection({
     institutionId,
     searchParams,
+    endpoint,
+    assessmentBasePath,
+    contextQuery,
+    capabilities,
 }: {
     institutionId: string;
     searchParams: Record<string, string | string[] | undefined>;
+    endpoint?: string;
+    assessmentBasePath?: string | null;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
     const SORT_FIELDS = ['subject', 'term', 'assessments'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -98,6 +107,10 @@ export async function OfferingsSection({
             total={total}
             sort={sort}
             dir={dir}
+            endpoint={endpoint}
+            assessmentBasePath={assessmentBasePath}
+            contextQuery={contextQuery}
+            capabilities={capabilities}
         />
     );
 }

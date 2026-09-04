@@ -36,6 +36,10 @@ import {
     type OfferingFormValue,
     type OfferingSchemaValue,
 } from '@/lib/admin/offering-schema';
+import {
+    FULL_CRUD_CAPABILITIES,
+    type CrudCapabilities,
+} from '@/lib/admin/resource-capabilities';
 
 type SubjectOption = { id: string; subjectCode: string; subjectName: string };
 type TermOption = { id: string; year: number; session: number };
@@ -71,6 +75,10 @@ export function OfferingsTable({
     total,
     sort,
     dir,
+    endpoint = ENDPOINT,
+    assessmentBasePath,
+    contextQuery,
+    capabilities = FULL_CRUD_CAPABILITIES,
 }: {
     offerings: OfferingListItem[];
     institutionId: string;
@@ -83,6 +91,10 @@ export function OfferingsTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    endpoint?: string;
+    assessmentBasePath?: string | null;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
     const list = useListQuery();
     const [editing, setEditing] = useState<OfferingListItem | 'create' | null>(null);
@@ -93,17 +105,25 @@ export function OfferingsTable({
                 column.accessor((row) => row.subject.subjectCode, {
                     id: 'subject',
                     header: 'Subject',
-                    cell: (info) => (
-                        <Link
-                            href={`/admin/institutions/${institutionId}/offerings/${info.row.original.id}`}
-                            className="hover:text-primary flex flex-col transition-colors"
-                        >
+                    cell: (info) => {
+                        const body = <>
                             <span className="font-mono text-sm font-medium">{info.getValue()}</span>
                             <span className="text-muted-foreground text-xs">
                                 {info.row.original.subject.subjectName}
                             </span>
-                        </Link>
-                    ),
+                        </>;
+                        const base = assessmentBasePath === undefined
+                            ? `/admin/institutions/${institutionId}/offerings`
+                            : assessmentBasePath;
+                        return base ? (
+                            <Link
+                                href={`${base}/${info.row.original.id}${contextQuery ? `?${contextQuery}` : ''}`}
+                                className="hover:text-primary flex flex-col transition-colors"
+                            >
+                                {body}
+                            </Link>
+                        ) : <span className="flex flex-col">{body}</span>;
+                    },
                 }),
                 column.accessor((row) => row.term.year, {
                     id: 'term',
@@ -132,12 +152,16 @@ export function OfferingsTable({
                         <OfferingActions
                             offering={info.row.original}
                             institutionId={institutionId}
+                            endpoint={endpoint}
+                            assessmentBasePath={assessmentBasePath}
+                            contextQuery={contextQuery}
+                            capabilities={capabilities}
                             onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<OfferingListItem>>,
-        [institutionId],
+        [assessmentBasePath, capabilities, contextQuery, endpoint, institutionId],
     );
 
     const canCreate = subjects.length > 0 && terms.length > 0;
@@ -148,6 +172,8 @@ export function OfferingsTable({
                 offering={editing === 'create' ? undefined : editing}
                 subjects={subjects}
                 terms={terms}
+                endpoint={endpoint}
+                contextQuery={contextQuery}
                 onCancel={() => setEditing(null)}
             />
         );
@@ -195,10 +221,10 @@ export function OfferingsTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <Button disabled={!canCreate} onClick={() => setEditing('create')}>
+                    {capabilities.create && <Button disabled={!canCreate} onClick={() => setEditing('create')}>
                         <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
                         New offering
-                    </Button>
+                    </Button>}
                 </>
             }
             server={{
@@ -223,11 +249,15 @@ function OfferingForm({
     offering,
     subjects,
     terms,
+    endpoint,
+    contextQuery,
     onCancel,
 }: {
     offering?: OfferingListItem;
     subjects: SubjectOption[];
     terms: TermOption[];
+    endpoint: string;
+    contextQuery?: string;
     onCancel: () => void;
 }) {
     return (
@@ -240,7 +270,10 @@ function OfferingForm({
                     values: { subjectId: offering.subject.id, termId: offering.term.id },
                 }
             }
-            createEndpoint={ENDPOINT}
+            createEndpoint={endpointFor(endpoint, contextQuery)}
+            editEndpoint={
+                offering ? endpointFor(`${endpoint}/${offering.id}`, contextQuery) : undefined
+            }
             title={{ create: 'New offering', edit: 'Edit offering' }}
             description={{
                 create: 'Choose which subject runs in which study term.',
@@ -288,10 +321,18 @@ function OfferingForm({
 function OfferingActions({
     offering,
     institutionId,
+    endpoint,
+    assessmentBasePath,
+    contextQuery,
+    capabilities,
     onEdit,
 }: {
     offering: OfferingListItem;
     institutionId: string;
+    endpoint: string;
+    assessmentBasePath?: string | null;
+    contextQuery?: string;
+    capabilities: CrudCapabilities;
     onEdit: () => void;
 }) {
     const inUse = offering.counts.assessments + offering.counts.assignments;
@@ -307,17 +348,17 @@ function OfferingActions({
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem
+                    {(assessmentBasePath !== null) && <DropdownMenuItem
                         render={
                             <Link
-                                href={`/admin/institutions/${institutionId}/offerings/${offering.id}`}
+                                href={`${assessmentBasePath ?? `/admin/institutions/${institutionId}/offerings`}/${offering.id}${contextQuery ? `?${contextQuery}` : ''}`}
                             />
                         }
                     >
                         <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
                         Manage assessments
-                    </DropdownMenuItem>
-                    {inUse === 0 ? (
+                    </DropdownMenuItem>}
+                    {capabilities.update && (inUse === 0 ? (
                         <DropdownMenuItem onClick={onEdit}>
                             <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
                             Edit
@@ -327,10 +368,10 @@ function OfferingActions({
                             <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
                             Edit locked by history
                         </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DeleteResourceDialog
-                        endpoint={`${ENDPOINT}/${offering.id}`}
+                    ))}
+                    {capabilities.delete && <DropdownMenuSeparator />}
+                    {capabilities.delete && <DeleteResourceDialog
+                        endpoint={endpointFor(`${endpoint}/${offering.id}`, contextQuery)}
                         title={`Delete ${offering.subject.subjectCode} offering?`}
                         description={
                             inUse > 0
@@ -343,9 +384,13 @@ function OfferingActions({
                                 Delete
                             </DropdownMenuItem>
                         }
-                    />
+                    />}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query = ''): string {
+    return query ? `${path}?${query}` : path;
 }
