@@ -43,6 +43,10 @@ import {
     type RoleFormValue,
     type RoleSchemaValue,
 } from '@/lib/admin/role-schema';
+import {
+    FULL_CRUD_CAPABILITIES,
+    type CrudCapabilities,
+} from '@/lib/admin/resource-capabilities';
 
 export type RoleListItem = {
     id: string;
@@ -81,6 +85,9 @@ export function RolesTable({
     total,
     sort,
     dir,
+    endpoint = ENDPOINT,
+    contextQuery = '',
+    capabilities = FULL_CRUD_CAPABILITIES,
 }: {
     roles: RoleListItem[];
     institutions: InstitutionOption[];
@@ -94,6 +101,9 @@ export function RolesTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    endpoint?: string;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
     const list = useListQuery();
     const [editing, setEditing] = useState<RoleListItem | 'create' | null>(null);
@@ -176,12 +186,15 @@ export function RolesTable({
                         <RowActions
                             role={info.row.original}
                             locked={locked}
+                            endpoint={endpoint}
+                            contextQuery={contextQuery}
+                            capabilities={capabilities}
                             onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<RoleListItem>>,
-        [locked],
+        [capabilities, contextQuery, endpoint, locked],
     );
 
     if (editing) {
@@ -193,6 +206,8 @@ export function RolesTable({
                 permissions={permissions}
                 presetInstitutionId={institutionId}
                 locked={locked}
+                endpoint={endpoint}
+                contextQuery={contextQuery}
                 onCancel={() => setEditing(null)}
             />
         );
@@ -233,7 +248,7 @@ export function RolesTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    {locked && (
+                    {locked && capabilities.create && (
                         <Button onClick={() => setEditing('create')}>
                             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
                             New role
@@ -266,6 +281,8 @@ function RoleForm({
     permissions,
     presetInstitutionId,
     locked = false,
+    endpoint,
+    contextQuery,
     onCancel,
 }: {
     role?: RoleListItem;
@@ -274,6 +291,8 @@ function RoleForm({
     permissions: Array<{ id: string; permission: string; description: string | null }>;
     presetInstitutionId?: string | null;
     locked?: boolean;
+    endpoint: string;
+    contextQuery: string;
     onCancel: () => void;
 }) {
     return (
@@ -296,7 +315,8 @@ function RoleForm({
                     } as unknown as RoleFormValue,
                 }
             }
-            createEndpoint={ENDPOINT}
+            createEndpoint={endpointFor(endpoint, contextQuery)}
+            editEndpoint={role ? endpointFor(`${endpoint}/${role.id}`, contextQuery) : undefined}
             title={{ create: 'New role', edit: 'Edit role' }}
             description={{
                 create: 'A role someone can hold at an institution.',
@@ -445,10 +465,16 @@ function RoleForm({
 function RowActions({
     role,
     locked,
+    endpoint,
+    contextQuery,
+    capabilities,
     onEdit,
 }: {
     role: RoleListItem;
     locked: boolean;
+    endpoint: string;
+    contextQuery: string;
+    capabilities: CrudCapabilities;
     onEdit: () => void;
 }) {
     const inUse = role.counts.assignments + role.counts.requests;
@@ -469,6 +495,8 @@ function RowActions({
         );
     }
 
+    if (!capabilities.update && !capabilities.delete) return null;
+
     return (
         <div className="flex justify-end">
             <DropdownMenu>
@@ -481,15 +509,15 @@ function RowActions({
                 />
 
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onEdit}>
+                    {capabilities.update && <DropdownMenuItem onClick={onEdit}>
                         <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
                         Edit
-                    </DropdownMenuItem>
+                    </DropdownMenuItem>}
 
-                    <DropdownMenuSeparator />
+                    {capabilities.update && capabilities.delete && <DropdownMenuSeparator />}
 
-                    <DeleteResourceDialog
-                        endpoint={`${ENDPOINT}/${role.id}`}
+                    {capabilities.delete && <DeleteResourceDialog
+                        endpoint={endpointFor(`${endpoint}/${role.id}`, contextQuery)}
                         title={`Delete ${role.roleName}?`}
                         description={
                             inUse > 0
@@ -502,9 +530,13 @@ function RowActions({
                                 Delete
                             </DropdownMenuItem>
                         }
-                    />
+                    />}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query: string): string {
+    return query ? `${path}?${query}` : path;
 }

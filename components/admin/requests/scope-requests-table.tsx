@@ -59,6 +59,9 @@ export function ScopeRequestsTable({
     total,
     sort,
     dir,
+    actionBasePath = '/api/admin/scope-requests',
+    contextQuery = '',
+    canReview = true,
 }: {
     requests: ScopeRequestListItem[];
     roles: Array<{ id: string; roleName: string }>;
@@ -69,6 +72,9 @@ export function ScopeRequestsTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    actionBasePath?: string;
+    contextQuery?: string;
+    canReview?: boolean;
 }) {
     const list = useListQuery();
 
@@ -131,13 +137,23 @@ export function ScopeRequestsTable({
                         </div>
                     ),
                 }),
-                column.display({
-                    id: 'actions',
-                    header: '',
-                    cell: (info) => <ScopeRequestActions request={info.row.original} />,
-                }),
+                ...(canReview
+                    ? [
+                          column.display({
+                              id: 'actions',
+                              header: '',
+                              cell: (info) => (
+                                  <ScopeRequestActions
+                                      request={info.row.original}
+                                      actionBasePath={actionBasePath}
+                                      contextQuery={contextQuery}
+                                  />
+                              ),
+                          }),
+                      ]
+                    : []),
             ] as Array<AdminColumnDef<ScopeRequestListItem>>,
-        [],
+        [actionBasePath, canReview, contextQuery],
     );
 
     return (
@@ -203,7 +219,15 @@ export function ScopeRequestsTable({
     );
 }
 
-function ScopeRequestActions({ request }: { request: ScopeRequestListItem }) {
+function ScopeRequestActions({
+    request,
+    actionBasePath,
+    contextQuery,
+}: {
+    request: ScopeRequestListItem;
+    actionBasePath: string;
+    contextQuery: string;
+}) {
     if (request.status !== 'PENDING') return null;
     const name = `${request.user.firstName} ${request.user.lastName}`;
     const offering = `${request.offering.subjectCode}, Session ${request.offering.session} ${request.offering.year}`;
@@ -220,7 +244,7 @@ function ScopeRequestActions({ request }: { request: ScopeRequestListItem }) {
                 />
                 <DropdownMenuContent align="end">
                     <ResourceActionDialog
-                        endpoint={`/api/admin/scope-requests/${request.id}/approve`}
+                        endpoint={actionEndpoint(actionBasePath, request.id, 'approve', contextQuery)}
                         title={`Approve access to ${request.offering.subjectCode}?`}
                         description={`This gives ${name} access to ${offering} through their ${request.role.roleName} role.`}
                         confirmLabel="Approve access"
@@ -233,7 +257,7 @@ function ScopeRequestActions({ request }: { request: ScopeRequestListItem }) {
                     />
                     <DropdownMenuSeparator />
                     <ResourceActionDialog
-                        endpoint={`/api/admin/scope-requests/${request.id}/reject`}
+                        endpoint={actionEndpoint(actionBasePath, request.id, 'reject', contextQuery)}
                         title={`Reject access to ${request.offering.subjectCode}?`}
                         description={`This closes ${name}’s request without assigning the subject scope. The request remains in history.`}
                         confirmLabel="Reject access"
@@ -249,4 +273,13 @@ function ScopeRequestActions({ request }: { request: ScopeRequestListItem }) {
             </DropdownMenu>
         </div>
     );
+}
+
+function actionEndpoint(
+    basePath: string,
+    requestId: string,
+    action: 'approve' | 'reject',
+    query: string,
+): string {
+    return `${basePath}/${requestId}/${action}${query ? `?${query}` : ''}`;
 }

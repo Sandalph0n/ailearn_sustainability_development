@@ -12,9 +12,15 @@ const STATUS_VALUES = ['active', 'revoked', 'all'] as const;
 export async function PeopleSection({
     institutionId,
     searchParams,
+    endpoint,
+    contextQuery,
+    canManage,
 }: {
     institutionId: string;
     searchParams: Record<string, string | string[] | undefined>;
+    endpoint?: string;
+    contextQuery?: string;
+    canManage?: boolean;
 }) {
     const SORT_FIELDS = ['user', 'role', 'granted'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -147,6 +153,9 @@ export async function PeopleSection({
             total={total}
             sort={sort}
             dir={dir}
+            endpoint={endpoint}
+            contextQuery={contextQuery}
+            canManage={canManage}
         />
     );
 }

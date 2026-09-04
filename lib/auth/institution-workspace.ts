@@ -36,7 +36,11 @@ export async function requireInstitutionWorkspace(
             ? findSelectedContext(contexts, { institutionId, roleId, offeringId })
             : suppliedContext
               ? null
-              : (contexts[0] ?? null);
+              : (contexts.find(
+                    (context) =>
+                        context.role.scopeType === 'INSTITUTION' &&
+                        hasAnyPermission(context.permissions, permissions),
+                ) ?? null);
 
     if (
         !active ||

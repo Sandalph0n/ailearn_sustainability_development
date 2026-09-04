@@ -88,6 +88,9 @@ export function PeopleTable({
     total,
     sort,
     dir,
+    endpoint = ENDPOINT,
+    contextQuery = '',
+    canManage = true,
 }: {
     assignments: AssignmentListItem[];
     users: UserOption[];
@@ -101,6 +104,9 @@ export function PeopleTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    endpoint?: string;
+    contextQuery?: string;
+    canManage?: boolean;
 }) {
     const list = useListQuery();
     const [granting, setGranting] = useState(false);
@@ -171,10 +177,16 @@ export function PeopleTable({
                 column.display({
                     id: 'actions',
                     header: '',
-                    cell: (info) => <AssignmentActions assignment={info.row.original} />,
+                    cell: (info) => canManage ? (
+                        <AssignmentActions
+                            assignment={info.row.original}
+                            endpoint={endpoint}
+                            contextQuery={contextQuery}
+                        />
+                    ) : null,
                 }),
             ] as Array<AdminColumnDef<AssignmentListItem>>,
-        [],
+        [canManage, contextQuery, endpoint],
     );
 
     if (granting) {
@@ -183,6 +195,8 @@ export function PeopleTable({
                 users={users}
                 roles={roles}
                 offerings={offerings}
+                endpoint={endpoint}
+                contextQuery={contextQuery}
                 onCancel={() => setGranting(false)}
             />
         );
@@ -242,13 +256,13 @@ export function PeopleTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    <Button
+                    {canManage && <Button
                         disabled={roles.length === 0 || users.length === 0}
                         onClick={() => setGranting(true)}
                     >
                         <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
                         Grant role
-                    </Button>
+                    </Button>}
                 </>
             }
             server={{
@@ -273,18 +287,22 @@ function AssignmentForm({
     users,
     roles,
     offerings,
+    endpoint,
+    contextQuery,
     onCancel,
 }: {
     users: UserOption[];
     roles: RoleOption[];
     offerings: OfferingOption[];
+    endpoint: string;
+    contextQuery: string;
     onCancel: () => void;
 }) {
     return (
         <ResourceFormPage<RoleAssignmentFormValue, RoleAssignmentSchemaValue>
             schema={RoleAssignmentSchema}
             emptyValues={EMPTY_ROLE_ASSIGNMENT_FORM}
-            createEndpoint={ENDPOINT}
+            createEndpoint={endpointFor(endpoint, contextQuery)}
             title={{ create: 'Grant role', edit: 'Grant role' }}
             description={{
                 create: 'Choose a person and role. An offering scope can be added now or later.',
@@ -411,7 +429,15 @@ function AssignmentFields({
     );
 }
 
-function AssignmentActions({ assignment }: { assignment: AssignmentListItem }) {
+function AssignmentActions({
+    assignment,
+    endpoint,
+    contextQuery,
+}: {
+    assignment: AssignmentListItem;
+    endpoint: string;
+    contextQuery: string;
+}) {
     if (assignment.revoked) return null;
 
     return (
@@ -426,7 +452,7 @@ function AssignmentActions({ assignment }: { assignment: AssignmentListItem }) {
                 />
                 <DropdownMenuContent align="end">
                     <ResourceActionDialog
-                        endpoint={`${ENDPOINT}/${assignment.id}/revoke`}
+                        endpoint={endpointFor(`${endpoint}/${assignment.id}/revoke`, contextQuery)}
                         method="PATCH"
                         title={`Revoke ${assignment.role.roleName}?`}
                         description={`This removes the role from ${assignment.user.firstName} ${assignment.user.lastName} now, while keeping the grant in history.`}
@@ -443,4 +469,8 @@ function AssignmentActions({ assignment }: { assignment: AssignmentListItem }) {
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query: string): string {
+    return query ? `${path}?${query}` : path;
 }

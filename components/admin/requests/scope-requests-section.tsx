@@ -15,9 +15,15 @@ const STATUS_VALUES = ['pending', 'approved', 'rejected', 'all'] as const;
 export async function ScopeRequestsSection({
     institutionId,
     searchParams,
+    actionBasePath,
+    contextQuery,
+    canReview,
 }: {
     institutionId: string;
     searchParams: Record<string, string | string[] | undefined>;
+    actionBasePath?: string;
+    contextQuery?: string;
+    canReview?: boolean;
 }) {
     const SORT_FIELDS = ['requested', 'user', 'role', 'subject', 'status'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -170,6 +176,9 @@ export async function ScopeRequestsSection({
             total={total}
             sort={sort}
             dir={dir}
+            actionBasePath={actionBasePath}
+            contextQuery={contextQuery}
+            canReview={canReview}
         />
     );
 }

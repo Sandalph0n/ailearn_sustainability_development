@@ -56,6 +56,9 @@ export function RequestsTable({
     total,
     sort,
     dir,
+    actionBasePath = '/api/admin/role-requests',
+    contextQuery = '',
+    canReview = true,
 }: {
     requests: RequestListItem[];
     roles: Array<{ id: string; roleName: string }>;
@@ -66,6 +69,9 @@ export function RequestsTable({
     total: number;
     sort: string;
     dir: 'asc' | 'desc';
+    actionBasePath?: string;
+    contextQuery?: string;
+    canReview?: boolean;
 }) {
     const list = useListQuery();
 
@@ -122,13 +128,23 @@ export function RequestsTable({
                         </div>
                     ),
                 }),
-                column.display({
-                    id: 'actions',
-                    header: '',
-                    cell: (info) => <RequestActions request={info.row.original} />,
-                }),
+                ...(canReview
+                    ? [
+                          column.display({
+                              id: 'actions',
+                              header: '',
+                              cell: (info) => (
+                                  <RequestActions
+                                      request={info.row.original}
+                                      actionBasePath={actionBasePath}
+                                      contextQuery={contextQuery}
+                                  />
+                              ),
+                          }),
+                      ]
+                    : []),
             ] as Array<AdminColumnDef<RequestListItem>>,
-        [],
+        [actionBasePath, canReview, contextQuery],
     );
 
     return (
@@ -194,7 +210,15 @@ export function RequestsTable({
     );
 }
 
-function RequestActions({ request }: { request: RequestListItem }) {
+function RequestActions({
+    request,
+    actionBasePath,
+    contextQuery,
+}: {
+    request: RequestListItem;
+    actionBasePath: string;
+    contextQuery: string;
+}) {
     if (request.status !== 'PENDING') return null;
     const name = `${request.user.firstName} ${request.user.lastName}`;
 
@@ -210,7 +234,7 @@ function RequestActions({ request }: { request: RequestListItem }) {
                 />
                 <DropdownMenuContent align="end">
                     <ResourceActionDialog
-                        endpoint={`/api/admin/role-requests/${request.id}/approve`}
+                        endpoint={actionEndpoint(actionBasePath, request.id, 'approve', contextQuery)}
                         title={`Approve ${request.role.roleName}?`}
                         description={
                             request.role.scopeType === 'INSTITUTION'
@@ -227,7 +251,7 @@ function RequestActions({ request }: { request: RequestListItem }) {
                     />
                     <DropdownMenuSeparator />
                     <ResourceActionDialog
-                        endpoint={`/api/admin/role-requests/${request.id}/reject`}
+                        endpoint={actionEndpoint(actionBasePath, request.id, 'reject', contextQuery)}
                         title={`Reject ${request.role.roleName}?`}
                         description={`This closes ${name}’s request without granting a role. The request remains in history.`}
                         confirmLabel="Reject request"
@@ -243,4 +267,13 @@ function RequestActions({ request }: { request: RequestListItem }) {
             </DropdownMenu>
         </div>
     );
+}
+
+function actionEndpoint(
+    basePath: string,
+    requestId: string,
+    action: 'approve' | 'reject',
+    query: string,
+): string {
+    return `${basePath}/${requestId}/${action}${query ? `?${query}` : ''}`;
 }

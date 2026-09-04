@@ -11,6 +11,7 @@ import {
 } from '@/lib/admin/list-params';
 import { effectivePermissionIdsByRole } from '@/lib/admin/role-inheritance';
 import { db } from '@/lib/db';
+import type { CrudCapabilities } from '@/lib/admin/resource-capabilities';
 
 /**
  * Bảng vai trò, dùng chung cho hai lối vào.
@@ -21,9 +22,15 @@ import { db } from '@/lib/db';
 export async function RolesSection({
     searchParams,
     lockedInstitutionId = null,
+    endpoint,
+    contextQuery,
+    capabilities,
 }: {
     searchParams: Record<string, string | string[] | undefined>;
     lockedInstitutionId?: string | null;
+    endpoint?: string;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
 }) {
     const SORT_FIELDS = ['roleName', 'roleCode', 'scopeType', 'institution'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -160,6 +167,9 @@ export async function RolesSection({
             total={total}
             sort={sort}
             dir={dir}
+            endpoint={endpoint}
+            contextQuery={contextQuery}
+            capabilities={capabilities}
         />
     );
 }
