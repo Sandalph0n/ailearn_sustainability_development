@@ -9,7 +9,6 @@ import {
     ArrowRight01Icon,
     BookOpen01Icon,
     Clock01Icon,
-    Key01Icon,
     Tick02Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -25,14 +24,6 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
-import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 
 export type SubjectAccessOffering = {
@@ -91,17 +82,11 @@ export function SubjectAccess({
     const router = useRouter();
     const [adding, setAdding] = useState(false);
     const [assignmentId, setAssignmentId] = useState(initialAssignmentId);
-    const [method, setMethod] = useState<'REQUEST' | 'CODE'>('REQUEST');
     const [offering, setOffering] = useState<SubjectAccessOffering | null>(null);
-    const [code, setCode] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const selectedRole = roles.find((role) => role.assignmentId === assignmentId) ?? null;
-    const offeringRoles = useMemo(
-        () => roles.filter((role) => role.scopeType === 'OFFERING'),
-        [roles],
-    );
     const availableOfferings = useMemo(() => {
         if (!selectedRole) return [];
 
@@ -118,58 +103,40 @@ export function SubjectAccess({
 
     function chooseRole(nextAssignmentId: string | null) {
         setAssignmentId(nextAssignmentId);
+        setAdding(false);
         setOffering(null);
         setError(null);
     }
 
     function startAdding() {
-        if (offeringRoles.length === 0) return;
-        if (selectedRole?.scopeType !== 'OFFERING') {
-            chooseRole(offeringRoles[0].assignmentId);
-        }
+        if (selectedRole?.scopeType !== 'OFFERING') return;
+        setOffering(null);
+        setError(null);
         setAdding(true);
     }
 
     async function submit() {
-        if (!assignmentId || submitting) return;
-        if (method === 'REQUEST' && !offering) return;
-        if (method === 'CODE' && code.trim().length === 0) return;
+        if (!assignmentId || !offering || submitting) return;
 
         setSubmitting(true);
         setError(null);
 
-        const endpoint = method === 'REQUEST' ? '/api/scope-requests' : '/api/scope-codes/redeem';
-        const payload =
-            method === 'REQUEST'
-                ? { roleAssignmentId: assignmentId, offeringId: offering?.id }
-                : { roleAssignmentId: assignmentId, codeId: code.trim() };
-
         try {
-            const response = await fetch(endpoint, {
+            const response = await fetch('/api/scope-requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ roleAssignmentId: assignmentId, offeringId: offering.id }),
             });
             const body: unknown = await response.json().catch(() => ({}));
             if (!response.ok) {
-                const message = responseError(
-                    body,
-                    method === 'REQUEST'
-                        ? 'Could not send the subject access request.'
-                        : 'Could not use that access code.',
-                );
+                const message = responseError(body, 'Could not send the subject access request.');
                 setError(message);
                 toast.error(message);
                 return;
             }
 
-            toast.success(
-                method === 'REQUEST'
-                    ? 'Subject access request sent for review.'
-                    : 'Subject access added.',
-            );
+            toast.success('Subject access request sent for review.');
             setOffering(null);
-            setCode('');
             setAdding(false);
             router.refresh();
         } catch {
@@ -208,212 +175,9 @@ export function SubjectAccess({
         );
     }
 
-    if (adding) {
-        return (
-            <main className="mx-auto w-full max-w-5xl py-8 sm:py-12">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className="mb-6 -translate-x-3"
-                    onClick={() => setAdding(false)}
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} data-icon="inline-start" />
-                    Back to subject access
-                </Button>
-
-                <header className="mb-7">
-                    <p className="text-brand-teal mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-                        Add scope
-                    </p>
-                    <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-                        Add subject access
-                    </h1>
-                    <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
-                        Choose which of your offering roles should apply, then request access or use
-                        a code supplied by the institution.
-                    </p>
-                </header>
-
-                <section className="bg-card grid overflow-hidden rounded-xl border shadow-sm lg:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.2fr)]">
-                    <div className="bg-muted/25 border-b p-6 lg:border-r lg:border-b-0 sm:p-8">
-                        <h2 className="font-heading font-semibold">Access role</h2>
-                        <p className="text-muted-foreground mt-1 text-sm leading-5">
-                            The subject scope will be attached to this role assignment.
-                        </p>
-
-                        <div className="mt-5 space-y-2">
-                            <label htmlFor="scope-role" className="text-sm font-medium">
-                                Institution and role
-                            </label>
-                            <Select
-                                items={Object.fromEntries(
-                                    offeringRoles.map((role) => [
-                                        role.assignmentId,
-                                        `${role.institution.name} · ${role.roleName}`,
-                                    ]),
-                                )}
-                                value={assignmentId}
-                                onValueChange={chooseRole}
-                            >
-                                <SelectTrigger id="scope-role" className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {offeringRoles.map((role) => (
-                                        <SelectItem key={role.assignmentId} value={role.assignmentId}>
-                                            <span className="flex flex-col">
-                                                <span>{role.roleName}</span>
-                                                <span className="text-muted-foreground text-xs">
-                                                    {role.institution.name}
-                                                </span>
-                                            </span>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="p-6 sm:p-8">
-                        <div className="grid grid-cols-2 gap-2 rounded-lg border p-1">
-                            <button
-                                type="button"
-                                aria-pressed={method === 'REQUEST'}
-                                onClick={() => {
-                                    setMethod('REQUEST');
-                                    setError(null);
-                                }}
-                                className={
-                                    'rounded-md px-3 py-2 text-sm font-medium transition-colors ' +
-                                    (method === 'REQUEST'
-                                        ? 'bg-brand-teal text-white'
-                                        : 'text-muted-foreground hover:bg-muted')
-                                }
-                            >
-                                Request access
-                            </button>
-                            <button
-                                type="button"
-                                aria-pressed={method === 'CODE'}
-                                onClick={() => {
-                                    setMethod('CODE');
-                                    setError(null);
-                                }}
-                                className={
-                                    'rounded-md px-3 py-2 text-sm font-medium transition-colors ' +
-                                    (method === 'CODE'
-                                        ? 'bg-brand-teal text-white'
-                                        : 'text-muted-foreground hover:bg-muted')
-                                }
-                            >
-                                Use access code
-                            </button>
-                        </div>
-
-                        {method === 'REQUEST' ? (
-                            <div className="mt-6 space-y-2">
-                                <label htmlFor="subject-offering" className="text-sm font-medium">
-                                    Subject offering
-                                </label>
-                                <Combobox
-                                    items={availableOfferings}
-                                    value={offering}
-                                    onValueChange={setOffering}
-                                    itemToStringLabel={offeringLabel}
-                                    itemToStringValue={(item: SubjectAccessOffering) => item.id}
-                                    isItemEqualToValue={(
-                                        item: SubjectAccessOffering,
-                                        value: SubjectAccessOffering,
-                                    ) => item.id === value.id}
-                                >
-                                    <ComboboxInput
-                                        id="subject-offering"
-                                        className="w-full"
-                                        placeholder="Search by subject code or name"
-                                        showClear
-                                    />
-                                    <ComboboxContent>
-                                        <ComboboxEmpty>No available offering found.</ComboboxEmpty>
-                                        <ComboboxList>
-                                            {(item: SubjectAccessOffering) => (
-                                                <ComboboxItem key={item.id} value={item}>
-                                                    <span className="flex min-w-0 flex-col">
-                                                        <span className="truncate font-medium">
-                                                            {item.subjectCode} · {item.subjectName}
-                                                        </span>
-                                                        <span className="text-muted-foreground text-xs">
-                                                            Session {item.session} {item.year}
-                                                        </span>
-                                                    </span>
-                                                </ComboboxItem>
-                                            )}
-                                        </ComboboxList>
-                                    </ComboboxContent>
-                                </Combobox>
-                                <p className="text-muted-foreground text-xs">
-                                    Access starts only after an administrator approves the request.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="mt-6 space-y-2">
-                                <label htmlFor="access-code" className="text-sm font-medium">
-                                    Access code
-                                </label>
-                                <Input
-                                    id="access-code"
-                                    value={code}
-                                    onChange={(event) => setCode(event.target.value)}
-                                    placeholder="00000000-0000-0000-0000-000000000000"
-                                    autoComplete="off"
-                                    spellCheck={false}
-                                    className="font-mono"
-                                />
-                                <p className="text-muted-foreground text-xs">
-                                    A valid code grants access immediately and can only be used once.
-                                </p>
-                            </div>
-                        )}
-
-                        {error && (
-                            <p
-                                role="alert"
-                                className="border-destructive/30 bg-destructive/10 text-destructive mt-5 rounded-lg border px-3 py-2 text-sm"
-                            >
-                                {error}
-                            </p>
-                        )}
-
-                        <Button
-                            type="button"
-                            size="lg"
-                            className="mt-7"
-                            disabled={
-                                submitting ||
-                                !assignmentId ||
-                                (method === 'REQUEST' ? !offering : code.trim().length === 0)
-                            }
-                            onClick={() => void submit()}
-                        >
-                            {submitting ? (
-                                <Spinner />
-                            ) : (
-                                <HugeiconsIcon
-                                    icon={method === 'REQUEST' ? ArrowRight01Icon : Key01Icon}
-                                    strokeWidth={2}
-                                    data-icon="inline-start"
-                                />
-                            )}
-                            {method === 'REQUEST' ? 'Send request' : 'Use code'}
-                        </Button>
-                    </div>
-                </section>
-            </main>
-        );
-    }
-
     return (
         <main className="mx-auto w-full max-w-6xl py-8 sm:py-12">
-            <header className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <header className="mb-7">
                 <div>
                     <p className="text-brand-teal mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
                         Access coverage
@@ -425,12 +189,6 @@ export function SubjectAccess({
                         See whether a role covers the whole institution or selected offerings.
                     </p>
                 </div>
-                {offeringRoles.length > 0 && (
-                    <Button type="button" size="lg" onClick={startAdding}>
-                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-                        Add subject access
-                    </Button>
-                )}
             </header>
 
             <section className="bg-card grid min-h-120 overflow-hidden rounded-xl border shadow-sm lg:grid-cols-[minmax(16rem,0.75fr)_minmax(0,1.25fr)]">
@@ -490,16 +248,123 @@ export function SubjectAccess({
                 </div>
 
                 <div className="p-5 sm:p-6">
-                    <div className="mb-4">
-                        <h2 className="font-heading font-semibold">
-                            Access as {selectedRole?.roleName}
-                        </h2>
-                        <p className="text-muted-foreground mt-0.5 text-xs">
-                            {selectedRole?.institution.name}
-                        </p>
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h2 className="font-heading font-semibold">
+                                {adding ? 'Add access for' : 'Access as'} {selectedRole?.roleName}
+                            </h2>
+                            <p className="text-muted-foreground mt-0.5 text-xs">
+                                {selectedRole?.institution.name}
+                            </p>
+                        </div>
+
+                        {selectedRole?.scopeType === 'OFFERING' &&
+                            (adding ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled={submitting}
+                                    onClick={() => {
+                                        setAdding(false);
+                                        setOffering(null);
+                                        setError(null);
+                                    }}
+                                >
+                                    <HugeiconsIcon
+                                        icon={ArrowLeft01Icon}
+                                        strokeWidth={2}
+                                        data-icon="inline-start"
+                                    />
+                                    Cancel
+                                </Button>
+                            ) : (
+                                <Button type="button" onClick={startAdding}>
+                                    <HugeiconsIcon
+                                        icon={Add01Icon}
+                                        strokeWidth={2}
+                                        data-icon="inline-start"
+                                    />
+                                    Add subject access
+                                </Button>
+                            ))}
                     </div>
 
-                    {selectedRole?.scopeType === 'INSTITUTION' ? (
+                    {adding && selectedRole?.scopeType === 'OFFERING' ? (
+                        <div className="bg-muted/20 rounded-lg border p-5 sm:p-6">
+                            <div className="max-w-2xl space-y-2">
+                                <label htmlFor="subject-offering" className="text-sm font-medium">
+                                    Subject offering
+                                </label>
+                                <Combobox
+                                    items={availableOfferings}
+                                    value={offering}
+                                    onValueChange={setOffering}
+                                    itemToStringLabel={offeringLabel}
+                                    itemToStringValue={(item: SubjectAccessOffering) => item.id}
+                                    isItemEqualToValue={(
+                                        item: SubjectAccessOffering,
+                                        value: SubjectAccessOffering,
+                                    ) => item.id === value.id}
+                                >
+                                    <ComboboxInput
+                                        id="subject-offering"
+                                        className="w-full"
+                                        placeholder="Search by subject code or name"
+                                        showClear
+                                    />
+                                    <ComboboxContent>
+                                        <ComboboxEmpty>No available offering found.</ComboboxEmpty>
+                                        <ComboboxList>
+                                            {(item: SubjectAccessOffering) => (
+                                                <ComboboxItem key={item.id} value={item}>
+                                                    <span className="flex min-w-0 flex-col">
+                                                        <span className="truncate font-medium">
+                                                            {item.subjectCode} · {item.subjectName}
+                                                        </span>
+                                                        <span className="text-muted-foreground text-xs">
+                                                            Session {item.session} {item.year}
+                                                        </span>
+                                                    </span>
+                                                </ComboboxItem>
+                                            )}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
+                                <p className="text-muted-foreground text-xs">
+                                    The request will be attached to {selectedRole.roleName} at{' '}
+                                    {selectedRole.institution.name}. Access starts after approval.
+                                </p>
+                            </div>
+
+                            {error && (
+                                <p
+                                    role="alert"
+                                    className="border-destructive/30 bg-destructive/10 text-destructive mt-5 rounded-lg border px-3 py-2 text-sm"
+                                >
+                                    {error}
+                                </p>
+                            )}
+
+                            <div className="mt-6 flex justify-end">
+                                <Button
+                                    type="button"
+                                    disabled={submitting || !offering}
+                                    onClick={() => void submit()}
+                                >
+                                    {submitting ? (
+                                        <Spinner />
+                                    ) : (
+                                        <HugeiconsIcon
+                                            icon={ArrowRight01Icon}
+                                            strokeWidth={2}
+                                            data-icon="inline-start"
+                                        />
+                                    )}
+                                    Send request
+                                </Button>
+                            </div>
+                        </div>
+                    ) : selectedRole?.scopeType === 'INSTITUTION' ? (
                         <div className="border-brand-teal/30 bg-brand-teal/5 flex min-h-64 flex-col justify-center rounded-lg border p-6 sm:p-8">
                             <div className="bg-brand-teal/12 text-brand-teal mb-4 flex size-11 items-center justify-center rounded-lg">
                                 <HugeiconsIcon
@@ -604,8 +469,7 @@ export function SubjectAccess({
                                         </div>
                                         <p className="text-sm font-medium">No subject access yet</p>
                                         <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-                                            Request an offering or use an access code to give this
-                                            role a scope.
+                                            Request an offering to give this role its first scope.
                                         </p>
                                     </div>
                                 )}
