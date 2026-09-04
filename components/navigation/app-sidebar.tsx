@@ -42,14 +42,17 @@ import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
  */
 const PERSONAL_ITEMS = [
     { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
-    { href: '/navigation/roles', label: 'Role Management', icon: Shield01Icon },
-    { href: '/navigation/subject-access', label: 'Subject Access', icon: BookOpen01Icon },
     {
         href: '/navigation/assessments',
         label: 'Assessments',
         icon: TaskDone01Icon,
     },
     { href: '/navigation/calendar', label: 'Calendar', icon: Calendar03Icon },
+] as const;
+
+const ACCESS_CONTROL_ITEMS = [
+    { href: '/navigation/roles', label: 'Role Management', icon: Shield01Icon },
+    { href: '/navigation/subject-access', label: 'Subject Access', icon: BookOpen01Icon },
 ] as const;
 
 const INSTITUTION_ITEMS = [
@@ -143,6 +146,26 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {PERSONAL_ITEMS.map((item) => (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton
+                                        isActive={pathname.startsWith(item.href)}
+                                        tooltip={item.label}
+                                        render={<Link href={withContext(item.href)} />}
+                                    >
+                                        <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                                        <span>{item.label}</span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Access Control</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {ACCESS_CONTROL_ITEMS.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}
