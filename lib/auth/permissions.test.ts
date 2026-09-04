@@ -2,14 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { PermissionType, RoleScopeType } from '../../app/generated/prisma/enums';
 import {
     ALL_PERMISSION_CODES,
     MANAGE_PERMISSION_BUNDLES,
     PERMISSION_CATALOG,
     PERMISSION_CODE,
     assertPermissionCode,
-    canRoleScopeUsePermission,
     hasEveryPermission,
     hasPermission,
     isPermissionCode,
@@ -24,39 +22,12 @@ describe('permission catalog', () => {
             .toBe(true);
     });
 
-    it('keeps the expected institution and offering applicability split', () => {
-        const definitions = Object.values(PERMISSION_CATALOG);
-
-        expect(definitions.filter(({ type }) => type === PermissionType.I)).toHaveLength(21);
-        expect(definitions.filter(({ type }) => type === PermissionType.IO)).toHaveLength(17);
-    });
-
     it('narrows and rejects permission strings at runtime boundaries', () => {
         expect(isPermissionCode(PERMISSION_CODE.ASSESSMENT_ATTEMPT)).toBe(true);
         expect(isPermissionCode('assessment.delete_everything')).toBe(false);
         expect(() => assertPermissionCode('assessment.delete_everything')).toThrow(
             'Unknown permission code',
         );
-    });
-
-    it('allows institution roles to use every permission and offering roles to use only IO', () => {
-        expect(
-            ALL_PERMISSION_CODES.every((permission) =>
-                canRoleScopeUsePermission(RoleScopeType.INSTITUTION, permission),
-            ),
-        ).toBe(true);
-        expect(
-            canRoleScopeUsePermission(
-                RoleScopeType.OFFERING,
-                PERMISSION_CODE.INSTITUTION_SETTINGS_MANAGE,
-            ),
-        ).toBe(false);
-        expect(
-            canRoleScopeUsePermission(
-                RoleScopeType.OFFERING,
-                PERMISSION_CODE.ASSESSMENT_VIEW,
-            ),
-        ).toBe(true);
     });
 
     it('matches every row inserted by the permission data migration', () => {
@@ -73,7 +44,7 @@ describe('permission catalog', () => {
             ),
         ].map((match) => [
             match[1],
-            { type: match[2], description: match[3].replaceAll("''", "'") },
+            { description: match[3].replaceAll("''", "'") },
         ] as const);
 
         expect(rows).toHaveLength(38);

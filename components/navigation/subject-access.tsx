@@ -46,6 +46,7 @@ export type SubjectAccessOffering = {
 
 export type SubjectAccessRole = {
     assignmentId: string;
+    scopeType: 'INSTITUTION' | 'OFFERING';
     roleName: string;
     institution: { id: string; name: string };
     scopes: Array<{
@@ -81,13 +82,15 @@ function offeringLabel(offering: SubjectAccessOffering): string {
 export function SubjectAccess({
     roles,
     offerings,
+    initialAssignmentId,
 }: {
     roles: SubjectAccessRole[];
     offerings: SubjectAccessOffering[];
+    initialAssignmentId: string | null;
 }) {
     const router = useRouter();
     const [adding, setAdding] = useState(false);
-    const [assignmentId, setAssignmentId] = useState(roles.at(0)?.assignmentId ?? null);
+    const [assignmentId, setAssignmentId] = useState(initialAssignmentId);
     const [method, setMethod] = useState<'REQUEST' | 'CODE'>('REQUEST');
     const [offering, setOffering] = useState<SubjectAccessOffering | null>(null);
     const [code, setCode] = useState('');
@@ -95,6 +98,10 @@ export function SubjectAccess({
     const [error, setError] = useState<string | null>(null);
 
     const selectedRole = roles.find((role) => role.assignmentId === assignmentId) ?? null;
+    const offeringRoles = useMemo(
+        () => roles.filter((role) => role.scopeType === 'OFFERING'),
+        [roles],
+    );
     const availableOfferings = useMemo(() => {
         if (!selectedRole) return [];
 
@@ -113,6 +120,14 @@ export function SubjectAccess({
         setAssignmentId(nextAssignmentId);
         setOffering(null);
         setError(null);
+    }
+
+    function startAdding() {
+        if (offeringRoles.length === 0) return;
+        if (selectedRole?.scopeType !== 'OFFERING') {
+            chooseRole(offeringRoles[0].assignmentId);
+        }
+        setAdding(true);
     }
 
     async function submit() {
@@ -232,7 +247,7 @@ export function SubjectAccess({
                             </label>
                             <Select
                                 items={Object.fromEntries(
-                                    roles.map((role) => [
+                                    offeringRoles.map((role) => [
                                         role.assignmentId,
                                         `${role.institution.name} · ${role.roleName}`,
                                     ]),
@@ -244,7 +259,7 @@ export function SubjectAccess({
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {roles.map((role) => (
+                                    {offeringRoles.map((role) => (
                                         <SelectItem key={role.assignmentId} value={role.assignmentId}>
                                             <span className="flex flex-col">
                                                 <span>{role.roleName}</span>
@@ -401,20 +416,21 @@ export function SubjectAccess({
             <header className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <p className="text-brand-teal mb-2 text-xs font-semibold tracking-[0.14em] uppercase">
-                        Offering scopes
+                        Access coverage
                     </p>
                     <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
                         Subject access
                     </h1>
                     <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
-                        See where each of your roles applies, request another subject, or join with
-                        an access code.
+                        See whether a role covers the whole institution or selected offerings.
                     </p>
                 </div>
-                <Button type="button" size="lg" onClick={() => setAdding(true)}>
-                    <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
-                    Add subject access
-                </Button>
+                {offeringRoles.length > 0 && (
+                    <Button type="button" size="lg" onClick={startAdding}>
+                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} data-icon="inline-start" />
+                        Add subject access
+                    </Button>
+                )}
             </header>
 
             <section className="bg-card grid min-h-120 overflow-hidden rounded-xl border shadow-sm lg:grid-cols-[minmax(16rem,0.75fr)_minmax(0,1.25fr)]">
@@ -423,7 +439,7 @@ export function SubjectAccess({
                     <p className="text-muted-foreground mt-0.5 mb-4 text-xs">
                         Choose the role whose subject access you want to inspect.
                     </p>
-                    <ul className="space-y-2" aria-label="Offering roles">
+                    <ul className="space-y-2" aria-label="Access roles">
                         {roles.map((role) => {
                             const selected = role.assignmentId === assignmentId;
                             return (
@@ -453,6 +469,11 @@ export function SubjectAccess({
                                             <span className="text-muted-foreground block truncate text-xs">
                                                 {role.institution.name}
                                             </span>
+                                            <Badge variant="outline" className="mt-1.5">
+                                                {role.scopeType === 'INSTITUTION'
+                                                    ? 'Institution-wide'
+                                                    : 'Offering-scoped'}
+                                            </Badge>
                                         </span>
                                         {selected && (
                                             <HugeiconsIcon
@@ -478,82 +499,118 @@ export function SubjectAccess({
                         </p>
                     </div>
 
-                    <ul className="space-y-3" aria-label="Subject access records">
-                        {selectedRole?.scopes.map((scope) => (
-                            <li
-                                key={scope.id}
-                                className="flex items-start gap-3 rounded-lg border p-4"
-                            >
-                                <span className="bg-brand-teal/10 text-brand-teal flex size-9 shrink-0 items-center justify-center rounded-md">
-                                    <HugeiconsIcon
-                                        icon={BookOpen01Icon}
-                                        strokeWidth={2}
-                                        className="size-4"
-                                    />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block font-medium">
-                                        {scope.offering.subjectCode} · {scope.offering.subjectName}
-                                    </span>
-                                    <span className="text-muted-foreground mt-0.5 block text-sm">
-                                        Session {scope.offering.session} {scope.offering.year}
-                                    </span>
-                                </span>
-                                <Badge variant="outline">
-                                    {scope.source === 'CODE'
-                                        ? 'Access code'
-                                        : scope.source === 'REQUEST_APPROVED'
-                                          ? 'Approved request'
-                                          : 'Assigned directly'}
-                                </Badge>
-                            </li>
-                        ))}
-
-                        {selectedRole?.pendingRequests.map((request) => (
-                            <li
-                                key={request.id}
-                                className="border-brand-amber/30 bg-brand-amber/5 flex items-start gap-3 rounded-lg border p-4"
-                            >
-                                <span className="bg-brand-amber/10 text-brand-amber flex size-9 shrink-0 items-center justify-center rounded-md">
-                                    <HugeiconsIcon
-                                        icon={Clock01Icon}
-                                        strokeWidth={2}
-                                        className="size-4"
-                                    />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                    <span className="block font-medium">
-                                        {request.offering.subjectCode} ·{' '}
-                                        {request.offering.subjectName}
-                                    </span>
-                                    <span className="text-muted-foreground mt-0.5 block text-sm">
-                                        Session {request.offering.session}{' '}
-                                        {request.offering.year}
-                                    </span>
-                                </span>
-                                <Badge variant="secondary">Pending</Badge>
-                            </li>
-                        ))}
-                    </ul>
-
-                    {selectedRole &&
-                        selectedRole.scopes.length === 0 &&
-                        selectedRole.pendingRequests.length === 0 && (
-                            <div className="border-border/70 flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed px-6 text-center">
-                                <div className="bg-brand-teal/10 text-brand-teal mb-3 flex size-11 items-center justify-center rounded-lg">
-                                    <HugeiconsIcon
-                                        icon={BookOpen01Icon}
-                                        strokeWidth={2}
-                                        className="size-5"
-                                    />
-                                </div>
-                                <p className="text-sm font-medium">No subject access yet</p>
-                                <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-                                    Request an offering or use an access code to give this role a
-                                    scope.
-                                </p>
+                    {selectedRole?.scopeType === 'INSTITUTION' ? (
+                        <div className="border-brand-teal/30 bg-brand-teal/5 flex min-h-64 flex-col justify-center rounded-lg border p-6 sm:p-8">
+                            <div className="bg-brand-teal/12 text-brand-teal mb-4 flex size-11 items-center justify-center rounded-lg">
+                                <HugeiconsIcon
+                                    icon={BookOpen01Icon}
+                                    strokeWidth={2}
+                                    className="size-5"
+                                />
                             </div>
-                        )}
+                            <Badge variant="outline" className="mb-3 w-fit">
+                                Institution-wide role
+                            </Badge>
+                            <h3 className="font-heading text-lg font-semibold">
+                                {selectedRole.roleName} covers the whole institution
+                            </h3>
+                            <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-6">
+                                Any offering-level permission granted by this role applies to every
+                                current and future offering at {selectedRole.institution.name}. It
+                                does not need individual subject scopes or access codes.
+                            </p>
+                            <p className="text-foreground mt-5 text-sm font-medium tabular-nums">
+                                {
+                                    offerings.filter(
+                                        (candidate) =>
+                                            candidate.institutionId === selectedRole.institution.id,
+                                    ).length
+                                }{' '}
+                                current offerings covered
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <ul className="space-y-3" aria-label="Subject access records">
+                                {selectedRole?.scopes.map((scope) => (
+                                    <li
+                                        key={scope.id}
+                                        className="flex items-start gap-3 rounded-lg border p-4"
+                                    >
+                                        <span className="bg-brand-teal/10 text-brand-teal flex size-9 shrink-0 items-center justify-center rounded-md">
+                                            <HugeiconsIcon
+                                                icon={BookOpen01Icon}
+                                                strokeWidth={2}
+                                                className="size-4"
+                                            />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block font-medium">
+                                                {scope.offering.subjectCode} ·{' '}
+                                                {scope.offering.subjectName}
+                                            </span>
+                                            <span className="text-muted-foreground mt-0.5 block text-sm">
+                                                Session {scope.offering.session}{' '}
+                                                {scope.offering.year}
+                                            </span>
+                                        </span>
+                                        <Badge variant="outline">
+                                            {scope.source === 'CODE'
+                                                ? 'Access code'
+                                                : scope.source === 'REQUEST_APPROVED'
+                                                  ? 'Approved request'
+                                                  : 'Assigned directly'}
+                                        </Badge>
+                                    </li>
+                                ))}
+
+                                {selectedRole?.pendingRequests.map((request) => (
+                                    <li
+                                        key={request.id}
+                                        className="border-brand-amber/30 bg-brand-amber/5 flex items-start gap-3 rounded-lg border p-4"
+                                    >
+                                        <span className="bg-brand-amber/10 text-brand-amber flex size-9 shrink-0 items-center justify-center rounded-md">
+                                            <HugeiconsIcon
+                                                icon={Clock01Icon}
+                                                strokeWidth={2}
+                                                className="size-4"
+                                            />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block font-medium">
+                                                {request.offering.subjectCode} ·{' '}
+                                                {request.offering.subjectName}
+                                            </span>
+                                            <span className="text-muted-foreground mt-0.5 block text-sm">
+                                                Session {request.offering.session}{' '}
+                                                {request.offering.year}
+                                            </span>
+                                        </span>
+                                        <Badge variant="secondary">Pending</Badge>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {selectedRole &&
+                                selectedRole.scopes.length === 0 &&
+                                selectedRole.pendingRequests.length === 0 && (
+                                    <div className="border-border/70 flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed px-6 text-center">
+                                        <div className="bg-brand-teal/10 text-brand-teal mb-3 flex size-11 items-center justify-center rounded-lg">
+                                            <HugeiconsIcon
+                                                icon={BookOpen01Icon}
+                                                strokeWidth={2}
+                                                className="size-5"
+                                            />
+                                        </div>
+                                        <p className="text-sm font-medium">No subject access yet</p>
+                                        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+                                            Request an offering or use an access code to give this
+                                            role a scope.
+                                        </p>
+                                    </div>
+                                )}
+                        </>
+                    )}
                 </div>
             </section>
         </main>

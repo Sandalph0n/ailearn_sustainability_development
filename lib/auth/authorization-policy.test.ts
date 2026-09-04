@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ContextOption } from '../context/context-params';
 import {
     effectivePermissionCodes,
+    findContextForTarget,
     findSelectedContext,
 } from './authorization-policy';
 import { PERMISSION_CODE } from './permissions';
@@ -51,6 +52,65 @@ describe('authorization policy', () => {
                 roleId: 'role',
                 offeringId: null,
             }),
+        ).toBeNull();
+    });
+
+    it('lets institution roles cover every offering but keeps offering roles in assigned scope', () => {
+        const institutionContext: ContextOption = {
+            assignmentId: 'institution-assignment',
+            institution: { id: 'institution', name: 'Institution' },
+            role: {
+                id: 'institution-role',
+                roleName: 'Institution manager',
+                scopeType: 'INSTITUTION',
+            },
+            offering: null,
+        };
+        const offeringContext: ContextOption = {
+            assignmentId: 'offering-assignment',
+            institution: { id: 'institution', name: 'Institution' },
+            role: {
+                id: 'offering-role',
+                roleName: 'Tutor',
+                scopeType: 'OFFERING',
+            },
+            offering: {
+                id: 'offering-1',
+                subjectCode: 'COMP1000',
+                subjectName: 'Programming',
+                year: 2026,
+                session: 1,
+            },
+        };
+        const contexts = [institutionContext, offeringContext];
+
+        expect(
+            findContextForTarget(
+                contexts,
+                { institutionId: 'institution', roleId: 'institution-role' },
+                { kind: 'OFFERING', institutionId: 'institution', offeringId: 'offering-99' },
+            ),
+        ).toBe(institutionContext);
+        expect(
+            findContextForTarget(
+                contexts,
+                { institutionId: 'institution', roleId: 'offering-role' },
+                { kind: 'OFFERING', institutionId: 'institution', offeringId: 'offering-1' },
+            ),
+        ).toBe(offeringContext);
+        expect(
+            findContextForTarget(
+                contexts,
+                { institutionId: 'institution', roleId: 'offering-role' },
+                { kind: 'OFFERING', institutionId: 'institution', offeringId: 'offering-2' },
+            ),
+        ).toBeNull();
+        expect(
+            findContextForTarget(
+                contexts,
+                { institutionId: 'institution', roleId: 'offering-role' },
+                { kind: 'INSTITUTION', institutionId: 'institution' },
+            ),
         ).toBeNull();
     });
 });

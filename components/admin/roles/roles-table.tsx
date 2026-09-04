@@ -46,6 +46,7 @@ import {
 
 export type RoleListItem = {
     id: string;
+    roleCode: string;
     roleName: string;
     scopeType: 'INSTITUTION' | 'OFFERING';
     autoGrantEmailRegex: string | null;
@@ -57,7 +58,9 @@ export type RoleListItem = {
 
 export type RoleInheritanceOption = {
     id: string;
+    roleCode: string;
     roleName: string;
+    scopeType: 'INSTITUTION' | 'OFFERING';
     /** Direct plus transitive permissions this role contributes when included. */
     effectivePermissionIds: string[];
 };
@@ -100,7 +103,14 @@ export function RolesTable({
             [
                 column.accessor('roleName', {
                     header: 'Role',
-                    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+                    cell: (info) => (
+                        <span className="grid gap-0.5">
+                            <span className="font-medium">{info.getValue()}</span>
+                            <code className="text-muted-foreground font-mono text-[0.7rem]">
+                                {info.row.original.roleCode}
+                            </code>
+                        </span>
+                    ),
                 }),
 
                 column.accessor('scopeType', {
@@ -277,6 +287,7 @@ function RoleForm({
                     id: role.id,
                     values: {
                         institutionId: role.institution.id,
+                        roleCode: role.roleCode,
                         roleName: role.roleName,
                         scopeType: role.scopeType,
                         autoGrantEmailRegex: role.autoGrantEmailRegex ?? '',
@@ -296,8 +307,10 @@ function RoleForm({
             {(form) => {
                 // Chỉ chào các vai trò cùng cơ sở; backend và trigger vẫn kiểm lại độc lập.
                 const chosenInstitution = form.watch('institutionId');
+                const chosenScope = form.watch('scopeType');
                 const candidates = (rolesByInstitution[chosenInstitution] ?? []).filter(
-                    (candidate) => candidate.id !== role?.id,
+                    (candidate) =>
+                        candidate.id !== role?.id && candidate.scopeType === chosenScope,
                 );
                 const includedRoleIds = new Set(form.watch('includedRoleIds'));
                 const inheritedByPermission = new Map<string, string[]>();
@@ -341,7 +354,7 @@ function RoleForm({
                                 <FormInput
                                     control={form.control}
                                     name="roleName"
-                                    label="Name"
+                                    label="Display name"
                                     placeholder="Tutor"
                                     autoComplete="off"
                                 />
@@ -354,6 +367,17 @@ function RoleForm({
                                     <SelectItem value="INSTITUTION">Institution</SelectItem>
                                     <SelectItem value="OFFERING">Offering</SelectItem>
                                 </FormSelect>
+                                <div className="md:col-span-2">
+                                    <FormInput
+                                        control={form.control}
+                                        name="roleCode"
+                                        label="Role code"
+                                        description="Stable identifier. Its prefix must match the selected scope."
+                                        placeholder="offering:tutor"
+                                        autoComplete="off"
+                                        className="font-mono"
+                                    />
+                                </div>
                                 <div className="md:col-span-2">
                                     <FormInput
                                         control={form.control}

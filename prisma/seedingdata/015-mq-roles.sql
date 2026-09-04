@@ -1,11 +1,12 @@
 -- Small Macquarie role catalog for exercising role requests and role management.
 -- Stable role ids plus NOT EXISTS on active permissions make this file safe to run repeatedly.
 
-INSERT INTO "Role" ("id", "institutionId", "roleName", "autoGrantEmailRegex", "scopeType")
+INSERT INTO "Role" ("id", "institutionId", "roleCode", "roleName", "autoGrantEmailRegex", "scopeType")
 VALUES
   (
     '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:staff',
     'MQ Staff',
     NULL,
     'INSTITUTION'::"RoleScopeType"
@@ -13,6 +14,7 @@ VALUES
   (
     'd25951cc-f23a-5c4d-8bcc-98ae881fba46'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'offering:tutor',
     'Tutor',
     NULL,
     'OFFERING'::"RoleScopeType"
@@ -20,6 +22,7 @@ VALUES
   (
     'ea2e69b1-c5d7-5931-8249-29a06fc8371b'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'offering:offering.manager',
     'Unit Convenor',
     NULL,
     'OFFERING'::"RoleScopeType"
@@ -27,6 +30,7 @@ VALUES
   (
     'c14226dd-1cd5-42de-8832-93169e7f40be'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'offering:student',
     'Student',
     NULL,
     'OFFERING'::"RoleScopeType"
@@ -34,6 +38,7 @@ VALUES
   (
     '8b13ad48-7945-46d8-afde-f9e7bc1c7b90'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:subject.viewer',
     'Subject Viewer',
     NULL,
     'INSTITUTION'::"RoleScopeType"
@@ -41,6 +46,7 @@ VALUES
   (
     '6356d6d1-d512-4de3-bc98-ffc13052122b'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:subject.editor',
     'Subject Editor',
     NULL,
     'INSTITUTION'::"RoleScopeType"
@@ -48,6 +54,7 @@ VALUES
   (
     '3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:subject.manager',
     'Subject Manager',
     NULL,
     'INSTITUTION'::"RoleScopeType"
@@ -55,6 +62,7 @@ VALUES
   (
     '1e2b9a93-123b-4b55-bbeb-65384e647240'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:term.manager',
     'Term Manager',
     NULL,
     'INSTITUTION'::"RoleScopeType"
@@ -62,6 +70,7 @@ VALUES
   (
     '537ca3f2-5bea-41ae-b420-b6a7a6d2dd10'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:offering.manager',
     'Offering Manager',
     NULL,
     'INSTITUTION'::"RoleScopeType"
@@ -69,12 +78,14 @@ VALUES
   (
     '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
     'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:manager',
     'Institution Manager',
     NULL,
     'INSTITUTION'::"RoleScopeType"
   )
 ON CONFLICT ("id") DO UPDATE
 SET "roleName" = EXCLUDED."roleName",
+    "roleCode" = EXCLUDED."roleCode",
     "autoGrantEmailRegex" = EXCLUDED."autoGrantEmailRegex",
     "scopeType" = EXCLUDED."scopeType";
 

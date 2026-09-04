@@ -28,6 +28,7 @@ describe('admin validation', () => {
     it('rejects duplicate role graph edges and invalid email auto-grant scope', () => {
         const base = {
             institutionId: INSTITUTION_ID,
+            roleCode: 'offering:tutor',
             roleName: 'Tutor',
             scopeType: 'OFFERING' as const,
             autoGrantEmailRegex: '',
@@ -44,7 +45,14 @@ describe('admin validation', () => {
         expect(
             RoleSchema.safeParse({
                 ...base,
+                roleCode: 'institution:tutor',
+            }).success,
+        ).toBe(false);
+        expect(
+            RoleSchema.safeParse({
+                ...base,
                 scopeType: 'INSTITUTION',
+                roleCode: 'institution:tutor',
                 autoGrantEmailRegex: '@example\\.edu$',
                 includedRoleIds: [ROLE_ID, SECOND_ROLE_ID],
             }).success,

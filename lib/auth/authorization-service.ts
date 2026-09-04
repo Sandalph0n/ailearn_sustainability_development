@@ -4,8 +4,11 @@ import type { Prisma } from '@/app/generated/prisma/client';
 import {
     authorizedFor,
     effectivePermissionCodes,
+    findContextForTarget,
     findSelectedContext,
+    type AuthorizationTarget,
     type ContextSelector,
+    type RoleSelector,
 } from '@/lib/auth/authorization-policy';
 import type { PermissionCode } from '@/lib/auth/permissions';
 import { listContextOptions } from '@/lib/context/active-context';
@@ -80,6 +83,19 @@ export async function authorizeContext(
 ): Promise<AuthorizedContextOption | null> {
     const contexts = await listAuthorizedContextOptions(userId);
     const selected = findSelectedContext(contexts, selector);
+
+    return selected && authorizedFor(selected.permissions, permission) ? selected : null;
+}
+
+/** Authorize against a resource boundary rather than permission metadata. */
+export async function authorizeTarget(
+    userId: string,
+    selector: RoleSelector,
+    target: AuthorizationTarget,
+    permission: PermissionCode,
+): Promise<AuthorizedContextOption | null> {
+    const contexts = await listAuthorizedContextOptions(userId);
+    const selected = findContextForTarget(contexts, selector, target);
 
     return selected && authorizedFor(selected.permissions, permission) ? selected : null;
 }

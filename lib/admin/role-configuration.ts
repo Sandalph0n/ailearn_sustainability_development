@@ -7,7 +7,12 @@ import type { RoleSchemaValue } from '@/lib/admin/role-schema';
 export class RoleConfigurationError extends Error {
     constructor(
         message: string,
-        readonly field: 'institutionId' | 'scopeType' | 'includedRoleIds' | 'permissionIds',
+        readonly field:
+            | 'institutionId'
+            | 'roleCode'
+            | 'scopeType'
+            | 'includedRoleIds'
+            | 'permissionIds',
     ) {
         super(message);
     }
@@ -36,7 +41,14 @@ export async function validateRoleConfiguration(
             select: {
                 institutionId: true,
                 scopeType: true,
-                _count: { select: { roleAssignments: true, roleRequests: true } },
+                _count: {
+                    select: {
+                        roleAssignments: true,
+                        roleRequests: true,
+                        includedRoles: true,
+                        parentRoles: true,
+                    },
+                },
             },
         });
         if (!current) throw new RoleConfigurationError('Role does not exist', 'includedRoleIds');
@@ -46,14 +58,19 @@ export async function validateRoleConfiguration(
                 'institutionId',
             );
         }
-        if (
-            current.scopeType !== data.scopeType &&
-            current._count.roleAssignments + current._count.roleRequests > 0
-        ) {
-            throw new RoleConfigurationError(
-                'A role with assignment or request history cannot change scope',
-                'scopeType',
-            );
+        if (current.scopeType !== data.scopeType) {
+            if (current._count.roleAssignments + current._count.roleRequests > 0) {
+                throw new RoleConfigurationError(
+                    'A role with assignment or request history cannot change scope',
+                    'scopeType',
+                );
+            }
+            if (current._count.includedRoles + current._count.parentRoles > 0) {
+                throw new RoleConfigurationError(
+                    'A role used in inheritance cannot change scope',
+                    'scopeType',
+                );
+            }
         }
         if (data.includedRoleIds.includes(currentRoleId)) {
             throw new RoleConfigurationError('A role cannot include itself', 'includedRoleIds');
@@ -63,7 +80,7 @@ export async function validateRoleConfiguration(
     const [includedRoles, permissions] = await Promise.all([
         tx.role.findMany({
             where: { id: { in: data.includedRoleIds } },
-            select: { id: true, institutionId: true },
+            select: { id: true, institutionId: true, scopeType: true },
         }),
         tx.permission.findMany({
             where: { id: { in: data.permissionIds } },
@@ -77,6 +94,13 @@ export async function validateRoleConfiguration(
     ) {
         throw new RoleConfigurationError(
             'Included roles must belong to this institution',
+            'includedRoleIds',
+        );
+    }
+
+    if (includedRoles.some((role) => role.scopeType !== data.scopeType)) {
+        throw new RoleConfigurationError(
+            'Included roles must use the same scope type',
             'includedRoleIds',
         );
     }

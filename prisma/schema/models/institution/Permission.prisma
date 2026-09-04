@@ -11,14 +11,8 @@ model Permission {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   /// Mã quyền, khớp từng ký tự với hằng số trong mã nguồn.
-  permission  String  @unique
-  type PermissionType @default(I)
+  permission  String @unique
   description String?
 
   roles RolePermission[]
-}
-
-enum PermissionType {
-  I // Institution only
-  IO // Institution and scoped to an offer
 }

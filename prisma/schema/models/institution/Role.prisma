@@ -7,6 +7,11 @@ model Role {
 
   institutionId String @db.Uuid
 
+  /// Mã ổn định dùng trong cấu hình và audit. Prefix phải khớp `scopeType`, ví dụ
+  /// `institution:subject.manager` hoặc `offering:subject.manager`.
+  roleCode String
+
+  /// Nhãn dễ đọc được hiển thị trong giao diện.
   roleName String
 
   /// Biểu thức khớp email để TỰ ĐỘNG cấp vai trò lúc gia nhập, không cần ai duyệt.
@@ -40,6 +45,7 @@ model Role {
   roleAssignments        RoleAssignment[]
   roleRequests           RoleRequest[]
 
+  @@unique([institutionId, roleCode])
   @@index([institutionId])
 }
 

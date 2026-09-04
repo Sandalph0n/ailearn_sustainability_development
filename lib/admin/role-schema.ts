@@ -5,7 +5,7 @@ import type { RoleModel } from '@/app/generated/prisma/models';
 
 export type RoleSchemaValue = Pick<
     RoleModel,
-    'institutionId' | 'roleName' | 'scopeType' | 'autoGrantEmailRegex'
+    'institutionId' | 'roleCode' | 'roleName' | 'scopeType' | 'autoGrantEmailRegex'
 > & {
     includedRoleIds: string[];
     permissionIds: string[];
@@ -14,6 +14,16 @@ export type RoleSchemaValue = Pick<
 export const RoleSchema = z
     .strictObject({
         institutionId: z.uuid({ message: 'Choose an institution' }),
+
+        roleCode: z
+            .string()
+            .trim()
+            .toLowerCase()
+            .min(1, { message: 'Code is required' })
+            .max(100)
+            .regex(/^(institution|offering):[a-z0-9]+(?:[._-][a-z0-9]+)*$/, {
+                message: 'Use a scope prefix and lowercase segments, e.g. offering:tutor',
+            }),
 
         roleName: z.string().trim().min(1, { message: 'Name is required' }).max(80),
 
@@ -74,6 +84,15 @@ export const RoleSchema = z
                 path: ['permissionIds'],
             });
         }
+
+        const expectedPrefix = value.scopeType === 'INSTITUTION' ? 'institution:' : 'offering:';
+        if (!value.roleCode.startsWith(expectedPrefix)) {
+            context.addIssue({
+                code: 'custom',
+                message: `Code must start with ${expectedPrefix}`,
+                path: ['roleCode'],
+            });
+        }
     })
     /**
      * Luật nghiệp vụ: ánh xạ email chỉ có nghĩa ở cấp CƠ SỞ.
@@ -93,6 +112,7 @@ export type RoleFormValue = z.input<typeof RoleSchema>;
 
 export const EMPTY_ROLE_FORM = {
     institutionId: '',
+    roleCode: 'offering:',
     roleName: '',
     scopeType: 'OFFERING',
     autoGrantEmailRegex: '',

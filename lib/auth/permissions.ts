@@ -1,5 +1,3 @@
-import { PermissionType, RoleScopeType } from '../../app/generated/prisma/enums';
-
 /**
  * Mã permission là giao kèo giữa authorization code và dữ liệu tham chiếu trong database.
  *
@@ -50,7 +48,6 @@ export const PERMISSION_CODE = {
 export type PermissionCode = (typeof PERMISSION_CODE)[keyof typeof PERMISSION_CODE];
 
 export type PermissionDefinition = Readonly<{
-    type: PermissionType;
     description: string;
 }>;
 
@@ -62,155 +59,117 @@ export type PermissionDefinition = Readonly<{
  */
 export const PERMISSION_CATALOG = {
     [PERMISSION_CODE.INSTITUTION_SETTINGS_VIEW]: {
-        type: PermissionType.I,
         description: 'View institution settings.',
     },
     [PERMISSION_CODE.INSTITUTION_SETTINGS_UPDATE]: {
-        type: PermissionType.I,
         description: 'Update institution settings.',
     },
     [PERMISSION_CODE.INSTITUTION_SETTINGS_MANAGE]: {
-        type: PermissionType.I,
         description: 'View and update institution settings.',
     },
     [PERMISSION_CODE.SUBJECT_CREATE]: {
-        type: PermissionType.I,
         description: 'Create subjects within the institution.',
     },
     [PERMISSION_CODE.SUBJECT_VIEW]: {
-        type: PermissionType.I,
         description: 'View subjects within the institution.',
     },
     [PERMISSION_CODE.SUBJECT_UPDATE]: {
-        type: PermissionType.I,
         description: 'Update subjects within the institution.',
     },
     [PERMISSION_CODE.SUBJECT_DELETE]: {
-        type: PermissionType.I,
         description: 'Delete subjects within the institution.',
     },
     [PERMISSION_CODE.SUBJECT_MANAGE]: {
-        type: PermissionType.I,
         description: 'Create, view, update, and delete subjects.',
     },
     [PERMISSION_CODE.TERM_CREATE]: {
-        type: PermissionType.I,
         description: 'Create study terms within the institution.',
     },
     [PERMISSION_CODE.TERM_VIEW]: {
-        type: PermissionType.I,
         description: 'View study terms and their periods.',
     },
     [PERMISSION_CODE.TERM_UPDATE]: {
-        type: PermissionType.I,
         description: 'Update study terms and their periods.',
     },
     [PERMISSION_CODE.TERM_DELETE]: {
-        type: PermissionType.I,
         description: 'Delete study terms within the institution.',
     },
     [PERMISSION_CODE.TERM_MANAGE]: {
-        type: PermissionType.I,
         description: 'Create, view, update, and delete study terms and their periods.',
     },
     [PERMISSION_CODE.OFFERING_CREATE]: {
-        type: PermissionType.I,
         description: 'Create subject offerings within the institution.',
     },
     [PERMISSION_CODE.ROLE_REQUEST_REVIEW]: {
-        type: PermissionType.I,
         description: 'Approve or reject requests to join the institution.',
     },
     [PERMISSION_CODE.ROLE_CREATE]: {
-        type: PermissionType.I,
         description: 'Create roles within the institution.',
     },
     [PERMISSION_CODE.ROLE_VIEW]: {
-        type: PermissionType.I,
         description: 'View role definitions, permissions, and inheritance.',
     },
     [PERMISSION_CODE.ROLE_UPDATE]: {
-        type: PermissionType.I,
         description: 'Update roles within the institution.',
     },
     [PERMISSION_CODE.ROLE_DELETE]: {
-        type: PermissionType.I,
         description: 'Delete roles within the institution.',
     },
     [PERMISSION_CODE.ROLE_MANAGE]: {
-        type: PermissionType.I,
         description: 'Create, view, update, and delete institution roles.',
     },
     [PERMISSION_CODE.AUDIT_VIEW]: {
-        type: PermissionType.I,
         description: 'View institution authorization and administration history.',
     },
     [PERMISSION_CODE.OFFERING_VIEW]: {
-        type: PermissionType.IO,
         description: 'View offerings and their learning information.',
     },
     [PERMISSION_CODE.OFFERING_UPDATE]: {
-        type: PermissionType.IO,
         description: 'Update offerings within the assigned scope.',
     },
     [PERMISSION_CODE.OFFERING_DELETE]: {
-        type: PermissionType.IO,
         description: 'Delete offerings within the assigned scope.',
     },
     [PERMISSION_CODE.OFFERING_MANAGE]: {
-        type: PermissionType.IO,
         description: 'View, update, and delete offerings within the assigned scope.',
     },
     [PERMISSION_CODE.MEMBER_VIEW]: {
-        type: PermissionType.IO,
         description: 'View members and their roles within the assigned scope.',
     },
     [PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE]: {
-        type: PermissionType.IO,
         description: 'Grant and revoke roles within the assigned scope.',
     },
     [PERMISSION_CODE.ASSESSMENT_CREATE]: {
-        type: PermissionType.IO,
         description: 'Create assessments within the assigned scope.',
     },
     [PERMISSION_CODE.ASSESSMENT_VIEW]: {
-        type: PermissionType.IO,
         description: 'View assessments and their configuration.',
     },
     [PERMISSION_CODE.ASSESSMENT_UPDATE]: {
-        type: PermissionType.IO,
         description: 'Update assessments within the assigned scope.',
     },
     [PERMISSION_CODE.ASSESSMENT_DELETE]: {
-        type: PermissionType.IO,
         description: 'Delete assessments within the assigned scope.',
     },
     [PERMISSION_CODE.ASSESSMENT_MANAGE]: {
-        type: PermissionType.IO,
         description: 'Create, view, update, and delete assessments.',
     },
     [PERMISSION_CODE.ASSESSMENT_ATTEMPT]: {
-        type: PermissionType.IO,
         description: 'Start and submit assessment attempts.',
     },
     [PERMISSION_CODE.ATTEMPT_VIEW_OWN]: {
-        type: PermissionType.IO,
         description: "View the current user's own assessment attempts.",
     },
     [PERMISSION_CODE.ATTEMPT_VIEW_ALL]: {
-        type: PermissionType.IO,
         description: 'View assessment attempts belonging to other members in scope.',
     },
     [PERMISSION_CODE.TOOL_LAUNCH]: {
-        type: PermissionType.IO,
         description: 'Launch tools allowed by an assessment.',
     },
     [PERMISSION_CODE.TOOL_SESSION_REPLAY_OWN]: {
-        type: PermissionType.IO,
         description: "Replay the current user's own tool sessions.",
     },
     [PERMISSION_CODE.TOOL_SESSION_REPLAY_ALL]: {
-        type: PermissionType.IO,
         description: 'Replay tool sessions belonging to other members in scope.',
     },
 } as const satisfies Record<PermissionCode, PermissionDefinition>;
@@ -324,26 +283,4 @@ export function assertPermissionCode(value: string): asserts value is Permission
     if (!isPermissionCode(value)) {
         throw new TypeError(`Unknown permission code: ${value}`);
     }
-}
-
-/**
- * Role cấp Institution dùng được cả permission `I` lẫn `IO`; Role cấp Offering chỉ dùng `IO`.
- * Switch exhaustive làm typecheck thất bại nếu Prisma có thêm một RoleScopeType mới.
- */
-export function canRoleScopeUsePermission(
-    roleScope: RoleScopeType,
-    permission: PermissionCode,
-): boolean {
-    switch (roleScope) {
-        case RoleScopeType.INSTITUTION:
-            return true;
-        case RoleScopeType.OFFERING:
-            return PERMISSION_CATALOG[permission].type === PermissionType.IO;
-        default:
-            return assertNever(roleScope);
-    }
-}
-
-function assertNever(value: never): never {
-    throw new TypeError(`Unsupported role scope: ${String(value)}`);
 }

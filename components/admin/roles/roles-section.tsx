@@ -25,7 +25,7 @@ export async function RolesSection({
     searchParams: Record<string, string | string[] | undefined>;
     lockedInstitutionId?: string | null;
 }) {
-    const SORT_FIELDS = ['roleName', 'scopeType', 'institution'] as const;
+    const SORT_FIELDS = ['roleName', 'roleCode', 'scopeType', 'institution'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
 
     const institutionId =
@@ -33,12 +33,21 @@ export async function RolesSection({
 
     const where = {
         ...(institutionId ? { institutionId } : {}),
-        ...(q ? { roleName: { contains: q, mode: 'insensitive' as const } } : {}),
+        ...(q
+            ? {
+                  OR: [
+                      { roleName: { contains: q, mode: 'insensitive' as const } },
+                      { roleCode: { contains: q, mode: 'insensitive' as const } },
+                  ],
+              }
+            : {}),
     };
 
     const orderBy =
         sort === 'scopeType'
             ? { scopeType: dir }
+            : sort === 'roleCode'
+              ? { roleCode: dir }
             : sort === 'institution'
               ? { institution: { name: dir } }
               : { roleName: dir };
@@ -51,6 +60,7 @@ export async function RolesSection({
             skip,
             select: {
                 id: true,
+                roleCode: true,
                 roleName: true,
                 scopeType: true,
                 autoGrantEmailRegex: true,
@@ -89,7 +99,9 @@ export async function RolesSection({
             orderBy: { roleName: 'asc' },
             select: {
                 id: true,
+                roleCode: true,
                 roleName: true,
+                scopeType: true,
                 institutionId: true,
                 includedRoles: { select: { includedRoleId: true } },
                 permissions: {
@@ -116,13 +128,16 @@ export async function RolesSection({
     for (const role of allRoles) {
         (rolesByInstitution[role.institutionId] ??= []).push({
             id: role.id,
+            roleCode: role.roleCode,
             roleName: role.roleName,
+            scopeType: role.scopeType,
             effectivePermissionIds: inheritedPermissions.get(role.id) ?? [],
         });
     }
 
     const roles: RoleListItem[] = rows.map((row) => ({
         id: row.id,
+        roleCode: row.roleCode,
         roleName: row.roleName,
         scopeType: row.scopeType,
         autoGrantEmailRegex: row.autoGrantEmailRegex,

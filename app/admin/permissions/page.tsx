@@ -14,7 +14,7 @@ import { db } from '@/lib/db';
  */
 export const dynamic = 'force-dynamic';
 
-const SORT_FIELDS = ['permission', 'type', 'description'] as const;
+const SORT_FIELDS = ['permission', 'description'] as const;
 
 export default async function AdminPermissionsPage({
     searchParams,
@@ -30,12 +30,7 @@ export default async function AdminPermissionsPage({
           }
         : {};
 
-    const orderBy =
-        sort === 'description'
-            ? { description: dir }
-            : sort === 'type'
-              ? { type: dir }
-              : { permission: dir };
+    const orderBy = sort === 'description' ? { description: dir } : { permission: dir };
 
     const [rows, total] = await Promise.all([
         db.permission.findMany({
@@ -46,7 +41,6 @@ export default async function AdminPermissionsPage({
             select: {
                 id: true,
                 permission: true,
-                type: true,
                 description: true,
                 // Chỉ đếm liên kết còn hiệu lực. Bản ghi đã thu hồi vẫn được giữ làm lịch sử.
                 _count: { select: { roles: { where: { revokedAt: null } } } },
@@ -58,7 +52,6 @@ export default async function AdminPermissionsPage({
     const permissions: PermissionListItem[] = rows.map((row) => ({
         id: row.id,
         permission: row.permission,
-        type: row.type,
         description: row.description,
         activeRoles: row._count.roles,
     }));
