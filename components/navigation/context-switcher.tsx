@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowDown01Icon, Shield01Icon, Tick02Icon, UniversityIcon } from '@hugeicons/core-free-icons';
 
@@ -47,7 +47,6 @@ import {
  * truy vấn bất cứ thứ gì.
  */
 export function ContextSwitcher({ options }: { options: ContextOption[] }) {
-    const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
@@ -88,7 +87,9 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
             next.delete(CONTEXT_PARAM.offering);
         }
 
-        router.push(`${pathname}?${next.toString()}`);
+        const destination = new URL(pathname, window.location.origin);
+        destination.search = next.toString();
+        window.location.assign(destination);
     }
 
     // Gom theo cơ sở, giữ nguyên thứ tự máy chủ đã sắp (tên cơ sở, rồi tên vai trò).

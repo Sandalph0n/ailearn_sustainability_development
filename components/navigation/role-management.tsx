@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
     Add01Icon,
     ArrowLeft01Icon,
@@ -31,10 +31,9 @@ export function RoleManagement({
     contexts: ContextOption[];
     institutions: InstitutionRequestOption[];
 }) {
-    const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const [isSwitching, startSwitch] = useTransition();
+    const [isSwitching, setIsSwitching] = useState(false);
     const assignments = useMemo(() => distinctRoleContexts(contexts), [contexts]);
     const hasRoles = assignments.length > 0;
     const institutionOptions = useMemo(() => {
@@ -100,9 +99,10 @@ export function RoleManagement({
             next.delete(CONTEXT_PARAM.offering);
         }
 
-        startSwitch(() => {
-            router.push(`${pathname}?${next.toString()}`, { scroll: false });
-        });
+        setIsSwitching(true);
+        const destination = new URL(pathname, window.location.origin);
+        destination.search = next.toString();
+        window.location.assign(destination);
     }
 
     if (requesting) {
