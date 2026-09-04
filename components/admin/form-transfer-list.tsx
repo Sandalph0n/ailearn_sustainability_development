@@ -12,11 +12,18 @@ import { Controller, type Control, type FieldPath, type FieldValues } from 'reac
 import { Button } from '@/components/ui/button';
 import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type TransferListOption = {
     value: string;
     label: string;
     description?: string;
+};
+
+export type LockedTransferListOption = {
+    value: string;
+    annotation: string;
+    disabledReason: string;
 };
 
 /**
@@ -35,6 +42,7 @@ export function FormTransferList<
     label,
     description,
     options,
+    lockedSelectedOptions = [],
     searchPlaceholder = 'Search available options…',
     availableEmptyMessage = 'No available options.',
     selectedEmptyMessage = 'Nothing selected yet.',
@@ -44,6 +52,8 @@ export function FormTransferList<
     label: string;
     description?: string;
     options: TransferListOption[];
+    /** Effective selections owned elsewhere, displayed here but not written into this field. */
+    lockedSelectedOptions?: LockedTransferListOption[];
     searchPlaceholder?: string;
     availableEmptyMessage?: string;
     selectedEmptyMessage?: string;
@@ -57,9 +67,18 @@ export function FormTransferList<
             name={name}
             render={({ field, fieldState }) => {
                 const selectedValues = Array.isArray(field.value) ? (field.value as string[]) : [];
-                const selected = options.filter((option) => selectedValues.includes(option.value));
+                const lockedByValue = new Map(
+                    lockedSelectedOptions.map((option) => [option.value, option]),
+                );
+                const effectiveSelectedValues = new Set([
+                    ...selectedValues,
+                    ...lockedByValue.keys(),
+                ]);
+                const selected = options.filter((option) =>
+                    effectiveSelectedValues.has(option.value),
+                );
                 const available = options.filter((option) => {
-                    if (selectedValues.includes(option.value)) return false;
+                    if (effectiveSelectedValues.has(option.value)) return false;
                     if (!normalizedQuery) return true;
 
                     return `${option.label} ${option.description ?? ''}`
@@ -117,6 +136,8 @@ export function FormTransferList<
                                     emptyMessage={selectedEmptyMessage}
                                     direction="remove"
                                     onMove={remove}
+                                    lockedByValue={lockedByValue}
+                                    directlySelectedValues={new Set(selectedValues)}
                                 />
                             </TransferPanel>
                         </div>
@@ -154,11 +175,15 @@ function TransferItems({
     emptyMessage,
     direction,
     onMove,
+    lockedByValue = new Map(),
+    directlySelectedValues = new Set(),
 }: {
     options: TransferListOption[];
     emptyMessage: string;
     direction: 'add' | 'remove';
     onMove: (value: string) => void;
+    lockedByValue?: Map<string, LockedTransferListOption>;
+    directlySelectedValues?: Set<string>;
 }) {
     const adding = direction === 'add';
 
@@ -172,26 +197,26 @@ function TransferItems({
 
     return (
         <div className="max-h-72 min-h-0 flex-1 overflow-y-auto p-1.5">
-            {options.map((option) => (
-                <div
-                    key={option.value}
-                    className="hover:bg-muted/60 group flex min-h-14 items-center gap-3 rounded-sm px-2.5 py-2 transition-colors"
-                >
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-sm font-medium">{option.label}</p>
-                        {option.description && (
-                            <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-4">
-                                {option.description}
-                            </p>
-                        )}
-                    </div>
+            {options.map((option) => {
+                const inherited =
+                    !adding &&
+                    !directlySelectedValues.has(option.value) &&
+                    lockedByValue.get(option.value);
+                const moveButton = (
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        disabled={Boolean(inherited)}
                         onClick={() => onMove(option.value)}
                         aria-label={`${adding ? 'Select' : 'Remove'} ${option.label}`}
-                        title={adding ? 'Move to selected' : 'Move back to available'}
+                        title={
+                            inherited
+                                ? undefined
+                                : adding
+                                  ? 'Move to selected'
+                                  : 'Move back to available'
+                        }
                         className="shrink-0"
                     >
                         <HugeiconsIcon
@@ -199,8 +224,47 @@ function TransferItems({
                             strokeWidth={2}
                         />
                     </Button>
-                </div>
-            ))}
+                );
+
+                return (
+                    <div
+                        key={option.value}
+                        className={
+                            'group flex min-h-14 items-center gap-3 rounded-sm border-l-2 px-2.5 py-2 transition-colors ' +
+                            (inherited
+                                ? 'border-border bg-muted/40'
+                                : 'hover:bg-muted/60 border-transparent')
+                        }
+                    >
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate font-mono text-sm font-medium">{option.label}</p>
+                            {option.description && (
+                                <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-4">
+                                    {option.description}
+                                </p>
+                            )}
+                            {inherited && (
+                                <p className="text-foreground/65 mt-1 text-xs font-medium">
+                                    {inherited.annotation}
+                                </p>
+                            )}
+                        </div>
+
+                        {inherited ? (
+                            <Tooltip>
+                                <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
+                                    {moveButton}
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                    {inherited.disabledReason}
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            moveButton
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }

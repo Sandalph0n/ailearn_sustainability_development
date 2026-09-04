@@ -1,10 +1,15 @@
-import { RolesTable, type RoleListItem } from '@/components/admin/roles/roles-table';
+import {
+    RolesTable,
+    type RoleInheritanceOption,
+    type RoleListItem,
+} from '@/components/admin/roles/roles-table';
 import {
     PAGE_SIZE,
     pageCountOf,
     parseListParams,
     parseOptionalUuid,
 } from '@/lib/admin/list-params';
+import { effectivePermissionIdsByRole } from '@/lib/admin/role-inheritance';
 import { db } from '@/lib/db';
 
 /**
@@ -82,7 +87,16 @@ export async function RolesSection({
         db.role.findMany({
             where: lockedInstitutionId ? { institutionId: lockedInstitutionId } : {},
             orderBy: { roleName: 'asc' },
-            select: { id: true, roleName: true, institutionId: true },
+            select: {
+                id: true,
+                roleName: true,
+                institutionId: true,
+                includedRoles: { select: { includedRoleId: true } },
+                permissions: {
+                    where: { revokedAt: null },
+                    select: { permissionId: true },
+                },
+            },
         }),
         db.permission.findMany({
             orderBy: { permission: 'asc' },
@@ -90,11 +104,20 @@ export async function RolesSection({
         }),
     ]);
 
-    const rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>> = {};
+    const inheritedPermissions = effectivePermissionIdsByRole(
+        allRoles.map((role) => ({
+            id: role.id,
+            includedRoleIds: role.includedRoles.map((edge) => edge.includedRoleId),
+            directPermissionIds: role.permissions.map((edge) => edge.permissionId),
+        })),
+    );
+
+    const rolesByInstitution: Record<string, RoleInheritanceOption[]> = {};
     for (const role of allRoles) {
         (rolesByInstitution[role.institutionId] ??= []).push({
             id: role.id,
             roleName: role.roleName,
+            effectivePermissionIds: inheritedPermissions.get(role.id) ?? [],
         });
     }
 

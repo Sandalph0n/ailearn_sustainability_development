@@ -55,6 +55,13 @@ export type RoleListItem = {
     counts: { assignments: number; requests: number };
 };
 
+export type RoleInheritanceOption = {
+    id: string;
+    roleName: string;
+    /** Direct plus transitive permissions this role contributes when included. */
+    effectivePermissionIds: string[];
+};
+
 const column = columnHelperFor<RoleListItem>();
 const ENDPOINT = '/api/admin/roles';
 
@@ -77,7 +84,7 @@ export function RolesTable({
     institutionId: string | null;
     /** Đang ở trang con của một cơ sở: cột và bộ lọc cơ sở đều thừa. */
     locked: boolean;
-    rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
+    rolesByInstitution: Record<string, RoleInheritanceOption[]>;
     permissions: Array<{ id: string; permission: string; description: string | null }>;
     page: number;
     pageCount: number;
@@ -253,7 +260,7 @@ function RoleForm({
 }: {
     role?: RoleListItem;
     institutions: InstitutionOption[];
-    rolesByInstitution: Record<string, Array<{ id: string; roleName: string }>>;
+    rolesByInstitution: Record<string, RoleInheritanceOption[]>;
     permissions: Array<{ id: string; permission: string; description: string | null }>;
     presetInstitutionId?: string | null;
     locked?: boolean;
@@ -292,6 +299,18 @@ function RoleForm({
                 const candidates = (rolesByInstitution[chosenInstitution] ?? []).filter(
                     (candidate) => candidate.id !== role?.id,
                 );
+                const includedRoleIds = new Set(form.watch('includedRoleIds'));
+                const inheritedByPermission = new Map<string, string[]>();
+
+                for (const candidate of candidates) {
+                    if (!includedRoleIds.has(candidate.id)) continue;
+
+                    for (const permissionId of candidate.effectivePermissionIds) {
+                        const sources = inheritedByPermission.get(permissionId) ?? [];
+                        sources.push(candidate.roleName);
+                        inheritedByPermission.set(permissionId, sources);
+                    }
+                }
 
                 return (
                     <div className="flex flex-col">
@@ -371,11 +390,19 @@ function RoleForm({
                                 <FormTransferList
                                     control={form.control}
                                     name="permissionIds"
-                                    label="Direct permissions"
-                                    description="Granted before inherited roles are considered."
+                                    label="Permissions"
+                                    description="Direct grants can be moved. Permissions supplied by included roles remain selected and locked."
                                     searchPlaceholder="Search permissions…"
                                     availableEmptyMessage="No permissions are available."
-                                    selectedEmptyMessage="No direct permissions selected."
+                                    selectedEmptyMessage="No permissions selected."
+                                    lockedSelectedOptions={Array.from(
+                                        inheritedByPermission.entries(),
+                                        ([value, sourceRoles]) => ({
+                                            value,
+                                            annotation: `Inherited via ${sourceRoles.join(', ')}`,
+                                            disabledReason: `This permission is inherited via ${sourceRoles.join(', ')}. It cannot be removed here. Remove that role from Includes roles, or remove the permission from its source role.`,
+                                        }),
+                                    )}
                                     options={permissions.map((permission) => ({
                                         value: permission.id,
                                         label: permission.permission,
