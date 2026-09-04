@@ -30,7 +30,9 @@ import { Input } from '@/components/ui/input';
 import { SelectItem } from '@/components/ui/select';
 import {
     EMPTY_ROLE_ASSIGNMENT_FORM,
+    INSTITUTION_SCOPE_VALUE,
     RoleAssignmentSchema,
+    UNSCOPED_OFFERING_VALUE,
     type RoleAssignmentFormValue,
     type RoleAssignmentSchemaValue,
 } from '@/lib/admin/role-assignment-schema';
@@ -285,7 +287,7 @@ function AssignmentForm({
             createEndpoint={ENDPOINT}
             title={{ create: 'Grant role', edit: 'Grant role' }}
             description={{
-                create: 'Choose a person, role and the exact scope where it applies.',
+                create: 'Choose a person and role. An offering scope can be added now or later.',
                 edit: 'Role assignments are revoked and re-granted rather than edited.',
             }}
             submitLabel={{ create: 'Grant role', edit: 'Grant role' }}
@@ -294,7 +296,7 @@ function AssignmentForm({
             {(form) => (
                 <ResourceFormSection
                     title="Assignment"
-                    description="Choose who receives the role, then narrow it to the exact institution or offering scope."
+                    description="Choose who receives the role and optionally connect an offering-scoped role to its first offering."
                 >
                     <AssignmentFields
                         form={form}
@@ -328,18 +330,25 @@ function AssignmentFields({
         previousRoleId.current = roleId;
         form.setValue(
             'offeringId',
-            selectedRole?.scopeType === 'INSTITUTION' ? 'institution' : '',
+            selectedRole?.scopeType === 'INSTITUTION'
+                ? INSTITUTION_SCOPE_VALUE
+                : selectedRole?.scopeType === 'OFFERING'
+                  ? UNSCOPED_OFFERING_VALUE
+                  : '',
         );
     }, [form, roleId, selectedRole?.scopeType]);
 
     const scopeOptions =
         selectedRole?.scopeType === 'INSTITUTION'
-            ? [{ value: 'institution', label: 'Institution-wide' }]
+            ? [{ value: INSTITUTION_SCOPE_VALUE, label: 'Institution-wide' }]
             : selectedRole?.scopeType === 'OFFERING'
-              ? offerings.map((offering) => ({
-                    value: offering.id,
-                    label: offeringLabel(offering),
-                }))
+              ? [
+                    { value: UNSCOPED_OFFERING_VALUE, label: 'No offering yet' },
+                    ...offerings.map((offering) => ({
+                        value: offering.id,
+                        label: offeringLabel(offering),
+                    })),
+                ]
               : [];
 
     return (
@@ -383,7 +392,11 @@ function AssignmentFields({
                 control={form.control}
                 name="offeringId"
                 label="Scope"
-                description="The available scope follows the selected role."
+                description={
+                    selectedRole?.scopeType === 'OFFERING'
+                        ? 'Optional. An offering scope can be added later.'
+                        : 'The available scope follows the selected role.'
+                }
                 items={Object.fromEntries(
                     scopeOptions.map((option) => [option.value, option.label]),
                 )}

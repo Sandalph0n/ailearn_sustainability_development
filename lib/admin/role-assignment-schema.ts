@@ -8,9 +8,20 @@ export type RoleAssignmentSchemaValue = {
     offeringId: string | null;
 };
 
+export const INSTITUTION_SCOPE_VALUE = 'institution';
+export const UNSCOPED_OFFERING_VALUE = 'unscoped';
+
 const optionalOfferingId = z
     .string()
-    .transform((value) => (value === '' || value === 'institution' ? null : value))
+    .nullable()
+    .transform((value) =>
+        value === null ||
+        value === '' ||
+        value === INSTITUTION_SCOPE_VALUE ||
+        value === UNSCOPED_OFFERING_VALUE
+            ? null
+            : value,
+    )
     .refine((value) => value === null || z.uuid().safeParse(value).success, {
         message: 'Choose a valid scope',
     });

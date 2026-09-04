@@ -119,6 +119,17 @@ describe('admin validation', () => {
         expect(result.offeringId).toBeNull();
     });
 
+    it('allows an offering role to be granted before it has a scope', () => {
+        for (const offeringId of [null, '', 'unscoped']) {
+            const result = RoleAssignmentSchema.parse({
+                userId: INSTITUTION_ID,
+                roleId: ROLE_ID,
+                offeringId,
+            });
+            expect(result.offeringId).toBeNull();
+        }
+    });
+
     it('sanitises list and UUID query parameters', () => {
         const parsed = parseListParams(
             { q: '  tutor ', page: '-5', sort: 'passwordHash', dir: 'sideways' },
