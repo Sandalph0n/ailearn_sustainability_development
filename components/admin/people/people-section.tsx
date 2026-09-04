@@ -15,16 +15,18 @@ export async function PeopleSection({
     endpoint,
     contextQuery,
     canManage,
+    roleFilterParam = 'role',
 }: {
     institutionId: string;
     searchParams: Record<string, string | string[] | undefined>;
     endpoint?: string;
     contextQuery?: string;
     canManage?: boolean;
+    roleFilterParam?: string;
 }) {
     const SORT_FIELDS = ['user', 'role', 'granted'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
-    const roleId = parseOptionalUuid(searchParams.role);
+    const roleId = parseOptionalUuid(searchParams[roleFilterParam]);
     const offeringId = parseOptionalUuid(searchParams.offering);
     const rawStatus = Array.isArray(searchParams.status)
         ? searchParams.status[0]
@@ -156,6 +158,7 @@ export async function PeopleSection({
             endpoint={endpoint}
             contextQuery={contextQuery}
             canManage={canManage}
+            roleFilterParam={roleFilterParam}
         />
     );
 }

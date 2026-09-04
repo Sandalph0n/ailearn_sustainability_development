@@ -37,6 +37,7 @@ export default async function InstitutionPeoplePage({
                     active.permissions,
                     PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE,
                 )}
+                roleFilterParam="filterRole"
             />
         </main>
     );

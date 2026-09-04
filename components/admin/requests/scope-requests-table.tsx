@@ -62,6 +62,7 @@ export function ScopeRequestsTable({
     actionBasePath = '/api/admin/scope-requests',
     contextQuery = '',
     canReview = true,
+    roleFilterParam = 'role',
 }: {
     requests: ScopeRequestListItem[];
     roles: Array<{ id: string; roleName: string }>;
@@ -75,6 +76,7 @@ export function ScopeRequestsTable({
     actionBasePath?: string;
     contextQuery?: string;
     canReview?: boolean;
+    roleFilterParam?: string;
 }) {
     const list = useListQuery();
 
@@ -179,7 +181,9 @@ export function ScopeRequestsTable({
                         options={roles.map((role) => ({ value: role.id, label: role.roleName }))}
                         placeholder="All offering roles"
                         ariaLabel="Filter by access role"
-                        onChange={(next) => list.setParams({ role: next, page: null })}
+                        onChange={(next) =>
+                            list.setParams({ [roleFilterParam]: next, page: null })
+                        }
                     />
                     <UrlSelectFilter
                         value={status}

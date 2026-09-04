@@ -91,6 +91,7 @@ export function PeopleTable({
     endpoint = ENDPOINT,
     contextQuery = '',
     canManage = true,
+    roleFilterParam = 'role',
 }: {
     assignments: AssignmentListItem[];
     users: UserOption[];
@@ -107,6 +108,7 @@ export function PeopleTable({
     endpoint?: string;
     contextQuery?: string;
     canManage?: boolean;
+    roleFilterParam?: string;
 }) {
     const list = useListQuery();
     const [granting, setGranting] = useState(false);
@@ -225,7 +227,9 @@ export function PeopleTable({
                         options={roles.map((role) => ({ value: role.id, label: role.roleName }))}
                         placeholder="All roles"
                         ariaLabel="Filter by role"
-                        onChange={(next) => list.setParams({ role: next, page: null })}
+                        onChange={(next) =>
+                            list.setParams({ [roleFilterParam]: next, page: null })
+                        }
                     />
                     <UrlSelectFilter
                         value={offeringId}

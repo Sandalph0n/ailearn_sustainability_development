@@ -68,6 +68,7 @@ export default async function InstitutionRequestsPage({
                     searchParams={query}
                     actionBasePath={`/api/institutions/${active.institution.id}/scope-requests`}
                     contextQuery={contextQuery}
+                    roleFilterParam="filterRole"
                 />
             ) : (
                 <RequestsSection
@@ -75,6 +76,7 @@ export default async function InstitutionRequestsPage({
                     searchParams={query}
                     actionBasePath={`/api/institutions/${active.institution.id}/role-requests`}
                     contextQuery={contextQuery}
+                    roleFilterParam="filterRole"
                 />
             )}
         </main>
