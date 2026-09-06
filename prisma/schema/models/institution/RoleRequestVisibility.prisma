@@ -7,7 +7,7 @@ model RoleRequestVisibility {
   /// Role sẽ xuất hiện trong danh sách xin quyền khi điều kiện được thỏa mãn.
   requestableRoleId String @db.Uuid
   /// Role người dùng phải đang giữ, trực tiếp hoặc thông qua quan hệ kế thừa role.
-  requiredRoleId String @db.Uuid
+  requiredRoleId    String @db.Uuid
 
   requestableRole Role @relation("requestableRole", fields: [requestableRoleId], references: [id], onDelete: Cascade)
   requiredRole    Role @relation("requiredRole", fields: [requiredRoleId], references: [id], onDelete: Cascade)

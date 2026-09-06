@@ -82,6 +82,14 @@ VALUES
     'Institution Manager',
     NULL,
     'INSTITUTION'::"RoleScopeType"
+  ),
+  (
+    '2c073443-6ac8-5c17-bf5d-16b0ec3dbb64'::uuid,
+    'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
+    'institution:chief.management',
+    'Chief Management',
+    NULL,
+    'INSTITUTION'::"RoleScopeType"
   )
 ON CONFLICT ("id") DO UPDATE
 SET "roleName" = EXCLUDED."roleName",
@@ -152,6 +160,21 @@ WHERE NOT EXISTS (
     AND existing."revokedAt" IS NULL
 );
 
+-- Chief Management intentionally receives the complete current permission catalog directly.
+-- Re-running this seed also grants permissions added to the catalog in a later migration.
+INSERT INTO "RolePermission" ("roleId", "permissionId")
+SELECT
+  '2c073443-6ac8-5c17-bf5d-16b0ec3dbb64'::uuid,
+  permission."id"
+FROM "Permission" AS permission
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM "RolePermission" AS existing
+  WHERE existing."roleId" = '2c073443-6ac8-5c17-bf5d-16b0ec3dbb64'::uuid
+    AND existing."permissionId" = permission."id"
+    AND existing."revokedAt" IS NULL
+);
+
 -- Subject roles form a small capability ladder. The manager receives all CRUD actions through
 -- inheritance without storing the aggregate `subject.manage` permission directly.
 INSERT INTO "RoleInclusion" ("includingRoleId", "includedRoleId")
@@ -204,6 +227,10 @@ VALUES
   ),
   (
     '01899d3c-7a74-46eb-a141-075c8b4cdf6b'::uuid,
+    '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid
+  ),
+  (
+    '2c073443-6ac8-5c17-bf5d-16b0ec3dbb64'::uuid,
     '9029e84d-bb51-5ba8-8a54-f6c282e9d7bf'::uuid
   )
 ON CONFLICT ("requestableRoleId", "requiredRoleId") DO NOTHING;

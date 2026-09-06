@@ -2,7 +2,7 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
-
+import {cache} from "react"
 import type { Prisma } from '@/app/generated/prisma/client';
 import {
     getSessionCookieOptions,
@@ -108,10 +108,12 @@ export async function findSessionByToken(token: string): Promise<AuthSession | n
 /**
  * Ai đang đăng nhập. Đây là phép kiểm THẬT — `proxy.ts` chỉ nhìn thấy cookie có tồn tại hay không.
  */
-export async function getCurrentSession(): Promise<AuthSession | null> {
-    const token = await readSessionToken();
-    return token ? findSessionByToken(token) : null;
-}
+export const getCurrentSession = cache(
+    async () : Promise<AuthSession | null> => {
+        const token = await readSessionToken();
+        return token ? findSessionByToken(token) : null;
+    }
+);
 
 /**
  * Thay phiên cũ bằng phiên mới, dùng khi đăng nhập.

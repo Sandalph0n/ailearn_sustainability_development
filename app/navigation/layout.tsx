@@ -36,7 +36,8 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
     if (!session) {
         // Không gắn `?next=` ở đây: layout không biết người dùng đang đứng ở đường dẫn nào — nó
         // chỉ nhận `children`. Việc ghi nhớ đích đến là của `proxy.ts`, nơi có `request.nextUrl`.
-        redirect('/auth');
+
+        redirect('/api/auth/clear-invalid-session');
     }
 
     // Một lần đọc dùng chung cho cả bộ chuyển context và navigation theo quyền. Quyền vẫn được

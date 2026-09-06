@@ -20,8 +20,8 @@ model Assessment {
   isGroup Boolean @default(false)
 
   /// Rỗng = chưa công bố, sinh viên chưa thấy.
-  publishAt  DateTime?
-  dueAt      DateTime?
+  publishAt DateTime?
+  dueAt     DateTime?
 
   /// Chuỗi hạn nộp do đơn vị giảng dạy công bố khi chưa có thời điểm lịch chính xác, ví dụ
   /// "In week 6, during the registered SGTA". `dueAt` chỉ được điền khi nguồn có ngày cụ thể.
