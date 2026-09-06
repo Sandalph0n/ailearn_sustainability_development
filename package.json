@@ -20,6 +20,8 @@
     "db:studio": "prisma studio",
     "db:migrate": "prisma migrate",
     "db:seed": "prisma db seed",
+    "db:backup": "node scripts/database/backup.mjs",
+    "db:restore": "node scripts/database/restore.mjs",
     "seed:mq:fetch": "node scripts/seeding/fetch-mq-2026.mjs",
     "seed:mq:generate": "node scripts/seeding/generate-mq-2026-sql.mjs",
     "storage:console": "node -e \"console.log(String.raw`Trinh duyet tep MinIO: http://localhost:9001  (ailearn / ailearn-dev-secret)`)\""

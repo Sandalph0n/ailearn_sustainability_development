@@ -1,0 +1,36 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-09-06T07:25:03.004Z",
+  "database": "ailearn",
+  "excludedData": [
+    "LoginSession"
+  ],
+  "tableCounts": {
+    "Assessment": 539,
+    "AssessmentAllowTool": 0,
+    "AssessmentAttempt": 0,
+    "AssignmentWorkSession": 0,
+    "AssignmentWorkspace": 0,
+    "Document": 0,
+    "EventBatch": 0,
+    "Institution": 1,
+    "Offering": 177,
+    "Permission": 38,
+    "PersonalWorkspace": 0,
+    "Role": 11,
+    "RoleAssignment": 5,
+    "RoleInclusion": 5,
+    "RolePermission": 76,
+    "RoleRequest": 4,
+    "RoleRequestVisibility": 7,
+    "ScopeAssignment": 1,
+    "ScopeAssignmentCode": 0,
+    "ScopeAssignmentRequest": 1,
+    "StudyTerm": 2,
+    "StudyTermPeriod": 0,
+    "Subject": 131,
+    "Tool": 0,
+    "User": 2,
+    "Workspace": 0
+  }
+}
