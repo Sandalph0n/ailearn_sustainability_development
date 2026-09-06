@@ -10,6 +10,8 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "test:seed-personas": "node scripts/testing/seed-role-personas.mjs",
+    "test:cleanup-personas": "node scripts/testing/cleanup-role-personas.mjs",
     "shot": "node scripts/shot.mjs",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose stop",

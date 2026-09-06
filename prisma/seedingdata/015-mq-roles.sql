@@ -18,6 +18,8 @@ VALUES
   ('54cddb9b-273a-4952-87c9-6c1deeee5b45', 'offering:assessment.manager', 'Assessment Manager', 'OFFERING', 'DISABLED'),
   ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering:offering.manager', 'Offering Manager', 'OFFERING', 'DISABLED'),
   ('ea2e69b1-c5d7-5931-8249-29a06fc8371b', 'offering:unit.convenor', 'Unit Convenor', 'OFFERING', 'CONDITIONAL'),
+  ('8b13ad48-7945-46d8-afde-f9e7bc1c7b90', 'institution:subject.viewer', 'Subject Viewer', 'INSTITUTION', 'DISABLED'),
+  ('6356d6d1-d512-4de3-bc98-ffc13052122b', 'institution:subject.editor', 'Subject Editor', 'INSTITUTION', 'DISABLED'),
   ('3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec', 'institution:subject.manager', 'Subject Manager', 'INSTITUTION', 'DISABLED'),
   ('1e2b9a93-123b-4b55-bbeb-65384e647240', 'institution:term.manager', 'Term Manager', 'INSTITUTION', 'DISABLED'),
   ('00371033-7e5d-4052-8a97-e522a19d2013', 'institution:assessment.manager', 'Assessment Manager', 'INSTITUTION', 'DISABLED'),
@@ -83,15 +85,16 @@ VALUES
 
   ('54cddb9b-273a-4952-87c9-6c1deeee5b45', 'assessment.manage'),
   ('54cddb9b-273a-4952-87c9-6c1deeee5b45', 'attempt.view_all'),
-  ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.manage'),
+  ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.view'),
+  ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.update'),
+  ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.delete'),
   ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'member.view'),
 
-  -- Convenors can maintain membership and scopes only inside their assigned offerings.
-  ('ea2e69b1-c5d7-5931-8249-29a06fc8371b', 'role_assignment.manage'),
-  ('ea2e69b1-c5d7-5931-8249-29a06fc8371b', 'scope_assignment.manage'),
-  ('ea2e69b1-c5d7-5931-8249-29a06fc8371b', 'scope_assignment_code.manage'),
-
-  ('3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec', 'subject.manage'),
+  -- Granular subject ladder: viewer < editor < manager.
+  ('8b13ad48-7945-46d8-afde-f9e7bc1c7b90', 'subject.view'),
+  ('6356d6d1-d512-4de3-bc98-ffc13052122b', 'subject.create'),
+  ('6356d6d1-d512-4de3-bc98-ffc13052122b', 'subject.update'),
+  ('3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec', 'subject.delete'),
   ('1e2b9a93-123b-4b55-bbeb-65384e647240', 'term.manage'),
   ('00371033-7e5d-4052-8a97-e522a19d2013', 'assessment.manage'),
   ('00371033-7e5d-4052-8a97-e522a19d2013', 'attempt.view_all'),
@@ -158,6 +161,8 @@ VALUES
   ('ea2e69b1-c5d7-5931-8249-29a06fc8371b', 'd25951cc-f23a-5c4d-8bcc-98ae881fba46'),
 
   -- Institution-scoped DAG.
+  ('6356d6d1-d512-4de3-bc98-ffc13052122b', '8b13ad48-7945-46d8-afde-f9e7bc1c7b90'),
+  ('3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec', '6356d6d1-d512-4de3-bc98-ffc13052122b'),
   ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10', '00371033-7e5d-4052-8a97-e522a19d2013'),
   ('e700c8fc-c16b-4646-8b05-ea7ab48446f0', '3b3e115b-b7e0-4f5a-8e5c-8ea278e100ec'),
   ('e700c8fc-c16b-4646-8b05-ea7ab48446f0', '1e2b9a93-123b-4b55-bbeb-65384e647240'),

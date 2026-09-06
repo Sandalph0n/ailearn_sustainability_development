@@ -44,7 +44,10 @@ try {
            FROM "Offering" offering
            JOIN "Subject" subject ON subject."id" = offering."subjectId"
           WHERE subject."institutionId" = $1
-          ORDER BY offering."id"
+          ORDER BY (
+            SELECT COUNT(*) FROM "Assessment" assessment
+             WHERE assessment."offeringId" = offering."id"
+          ) DESC, offering."id"
           LIMIT 2`,
         [institutionId],
     );
@@ -80,8 +83,13 @@ try {
             for (const offering of offerings) {
                 await client.query(
                     `INSERT INTO "ScopeAssignment" ("id", "roleAssignmentId", "offeringId", "source", "assignedDirectlyById")
-                     VALUES ($1, $2, $3, 'DIRECT', $4)
-                     ON CONFLICT ("roleAssignmentId", "offeringId") DO NOTHING`,
+                     SELECT $1, $2, $3, 'DIRECT', $4
+                      WHERE NOT EXISTS (
+                        SELECT 1 FROM "ScopeAssignment"
+                         WHERE "roleAssignmentId" = $2
+                           AND "offeringId" = $3
+                           AND "revokedAt" IS NULL
+                      )`,
                     [randomUUID(), assignmentId, offering.id, userId],
                 );
             }
