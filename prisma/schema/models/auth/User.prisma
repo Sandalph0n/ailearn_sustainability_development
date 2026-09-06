@@ -12,6 +12,18 @@ model User {
   firstName String
   lastName  String
 
+  /// Khoá của ảnh đại diện trong bucket `media`. `null` = chưa đặt ảnh.
+  ///
+  /// ─── Vì sao lưu CẢ khoá chứ không suy ra từ `id` ─────────────────────────
+  ///
+  /// Suy ra được — `avatar/<id>` là đủ duy nhất. Nhưng khoá cố định nghĩa là đổi ảnh mà địa chỉ
+  /// không đổi, và trình duyệt sẽ tiếp tục hiện ảnh cũ đã nằm trong bộ nhớ đệm.
+  ///
+  /// Lưu hẳn khoá thì mỗi lần tải lên là một khoá mới, địa chỉ mới, bộ nhớ đệm tự hết hiệu lực.
+  /// Đổi lại phải xoá đối tượng cũ sau khi cập nhật cột này — theo đúng thứ tự ở `Document`:
+  /// ghi kho tệp trước, ghi database sau, rồi mới dọn cái cũ.
+  avatarKey String?
+
   /// Quản trị viên toàn hệ thống — người vận hành, không phải vai trò trong môn học.
   ///
   /// Mặc định `false` chứ không cho phép null: "có phải quản trị viên không" chỉ có hai câu trả

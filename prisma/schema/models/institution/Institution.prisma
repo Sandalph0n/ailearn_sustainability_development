@@ -5,6 +5,11 @@ model Institution {
   name    String
   website String?
 
+  /// Khoá của logo trong bucket `media`. `null` = chưa đặt logo.
+  ///
+  /// Cùng lối với `User.avatarKey`: lưu cả khoá để đổi ảnh là đổi địa chỉ.
+  logoKey String?
+
   roles        Role[]
   studyTerms   StudyTerm[]
   subjects     Subject[]
