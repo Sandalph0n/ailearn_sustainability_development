@@ -175,14 +175,40 @@ if (hasMigrations) {
 //
 // Ở đây chỉ là một lời gọi API, và dùng đúng SDK mà ứng dụng sẽ dùng — nên cấu hình sai thì
 // hỏng ngay tại bước này, chứ không phải hỏng lúc người dùng đầu tiên tải tệp lên.
-async function ensureBucket() {
+/**
+ * Bốn bucket, khai ở đây vì `.env` chỉ nói được TÊN, không nói được chính sách.
+ *
+ * ─── Vì sao chỉ `archive` bật Object Lock ────────────────────────────────────
+ *
+ * Object Lock là cơ chế WORM của S3: ghi một lần, không xoá được cho tới ngày đã hẹn. Nó dành
+ * cho bản lưu trữ buổi làm bài — thứ mà cả dự án dựa vào để nói "chuỗi thao tác này chưa bị ai
+ * sửa". Ba bucket còn lại chứa dữ liệu đời thường, khoá lại chỉ tổ vướng.
+ *
+ * ─── Vì sao phải quyết NGAY LÚC TẠO ──────────────────────────────────────────
+ *
+ * Object Lock KHÔNG bật được cho bucket đã tồn tại. MinIO trả về:
+ *
+ *     409 InvalidBucketState
+ *     "Object Lock configuration cannot be enabled on existing buckets"
+ *
+ * Sai ở đây thì cách sửa duy nhất là tạo bucket khác rồi chép toàn bộ sang — mà chép xong thì
+ * mọi mốc thời gian đều mới, đúng thứ mà bản lưu trữ tồn tại để chứng minh.
+ *
+ * Ngược lại, CHẾ ĐỘ khoá (`GOVERNANCE` phá được / `COMPLIANCE` không ai phá được) thì đổi lúc
+ * nào cũng được, và mỗi tệp còn tự khai riêng lúc ghi. Nên ở đây chỉ bật cơ chế, chưa đặt luật.
+ */
+const BUCKETS = [
+    { env: 'S3_BUCKET_MEDIA', objectLock: false },
+    { env: 'S3_BUCKET_DOCS', objectLock: false },
+    { env: 'S3_BUCKET_TOOLS', objectLock: false },
+    { env: 'S3_BUCKET_ARCHIVE', objectLock: true },
+];
+
+async function ensureBuckets() {
     // Nạp `.env` TẠI ĐÂY, không phải ở đầu file: bước 3 mới vừa tạo ra nó. Nạp sớm hơn thì trên
     // máy mới file chưa tồn tại và mọi biến sẽ rỗng.
     const dotenv = await import('dotenv');
     dotenv.config({ path: join(root, '.env'), quiet: true });
-
-    const bucket = process.env.S3_BUCKET;
-    if (!bucket) die('Thiếu S3_BUCKET trong .env.', 'Đối chiếu với .env.example.');
 
     const { S3Client, HeadBucketCommand, CreateBucketCommand } = await import('@aws-sdk/client-s3');
     const s3 = new S3Client({
@@ -196,22 +222,38 @@ async function ensureBucket() {
         },
     });
 
-    try {
-        await s3.send(new HeadBucketCommand({ Bucket: bucket }));
-        skip(`bucket "${bucket}" đã có`);
-        return;
-    } catch (err) {
-        // 404 = chưa có, tạo tiếp bên dưới. Lỗi khác là vấn đề thật, đừng nuốt.
-        const code = err?.$metadata?.httpStatusCode;
-        if (code !== 404 && err?.name !== 'NotFound' && err?.name !== 'NoSuchBucket') {
-            die(`Không nối được kho tệp: ${err?.name ?? err}`, 'Xem chi tiết: pnpm infra:logs');
-        }
-    }
+    for (const { env, objectLock } of BUCKETS) {
+        const bucket = process.env[env];
+        if (!bucket) die(`Thiếu ${env} trong .env.`, 'Đối chiếu với .env.example.');
 
-    await s3.send(new CreateBucketCommand({ Bucket: bucket }));
-    ok(`bucket "${bucket}" đã tạo`);
+        let exists = true;
+        try {
+            await s3.send(new HeadBucketCommand({ Bucket: bucket }));
+        } catch (err) {
+            // 404 = chưa có, tạo tiếp bên dưới. Lỗi khác là vấn đề thật, đừng nuốt.
+            const code = err?.$metadata?.httpStatusCode;
+            if (code !== 404 && err?.name !== 'NotFound' && err?.name !== 'NoSuchBucket') {
+                die(`Không nối được kho tệp: ${err?.name ?? err}`, 'Xem chi tiết: pnpm infra:logs');
+            }
+            exists = false;
+        }
+
+        if (exists) {
+            skip(`bucket "${bucket}" đã có`);
+            continue;
+        }
+
+        await s3.send(
+            new CreateBucketCommand({
+                Bucket: bucket,
+                // Bật Object Lock kéo theo versioning — S3 bắt buộc, không tách rời được.
+                ...(objectLock ? { ObjectLockEnabledForBucket: true } : {}),
+            }),
+        );
+        ok(`bucket "${bucket}" đã tạo${objectLock ? ' (Object Lock)' : ''}`);
+    }
 }
 
-await ensureBucket();
+await ensureBuckets();
 
 console.log('\n\x1b[32m\x1b[1mXong.\x1b[0m Chạy \x1b[1mpnpm dev\x1b[0m để bắt đầu.\n');
