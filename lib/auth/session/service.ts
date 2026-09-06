@@ -29,6 +29,9 @@ const sessionUserSelect = {
     // Đi kèm phiên vì chốt chặn `/admin` cần nó ở MỌI request. Truy vấn riêng thì thành hai lần
     // chạm database cho cùng một câu hỏi, và dễ có chỗ quên hỏi.
     isSystemAdmin: true,
+    // Ảnh đại diện hiện ở thanh tiêu đề trên mọi trang, nên đi kèm phiên thay vì một truy vấn
+    // riêng cho mỗi lần vẽ lại.
+    avatarKey: true,
 } satisfies Prisma.UserSelect;
 
 export type SessionUser = Prisma.UserGetPayload<{ select: typeof sessionUserSelect }>;
