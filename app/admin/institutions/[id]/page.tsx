@@ -13,6 +13,7 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { InstitutionOverview } from '@/components/admin/institutions/institution-overview';
+import { PictureField } from '@/components/media/picture-field';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/lib/db';
 
@@ -60,6 +61,7 @@ export default async function InstitutionSettingsPage({
             id: true,
             name: true,
             website: true,
+            logoKey: true,
             _count: { select: { subjects: true, studyTerms: true, roles: true } },
         },
     });
@@ -148,6 +150,16 @@ export default async function InstitutionSettingsPage({
                 name: institution.name,
                 website: institution.website,
             }}
+            logo={
+                <PictureField
+                    endpoint={`/api/admin/institutions/${institution.id}/logo`}
+                    pictureKey={institution.logoKey}
+                    fallback={institution.name.at(0)?.toUpperCase() ?? '?'}
+                    alt={`${institution.name} logo`}
+                    rounded="lg"
+                    layout="column"
+                />
+            }
             heading={
                 <div className="flex flex-col gap-2">
                     <h1 className="font-heading text-xl font-semibold tracking-tight">

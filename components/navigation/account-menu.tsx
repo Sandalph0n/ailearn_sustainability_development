@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { AccountBox, type AccountUser } from '@/components/navigation/account-box';
+import { AvatarDialog } from '@/components/navigation/avatar-dialog';
 
 /**
  * Nối `AccountBox` với API đăng xuất.
@@ -43,5 +44,13 @@ export function AccountMenu({ user }: { user: AccountUser }) {
         router.refresh();
     }
 
-    return <AccountBox user={user} onSignOut={signOut} />;
+    const initials = `${user.firstName.at(0) ?? ''}${user.lastName.at(0) ?? ''}`.toUpperCase();
+
+    return (
+        <AccountBox
+            user={user}
+            onSignOut={signOut}
+            pictureItem={<AvatarDialog initials={initials} avatarKey={user.avatarKey} />}
+        />
+    );
 }

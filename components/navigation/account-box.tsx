@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Logout01Icon,
@@ -8,7 +10,8 @@ import {
     ArrowDown01Icon,
 } from '@hugeicons/core-free-icons';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { pictureUrl } from '@/components/media/picture-url';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,12 +26,16 @@ export type AccountUser = {
     firstName: string;
     lastName: string;
     email: string;
+    /** Khoá ảnh đại diện trong bucket `media`, `null` khi chưa đặt. */
+    avatarKey: string | null;
 };
 
 type Props = {
     user: AccountUser;
     /** Bấm "Sign out". Phần gọi API do nơi dùng cung cấp — component này không tự làm gì. */
     onSignOut?: () => void;
+    /** Mục mở hộp thoại đổi ảnh. Truyền vào để component này không cần biết tới `fetch`. */
+    pictureItem?: ReactNode;
 };
 
 /**
@@ -39,7 +46,7 @@ type Props = {
  *
  * Trên màn hình hẹp chỉ còn avatar — tên và email ẩn đi để không chiếm chỗ của header.
  */
-export function AccountBox({ user, onSignOut }: Props) {
+export function AccountBox({ user, onSignOut, pictureItem }: Props) {
     const initials = `${user.firstName.at(0) ?? ''}${user.lastName.at(0) ?? ''}`.toUpperCase();
     const fullName = `${user.firstName} ${user.lastName}`.trim();
 
@@ -47,6 +54,7 @@ export function AccountBox({ user, onSignOut }: Props) {
         <DropdownMenu>
             <DropdownMenuTrigger className="hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring hover:cursor-pointer">
                 <Avatar className="size-7">
+                    <AvatarImage src={pictureUrl(user.avatarKey)} alt="" />
                     <AvatarFallback className="text-xs">{initials || '?'}</AvatarFallback>
                 </Avatar>
 
@@ -82,6 +90,8 @@ export function AccountBox({ user, onSignOut }: Props) {
                     </DropdownMenuLabel>
 
                     <DropdownMenuSeparator />
+
+                    {pictureItem}
 
                     <DropdownMenuItem>
                         <HugeiconsIcon icon={UserIcon} strokeWidth={2} />

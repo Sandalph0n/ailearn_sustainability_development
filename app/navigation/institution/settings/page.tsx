@@ -2,6 +2,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { LinkSquare02Icon } from '@hugeicons/core-free-icons';
 
 import { InstitutionOverview } from '@/components/admin/institutions/institution-overview';
+import { PictureField } from '@/components/media/picture-field';
 import { Badge } from '@/components/ui/badge';
 import { requireInstitutionWorkspace } from '@/lib/auth/institution-workspace';
 import { hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
@@ -22,9 +23,10 @@ export default async function InstitutionSettingsPage({
     const active = await requireInstitutionWorkspace(query, SETTINGS_PERMISSIONS);
     const institution = await db.institution.findUniqueOrThrow({
         where: { id: active.institution.id },
-        select: { id: true, name: true, website: true },
+        select: { id: true, name: true, website: true, logoKey: true },
     });
     const contextQuery = new URLSearchParams(contextSearchParams(active)).toString();
+    const canEdit = hasPermission(active.permissions, PERMISSION_CODE.INSTITUTION_SETTINGS_UPDATE);
 
     return (
         <main className="mx-auto w-full max-w-6xl py-7">
@@ -43,10 +45,18 @@ export default async function InstitutionSettingsPage({
             <section className="bg-card rounded-xl border p-6 shadow-sm">
                 <InstitutionOverview
                     institution={institution}
-                    canEdit={hasPermission(
-                        active.permissions,
-                        PERMISSION_CODE.INSTITUTION_SETTINGS_UPDATE,
-                    )}
+                    canEdit={canEdit}
+                    logo={
+                        <PictureField
+                            endpoint={`/api/institutions/${institution.id}/logo?${contextQuery}`}
+                            pictureKey={institution.logoKey}
+                            fallback={institution.name.at(0)?.toUpperCase() ?? '?'}
+                            alt={`${institution.name} logo`}
+                            rounded="lg"
+                            layout="column"
+                            disabled={!canEdit}
+                        />
+                    }
                     editEndpoint={`/api/institutions/${institution.id}/settings?${contextQuery}`}
                     heading={
                         <div className="space-y-2">
