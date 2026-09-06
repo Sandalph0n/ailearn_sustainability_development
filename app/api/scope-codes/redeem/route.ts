@@ -54,10 +54,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 select: {
                     offeringId: true,
                     usedAt: true,
+                    revokedAt: true,
                     offering: { select: { subject: { select: { institutionId: true } } } },
                 },
             });
-            if (!code || code.usedAt) {
+            if (!code || code.usedAt || code.revokedAt) {
                 throw new CodeRedemptionError('The access code is invalid or has already been used');
             }
 
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 throw new CodeRedemptionError('That role cannot use this access code');
             }
 
-            return tx.scopeAssignment.create({
+            const scopeAssignment = await tx.scopeAssignment.create({
                 data: {
                     roleAssignmentId,
                     offeringId: code.offeringId,
@@ -86,6 +87,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 },
                 select: { id: true, offeringId: true },
             });
+            await tx.scopeAssignmentCode.update({
+                where: { id: codeId },
+                data: { usedAt: new Date() },
+            });
+            return scopeAssignment;
         });
 
         return jsonResponse({ scopeAssignment }, { status: 201 });

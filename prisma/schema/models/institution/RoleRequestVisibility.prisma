@@ -1,8 +1,9 @@
 /// Một điều kiện hiển thị cho role có thể được xin.
 ///
-/// Không có dòng nào cho `requestableRole` nghĩa là mọi người đều nhìn thấy role đó.
-/// Có nhiều dòng nghĩa là điều kiện OR: người dùng chỉ cần đang giữ một trong các
-/// `requiredRole`. Phép kiểm quyền gửi request vẫn phải được thực hiện riêng ở backend.
+/// Chỉ được đọc khi `Role.requestMode = CONDITIONAL`. Có nhiều dòng nghĩa là điều kiện OR:
+/// người dùng chỉ cần đang giữ một trong các `requiredRole`. CONDITIONAL không có dòng nào là
+/// cấu hình đóng; PUBLIC và DISABLED không dựa vào bảng này. Backend dùng cùng policy cho cả
+/// việc hiển thị role lẫn việc nhận POST request.
 model RoleRequestVisibility {
   /// Role sẽ xuất hiện trong danh sách xin quyền khi điều kiện được thỏa mãn.
   requestableRoleId String @db.Uuid

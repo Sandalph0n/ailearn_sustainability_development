@@ -5,16 +5,20 @@
 model ScopeAssignmentCode {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  offeringId String @db.Uuid
+  offeringId  String @db.Uuid
   createdById String @db.Uuid
 
-  createdAt DateTime  @default(now())
-  usedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  revokedById String?   @db.Uuid
 
-  offering Offering @relation(fields: [offeringId], references: [id], onDelete: Restrict)
-  createdBy User     @relation("createdScopeAssignmentCodes", fields: [createdById], references: [id], onDelete: Restrict)
+  offering  Offering         @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  createdBy User             @relation("createdScopeAssignmentCodes", fields: [createdById], references: [id], onDelete: Restrict)
+  revokedBy User?            @relation("revokedScopeAssignmentCodes", fields: [revokedById], references: [id], onDelete: Restrict)
   usedFor   ScopeAssignment? @relation("scopeAssignmentCodeUsage")
 
   @@index([offeringId])
   @@index([createdById])
+  @@index([revokedById])
 }

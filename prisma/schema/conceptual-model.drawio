@@ -360,7 +360,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="mVYId0udN_2KPuGNmYjD-167" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" value="&lt;span style=&quot;text-wrap-mode: wrap;&quot;&gt;Role&lt;/span&gt;" vertex="1">
-          <mxGeometry height="180" width="180" x="-367" y="75" as="geometry" />
+          <mxGeometry height="210" width="180" x="-367" y="75" as="geometry" />
         </mxCell>
         <mxCell id="mVYId0udN_2KPuGNmYjD-168" parent="mVYId0udN_2KPuGNmYjD-167" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=1;" value="" vertex="1">
           <mxGeometry height="30" width="180" y="30" as="geometry" />
@@ -423,6 +423,19 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="mVYId0udN_2KPuGNmYjD-902" parent="mVYId0udN_2KPuGNmYjD-900" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="scopeType" vertex="1">
+          <mxGeometry height="30" width="150" x="30" as="geometry">
+            <mxRectangle height="30" width="150" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="codex-role-request-mode-row" parent="mVYId0udN_2KPuGNmYjD-167" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
+          <mxGeometry height="30" width="180" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="codex-role-request-mode-key" parent="codex-role-request-mode-row" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" as="geometry">
+            <mxRectangle height="30" width="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="codex-role-request-mode-value" parent="codex-role-request-mode-row" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="requestMode" vertex="1">
           <mxGeometry height="30" width="150" x="30" as="geometry">
             <mxRectangle height="30" width="150" as="alternateBounds" />
           </mxGeometry>
@@ -1421,7 +1434,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-5" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;fillColor=#fad7ac;strokeColor=#b46504;" value="RoleRequestVisibility(AE)" vertex="1">
-          <mxGeometry height="56" width="185" x="-614.5" y="267" as="geometry" />
+          <mxGeometry height="56" width="185" x="-614.5" y="307" as="geometry" />
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-6" parent="QuSzsIsMlo7jJQrujK7s-5" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="reserved" vertex="1">
           <mxGeometry height="30" width="185" y="26" as="geometry" />
@@ -1445,10 +1458,16 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-13" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;fillColor=#fad7ac;strokeColor=#b46504;" value="ScopeAssignment (AE)" vertex="1">
-          <mxGeometry height="56" width="196" x="-329" y="652" as="geometry" />
+          <mxGeometry height="116" width="196" x="-329" y="652" as="geometry" />
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-14" parent="QuSzsIsMlo7jJQrujK7s-13" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="source" vertex="1">
           <mxGeometry height="30" width="196" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ScopeAsgmt-assignedAt" parent="QuSzsIsMlo7jJQrujK7s-13" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="assignedAt" vertex="1">
+          <mxGeometry height="30" width="196" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="ScopeAsgmt-revokedAt" parent="QuSzsIsMlo7jJQrujK7s-13" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="revokedAt" vertex="1">
+          <mxGeometry height="30" width="196" y="86" as="geometry" />
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-18" edge="1" parent="1" source="LMWKLvEU5ZvPng6FI72z-46" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;rounded=0;startFill=0;edgeStyle=orthogonalEdgeStyle;" target="QuSzsIsMlo7jJQrujK7s-13" value="">
           <mxGeometry height="100" relative="1" width="100" as="geometry">
@@ -1482,7 +1501,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-25" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;span style=&quot;text-wrap-mode: wrap;&quot;&gt;ScopeAssignmentCode&lt;/span&gt;" vertex="1">
-          <mxGeometry height="120" width="180" x="-197" y="851" as="geometry" />
+          <mxGeometry height="150" width="180" x="-197" y="851" as="geometry" />
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-26" parent="QuSzsIsMlo7jJQrujK7s-25" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=1;" value="" vertex="1">
           <mxGeometry height="30" width="180" y="30" as="geometry" />
@@ -1519,6 +1538,19 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="QuSzsIsMlo7jJQrujK7s-34" parent="QuSzsIsMlo7jJQrujK7s-32" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="usedAt" vertex="1">
+          <mxGeometry height="30" width="150" x="30" as="geometry">
+            <mxRectangle height="30" width="150" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ScopeCode-row-revokedAt" parent="QuSzsIsMlo7jJQrujK7s-25" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
+          <mxGeometry height="30" width="180" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ScopeCode-key-revokedAt" parent="ScopeCode-row-revokedAt" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" as="geometry">
+            <mxRectangle height="30" width="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ScopeCode-value-revokedAt" parent="ScopeCode-row-revokedAt" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="revokedAt" vertex="1">
           <mxGeometry height="30" width="150" x="30" as="geometry">
             <mxRectangle height="30" width="150" as="alternateBounds" />
           </mxGeometry>
@@ -1566,6 +1598,12 @@
           <mxGeometry relative="1" x="0.5125" y="-4" as="geometry">
             <mxPoint x="-29" y="2" as="offset" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="ScopeAsgmt-revokedBy-edge" edge="1" parent="1" source="mVYId0udN_2KPuGNmYjD-22" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERzeroToOne;rounded=0;edgeStyle=orthogonalEdgeStyle;" target="QuSzsIsMlo7jJQrujK7s-13" value="revokedBy &amp;gt;">
+          <mxGeometry height="100" relative="1" width="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ScopeCode-revokedBy-edge" edge="1" parent="1" source="mVYId0udN_2KPuGNmYjD-22" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERzeroToOne;rounded=0;edgeStyle=orthogonalEdgeStyle;" target="QuSzsIsMlo7jJQrujK7s-25" value="revokedBy &amp;gt;">
+          <mxGeometry height="100" relative="1" width="100" as="geometry" />
         </mxCell>
         <mxCell id="ScopeReq-table" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;" value="&lt;span style=&quot;white-space: normal;&quot;&gt;ScopeAssignmentRequest&lt;/span&gt;" vertex="1">
           <mxGeometry height="150" width="210" x="-390" y="356" as="geometry" />

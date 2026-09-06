@@ -11,19 +11,24 @@ model ScopeAssignment {
 
   source ScopeAssignmentSource
 
+  assignedAt DateTime  @default(now())
+  revokedAt  DateTime?
+
   assignedDirectlyById String? @db.Uuid
+  revokedById          String? @db.Uuid
   usedCodeId           String? @unique @db.Uuid
 
   roleAssignment     RoleAssignment          @relation(fields: [roleAssignmentId], references: [id], onDelete: Cascade)
   offering           Offering                @relation(fields: [offeringId], references: [id], onDelete: Restrict)
   assignedDirectlyBy User?                   @relation("directScopeAssignments", fields: [assignedDirectlyById], references: [id], onDelete: Restrict)
+  revokedBy          User?                   @relation("revokedScopeAssignments", fields: [revokedById], references: [id], onDelete: Restrict)
   usedCode           ScopeAssignmentCode?    @relation("scopeAssignmentCodeUsage", fields: [usedCodeId], references: [id], onDelete: Restrict)
   fromRequest        ScopeAssignmentRequest?
 
-  @@unique([roleAssignmentId, offeringId])
   @@index([roleAssignmentId])
   @@index([offeringId])
   @@index([assignedDirectlyById])
+  @@index([revokedById])
 }
 
 enum ScopeAssignmentSource {

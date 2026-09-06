@@ -16,8 +16,8 @@ model Role {
 
   /// Biểu thức khớp email để TỰ ĐỘNG cấp vai trò lúc gia nhập, không cần ai duyệt.
   ///
-  /// Khớp thì vào thẳng; không khớp thì phải qua `RoleRequest` và chờ người duyệt. Đây là lối
-  /// tắt để không phải duyệt tay hàng nghìn sinh viên mỗi kỳ.
+  /// Khớp thì vào thẳng; không khớp thì chỉ có thể qua `RoleRequest` nếu `requestMode` cho phép.
+  /// Đây là lối tắt để không phải duyệt tay hàng nghìn sinh viên mỗi kỳ.
   ///
   /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, khi chưa
   /// có lượt mở môn nào để nói tới. Check constraint trong migration giữ bất biến này ở database.
@@ -26,6 +26,10 @@ model Role {
   /// Vai trò này có hiệu lực ở tầng nào. OFFERING role lấy các scope từ `ScopeAssignment` và có
   /// thể tạm thời chưa được gắn scope nào.
   scopeType RoleScopeType
+
+  /// Quy định role có thể được người dùng tự gửi yêu cầu hay chỉ được quản trị viên cấp.
+  /// `CONDITIONAL` dùng các dòng `RoleRequestVisibility` theo phép OR.
+  requestMode RoleRequestMode @default(DISABLED)
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
@@ -57,4 +61,16 @@ enum RoleScopeType {
   /// Có hiệu lực trên các offering nằm trong `ScopeAssignment`. Không có dòng scope
   /// nào nghĩa là người dùng mới có role identity, chưa được cấp quyền trên offering nào.
   OFFERING
+}
+
+/// Chính sách tự xin một role. Đây là authorization policy, không chỉ là trạng thái hiển thị UI.
+enum RoleRequestMode {
+  /// Không thể tự xin; chỉ người có quyền mới được cấp trực tiếp.
+  DISABLED
+
+  /// Mọi người dùng đã đăng nhập đều có thể nhìn thấy và gửi request.
+  PUBLIC
+
+  /// Chỉ người đang giữ ít nhất một role trong `RoleRequestVisibility` mới được request.
+  CONDITIONAL
 }

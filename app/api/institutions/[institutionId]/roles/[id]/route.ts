@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import {
     RoleConfigurationError,
+    syncRoleRequestVisibility,
     syncRolePermissions,
     validateRoleConfiguration,
 } from '@/lib/admin/role-configuration';
@@ -13,6 +14,11 @@ import {
 } from '@/lib/auth/institution-route-guard';
 import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { PERMISSION_CODE } from '@/lib/auth/permissions';
+import {
+    assertCanDefineRole,
+    CHIEF_MANAGEMENT_ROLE_CODE,
+    DelegationPolicyError,
+} from '@/lib/auth/delegation-policy';
 import { db } from '@/lib/db';
 
 export async function PATCH(
@@ -40,11 +46,31 @@ export async function PATCH(
         const role = await db.$transaction(async (tx) => {
             const current = await tx.role.findFirst({
                 where: { id, institutionId },
-                select: { id: true },
+                select: { id: true, roleCode: true },
             });
             if (!current) throw new RoleConfigurationError('Role does not exist', 'includedRoleIds');
+            if (
+                current.roleCode === CHIEF_MANAGEMENT_ROLE_CODE ||
+                guard.data.roleCode === CHIEF_MANAGEMENT_ROLE_CODE
+            ) {
+                throw new DelegationPolicyError(
+                    'The protected Chief Management definition can only be changed by a system administrator',
+                );
+            }
             await validateRoleConfiguration(tx, guard.data, id);
-            const { includedRoleIds, permissionIds, ...roleData } = guard.data;
+            await assertCanDefineRole(
+                tx,
+                institutionId,
+                guard.data.permissionIds,
+                guard.data.includedRoleIds,
+                guard.context.permissions,
+            );
+            const {
+                includedRoleIds,
+                permissionIds,
+                prerequisiteRoleIds,
+                ...roleData
+            } = guard.data;
             const updated = await tx.role.update({
                 where: { id },
                 data: roleData,
@@ -60,6 +86,7 @@ export async function PATCH(
                 });
             }
             await syncRolePermissions(tx, id, permissionIds);
+            await syncRoleRequestVisibility(tx, id, prerequisiteRoleIds);
             return updated;
         });
         return jsonResponse({ role });
@@ -68,6 +95,9 @@ export async function PATCH(
             return errorResponse(400, 'VALIDATION_ERROR', error.message, {
                 [error.field]: [error.message],
             });
+        }
+        if (error instanceof DelegationPolicyError) {
+            return errorResponse(403, 'AUTHORIZATION_FORBIDDEN', error.message);
         }
         return prismaError(error, 'Role');
     }
@@ -86,6 +116,19 @@ export async function DELETE(
         PERMISSION_CODE.ROLE_DELETE,
     );
     if (!guard.ok) return guard.response;
+
+    const role = await db.role.findFirst({
+        where: { id, institutionId },
+        select: { roleCode: true },
+    });
+    if (!role) return errorResponse(404, 'NOT_FOUND', 'Role does not exist');
+    if (role.roleCode === CHIEF_MANAGEMENT_ROLE_CODE) {
+        return errorResponse(
+            403,
+            'AUTHORIZATION_FORBIDDEN',
+            'The protected Chief Management definition cannot be deleted here',
+        );
+    }
 
     try {
         await db.role.delete({ where: { id, institutionId } });

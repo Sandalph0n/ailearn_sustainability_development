@@ -4,10 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
+    ArrowLeft02Icon,
+    ArrowRight01Icon,
     Cancel01Icon,
+    Delete02Icon,
     MoreVerticalIcon,
 } from '@hugeicons/core-free-icons';
 import { useWatch, type UseFormReturn } from 'react-hook-form';
+import { toast } from 'sonner';
 
 import { ResourceActionDialog } from '@/components/admin/resource-action-dialog';
 import {
@@ -24,10 +28,18 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { SelectItem } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import {
     EMPTY_ROLE_ASSIGNMENT_FORM,
     INSTITUTION_SCOPE_VALUE,
@@ -53,7 +65,12 @@ export type AssignmentListItem = {
     id: string;
     user: UserOption;
     role: RoleOption;
-    offerings: OfferingOption[];
+    scopes: Array<{
+        id: string;
+        source: 'DIRECT' | 'CODE' | 'REQUEST_APPROVED';
+        assignedBy: string | null;
+        offering: OfferingOption;
+    }>;
     granted: string;
     revoked: string | null;
     source: 'REQUEST' | 'MANUAL';
@@ -67,13 +84,16 @@ const offeringLabel = (offering: OfferingOption) =>
 
 function assignmentScopeLabel(assignment: AssignmentListItem): string {
     if (assignment.role.scopeType === 'INSTITUTION') return 'Institution-wide';
-    if (assignment.offerings.length === 0) return 'Not scoped yet';
+    if (assignment.scopes.length === 0) return 'Not scoped yet';
 
-    const [first, ...rest] = assignment.offerings;
+    const [first, ...rest] = assignment.scopes;
     return rest.length === 0
-        ? offeringLabel(first)
-        : `${offeringLabel(first)} +${rest.length} more`;
+        ? offeringLabel(first.offering)
+        : `${offeringLabel(first.offering)} +${rest.length} more`;
 }
+
+export type PeopleRoleCapabilities = { create: boolean; revoke: boolean };
+export type PeopleScopeCapabilities = { view: boolean; create: boolean; revoke: boolean };
 
 export function PeopleTable({
     assignments,
@@ -91,6 +111,8 @@ export function PeopleTable({
     endpoint = ENDPOINT,
     contextQuery = '',
     canManage = true,
+    roleCapabilities,
+    scopeCapabilities = { view: false, create: false, revoke: false },
     roleFilterParam = 'role',
 }: {
     assignments: AssignmentListItem[];
@@ -108,10 +130,17 @@ export function PeopleTable({
     endpoint?: string;
     contextQuery?: string;
     canManage?: boolean;
+    roleCapabilities?: PeopleRoleCapabilities;
+    scopeCapabilities?: PeopleScopeCapabilities;
     roleFilterParam?: string;
 }) {
     const list = useListQuery();
     const [granting, setGranting] = useState(false);
+    const [managingScopes, setManagingScopes] = useState<AssignmentListItem | null>(null);
+    const effectiveRoleCapabilities = roleCapabilities ?? {
+        create: canManage,
+        revoke: canManage,
+    };
 
     const columns = useMemo(
         () =>
@@ -179,17 +208,41 @@ export function PeopleTable({
                 column.display({
                     id: 'actions',
                     header: '',
-                    cell: (info) => canManage ? (
+                    cell: (info) =>
+                        effectiveRoleCapabilities.revoke ||
+                        (scopeCapabilities.view &&
+                            info.row.original.role.scopeType === 'OFFERING') ? (
                         <AssignmentActions
                             assignment={info.row.original}
                             endpoint={endpoint}
                             contextQuery={contextQuery}
+                            canRevoke={effectiveRoleCapabilities.revoke}
+                            canManageScopes={scopeCapabilities.view}
+                            onManageScopes={() => setManagingScopes(info.row.original)}
                         />
                     ) : null,
                 }),
             ] as Array<AdminColumnDef<AssignmentListItem>>,
-        [canManage, contextQuery, endpoint],
+        [contextQuery, effectiveRoleCapabilities.revoke, endpoint, scopeCapabilities.view],
     );
+
+    if (managingScopes) {
+        return (
+            <AssignmentScopesPanel
+                assignment={managingScopes}
+                offerings={offerings}
+                endpoint={endpointFor(
+                    `${endpoint}/${managingScopes.id}/scopes`,
+                    contextQuery,
+                )}
+                capabilities={scopeCapabilities}
+                onCancel={() => setManagingScopes(null)}
+                onScopesChange={(scopes) =>
+                    setManagingScopes((current) => (current ? { ...current, scopes } : current))
+                }
+            />
+        );
+    }
 
     if (granting) {
         return (
@@ -260,7 +313,7 @@ export function PeopleTable({
                         {total} total
                     </span>
                     <div className="flex-1" />
-                    {canManage && <Button
+                    {effectiveRoleCapabilities.create && <Button
                         disabled={roles.length === 0 || users.length === 0}
                         onClick={() => setGranting(true)}
                     >
@@ -437,10 +490,16 @@ function AssignmentActions({
     assignment,
     endpoint,
     contextQuery,
+    canRevoke,
+    canManageScopes,
+    onManageScopes,
 }: {
     assignment: AssignmentListItem;
     endpoint: string;
     contextQuery: string;
+    canRevoke: boolean;
+    canManageScopes: boolean;
+    onManageScopes: () => void;
 }) {
     if (assignment.revoked) return null;
 
@@ -455,7 +514,14 @@ function AssignmentActions({
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <ResourceActionDialog
+                    {canManageScopes && assignment.role.scopeType === 'OFFERING' && (
+                        <DropdownMenuItem onClick={onManageScopes}>
+                            <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+                            Manage scopes
+                        </DropdownMenuItem>
+                    )}
+                    {canManageScopes && canRevoke && <DropdownMenuSeparator />}
+                    {canRevoke && <ResourceActionDialog
                         endpoint={endpointFor(`${endpoint}/${assignment.id}/revoke`, contextQuery)}
                         method="PATCH"
                         title={`Revoke ${assignment.role.roleName}?`}
@@ -468,11 +534,265 @@ function AssignmentActions({
                                 Revoke
                             </DropdownMenuItem>
                         }
-                    />
+                    />}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+type AssignmentScope = AssignmentListItem['scopes'][number];
+
+function AssignmentScopesPanel({
+    assignment,
+    offerings,
+    endpoint,
+    capabilities,
+    onCancel,
+    onScopesChange,
+}: {
+    assignment: AssignmentListItem;
+    offerings: OfferingOption[];
+    endpoint: string;
+    capabilities: PeopleScopeCapabilities;
+    onCancel: () => void;
+    onScopesChange: (scopes: AssignmentScope[]) => void;
+}) {
+    const [offeringId, setOfferingId] = useState<string | null>(null);
+    const [adding, setAdding] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const assignedOfferingIds = new Set(assignment.scopes.map((scope) => scope.offering.id));
+    const availableOfferings = offerings.filter(
+        (offering) => !assignedOfferingIds.has(offering.id),
+    );
+
+    async function addScope() {
+        if (!offeringId || adding) return;
+        setAdding(true);
+        setError(null);
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ offeringId }),
+            });
+            const body: unknown = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const message = responseError(body, 'Could not add this offering scope.');
+                setError(message);
+                toast.error(message);
+                return;
+            }
+
+            const offering = offerings.find((option) => option.id === offeringId);
+            const scope = responseScope(body);
+            if (offering && scope) {
+                onScopesChange([
+                    ...assignment.scopes,
+                    { id: scope.id, source: 'DIRECT', assignedBy: scope.assignedBy, offering },
+                ]);
+            }
+            setOfferingId(null);
+            toast.success('Offering scope added.');
+        } catch {
+            const message = 'Cannot reach the server. Check your connection.';
+            setError(message);
+            toast.error(message);
+        } finally {
+            setAdding(false);
+        }
+    }
+
+    return (
+        <section className="bg-background -mx-5 min-h-[calc(100dvh-4rem)] px-5 pb-10 md:-mx-6 md:px-6">
+            <div className="mx-auto flex w-full max-w-7xl flex-col">
+                <header className="border-border flex flex-wrap items-start gap-4 border-b py-6">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={onCancel}
+                        aria-label="Back to people"
+                        className="mt-0.5 -ml-2"
+                    >
+                        <HugeiconsIcon icon={ArrowLeft02Icon} strokeWidth={2} />
+                    </Button>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-primary text-xs font-semibold tracking-[0.16em] uppercase">
+                            Access scope
+                        </p>
+                        <h2 className="font-heading mt-1 text-2xl font-semibold tracking-tight">
+                            Manage {assignment.role.roleName} scopes
+                        </h2>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                            {assignment.user.firstName} {assignment.user.lastName} ·{' '}
+                            {assignment.user.email}
+                        </p>
+                    </div>
+                </header>
+
+                <div className="grid items-start gap-8 py-7 lg:grid-cols-[minmax(18rem,0.75fr)_minmax(28rem,1.25fr)]">
+                    <section>
+                        <h3 className="font-heading text-sm font-semibold">Add direct scope</h3>
+                        <p className="text-muted-foreground mt-1 text-sm leading-6">
+                            Connect this role assignment to another offering at the same institution.
+                        </p>
+                        <div className="mt-4 space-y-3">
+                            <Select
+                                items={Object.fromEntries(
+                                    availableOfferings.map((offering) => [
+                                        offering.id,
+                                        offeringLabel(offering),
+                                    ]),
+                                )}
+                                value={offeringId}
+                                onValueChange={setOfferingId}
+                                disabled={!capabilities.create || availableOfferings.length === 0}
+                            >
+                                <SelectTrigger className="w-full" aria-label="Offering to add">
+                                    <SelectValue
+                                        placeholder={
+                                            availableOfferings.length === 0
+                                                ? 'All offerings are already assigned'
+                                                : 'Choose an offering'
+                                        }
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableOfferings.map((offering) => (
+                                        <SelectItem key={offering.id} value={offering.id}>
+                                            {offeringLabel(offering)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                type="button"
+                                onClick={() => void addScope()}
+                                disabled={!offeringId || adding || !capabilities.create}
+                            >
+                                {adding ? <Spinner /> : <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />}
+                                Add scope
+                            </Button>
+                            {!capabilities.create && (
+                                <p className="text-muted-foreground text-xs">
+                                    You may inspect scopes, but cannot add them.
+                                </p>
+                            )}
+                            {error && (
+                                <p
+                                    role="alert"
+                                    className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm"
+                                >
+                                    {error}
+                                </p>
+                            )}
+                        </div>
+                    </section>
+
+                    <section>
+                        <div className="flex items-end justify-between gap-4">
+                            <div>
+                                <h3 className="font-heading text-sm font-semibold">Assigned offerings</h3>
+                                <p className="text-muted-foreground mt-1 text-sm">
+                                    Each row is one independent scope for this role.
+                                </p>
+                            </div>
+                            <span className="text-muted-foreground text-sm tabular-nums">
+                                {assignment.scopes.length} total
+                            </span>
+                        </div>
+                        <div className="mt-4 overflow-hidden rounded-xl border">
+                            {assignment.scopes.length === 0 ? (
+                                <p className="text-muted-foreground px-5 py-10 text-center text-sm">
+                                    This role is active but has not been scoped to an offering yet.
+                                </p>
+                            ) : (
+                                assignment.scopes.map((scope) => (
+                                    <div
+                                        key={scope.id}
+                                        className="border-border flex items-center gap-4 border-b px-4 py-3 last:border-b-0"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium">{offeringLabel(scope.offering)}</p>
+                                            <p className="text-muted-foreground mt-0.5 text-xs">
+                                                {scopeSourceLabel(scope)}
+                                            </p>
+                                        </div>
+                                        {capabilities.revoke && (
+                                            <ResourceActionDialog
+                                                endpoint={scopeEndpoint(endpoint, scope.id)}
+                                                method="PATCH"
+                                                title={`Remove ${offeringLabel(scope.offering)}?`}
+                                                description="This role will stop applying to this offering. The role assignment itself remains active."
+                                                confirmLabel="Remove scope"
+                                                destructive
+                                                onCompleted={() =>
+                                                    onScopesChange(
+                                                        assignment.scopes.filter(
+                                                            (current) => current.id !== scope.id,
+                                                        ),
+                                                    )
+                                                }
+                                                trigger={
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        className="text-destructive"
+                                                        aria-label={`Remove ${offeringLabel(scope.offering)}`}
+                                                    >
+                                                        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                                                    </Button>
+                                                }
+                                            />
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function scopeSourceLabel(scope: AssignmentScope): string {
+    if (scope.source === 'CODE') return 'Assigned with a one-time access code';
+    if (scope.source === 'REQUEST_APPROVED') return 'Approved subject access request';
+    return scope.assignedBy ? `Granted directly by ${scope.assignedBy}` : 'Granted directly';
+}
+
+function scopeEndpoint(baseEndpoint: string, scopeId: string): string {
+    const [path, query] = baseEndpoint.split('?');
+    return `${path}/${scopeId}${query ? `?${query}` : ''}`;
+}
+
+function responseError(body: unknown, fallback: string): string {
+    if (
+        typeof body === 'object' &&
+        body !== null &&
+        'error' in body &&
+        typeof body.error === 'object' &&
+        body.error !== null &&
+        'message' in body.error &&
+        typeof body.error.message === 'string'
+    ) {
+        return body.error.message;
+    }
+    return fallback;
+}
+
+function responseScope(body: unknown): { id: string; assignedBy: string | null } | null {
+    if (typeof body !== 'object' || body === null || !('scope' in body)) return null;
+    const scope = body.scope;
+    if (typeof scope !== 'object' || scope === null || !('id' in scope) || typeof scope.id !== 'string') {
+        return null;
+    }
+    const assignedBy =
+        'assignedBy' in scope && typeof scope.assignedBy === 'string' ? scope.assignedBy : null;
+    return { id: scope.id, assignedBy };
 }
 
 function endpointFor(path: string, query: string): string {

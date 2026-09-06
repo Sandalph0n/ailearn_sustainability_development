@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { Prisma } from '@/app/generated/prisma/client';
-import { canSeeRoleRequest, effectiveRoleIds } from '@/lib/auth/role-request-policy';
+import { canRequestRole, effectiveRoleIds } from '@/lib/auth/role-request-policy';
 
 type RoleRequestClient = Pick<
     Prisma.TransactionClient,
@@ -33,6 +33,7 @@ export async function listRequestableRoleOptions(
                 id: true,
                 roleName: true,
                 scopeType: true,
+                requestMode: true,
                 requestVisibilityRules: { select: { requiredRoleId: true } },
             },
         }),
@@ -63,7 +64,8 @@ export async function listRequestableRoleOptions(
     return roles
         .filter((role) => {
             if (heldRoleIds.has(role.id)) return false;
-            return canSeeRoleRequest(
+            return canRequestRole(
+                role.requestMode,
                 role.requestVisibilityRules.map((rule) => rule.requiredRoleId),
                 heldRoleIds,
             );

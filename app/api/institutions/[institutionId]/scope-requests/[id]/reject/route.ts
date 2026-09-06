@@ -19,7 +19,7 @@ export async function POST(
     const guard = await guardInstitutionAction(
         request,
         institutionId,
-        PERMISSION_CODE.ROLE_REQUEST_REVIEW,
+        PERMISSION_CODE.SCOPE_REQUEST_REJECT,
     );
     if (!guard.ok) return guard.response;
 

@@ -31,9 +31,11 @@ describe('admin validation', () => {
             roleCode: 'offering:tutor',
             roleName: 'Tutor',
             scopeType: 'OFFERING' as const,
+            requestMode: 'DISABLED' as const,
             autoGrantEmailRegex: '',
             includedRoleIds: [ROLE_ID],
             permissionIds: [],
+            prerequisiteRoleIds: [],
         };
 
         expect(RoleSchema.safeParse({ ...base, includedRoleIds: [ROLE_ID, ROLE_ID] }).success).toBe(

@@ -16,4 +16,10 @@ VALUES (
   'Vu',
   '2026-08-28 07:39:21.847',
   true
-);
+)
+ON CONFLICT ("id") DO UPDATE
+SET "email" = EXCLUDED."email",
+    "passwordHash" = EXCLUDED."passwordHash",
+    "firstName" = EXCLUDED."firstName",
+    "lastName" = EXCLUDED."lastName",
+    "isSystemAdmin" = EXCLUDED."isSystemAdmin";

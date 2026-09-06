@@ -7,7 +7,14 @@ export const dynamic = 'force-dynamic';
 
 const PEOPLE_ACTIONS = [
     PERMISSION_CODE.MEMBER_VIEW,
+    PERMISSION_CODE.ROLE_ASSIGNMENT_VIEW,
+    PERMISSION_CODE.ROLE_ASSIGNMENT_CREATE,
+    PERMISSION_CODE.ROLE_ASSIGNMENT_REVOKE,
     PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_VIEW,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_CREATE,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_REVOKE,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_MANAGE,
 ] as const;
 
 export default async function InstitutionPeoplePage({
@@ -33,10 +40,30 @@ export default async function InstitutionPeoplePage({
                 searchParams={query}
                 endpoint={`/api/institutions/${active.institution.id}/role-assignments`}
                 contextQuery={contextQuery}
-                canManage={hasPermission(
-                    active.permissions,
-                    PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE,
-                )}
+                roleCapabilities={{
+                    create: hasPermission(
+                        active.permissions,
+                        PERMISSION_CODE.ROLE_ASSIGNMENT_CREATE,
+                    ),
+                    revoke: hasPermission(
+                        active.permissions,
+                        PERMISSION_CODE.ROLE_ASSIGNMENT_REVOKE,
+                    ),
+                }}
+                scopeCapabilities={{
+                    view: hasPermission(
+                        active.permissions,
+                        PERMISSION_CODE.SCOPE_ASSIGNMENT_VIEW,
+                    ),
+                    create: hasPermission(
+                        active.permissions,
+                        PERMISSION_CODE.SCOPE_ASSIGNMENT_CREATE,
+                    ),
+                    revoke: hasPermission(
+                        active.permissions,
+                        PERMISSION_CODE.SCOPE_ASSIGNMENT_REVOKE,
+                    ),
+                }}
                 roleFilterParam="filterRole"
             />
         </main>

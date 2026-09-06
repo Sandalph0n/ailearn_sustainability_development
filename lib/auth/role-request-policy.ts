@@ -34,10 +34,18 @@ export function effectiveRoleIds(
     return effective;
 }
 
-/** Không có điều kiện = công khai; có điều kiện = chỉ cần thỏa một điều kiện (OR). */
-export function canSeeRoleRequest(
+export type RoleRequestMode = 'DISABLED' | 'PUBLIC' | 'CONDITIONAL';
+
+/**
+ * Cùng một policy được dùng để lọc GET và xác thực POST.
+ * `CONDITIONAL` không có rule là cấu hình đóng, không vô tình trở thành public.
+ */
+export function canRequestRole(
+    requestMode: RoleRequestMode,
     requiredRoleIds: readonly string[],
     heldRoleIds: ReadonlySet<string>,
 ): boolean {
-    return requiredRoleIds.length === 0 || requiredRoleIds.some((id) => heldRoleIds.has(id));
+    if (requestMode === 'DISABLED') return false;
+    if (requestMode === 'PUBLIC') return true;
+    return requiredRoleIds.some((id) => heldRoleIds.has(id));
 }

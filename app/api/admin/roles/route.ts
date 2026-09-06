@@ -6,6 +6,7 @@ import { guardWrite, prismaError } from '@/lib/admin/route-helpers';
 import { RoleSchema } from '@/lib/admin/role-schema';
 import {
     RoleConfigurationError,
+    syncRoleRequestVisibility,
     syncRolePermissions,
     validateRoleConfiguration,
 } from '@/lib/admin/role-configuration';
@@ -20,7 +21,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const role = await db.$transaction(async (tx) => {
             await validateRoleConfiguration(tx, guard.data, null);
-            const { includedRoleIds, permissionIds, ...roleData } = guard.data;
+            const {
+                includedRoleIds,
+                permissionIds,
+                prerequisiteRoleIds,
+                ...roleData
+            } = guard.data;
             const created = await tx.role.create({
                 data: roleData,
                 select: { id: true, roleName: true },
@@ -35,6 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 });
             }
             await syncRolePermissions(tx, created.id, permissionIds);
+            await syncRoleRequestVisibility(tx, created.id, prerequisiteRoleIds);
             return created;
         });
         return jsonResponse({ role }, { status: 201 });

@@ -6,6 +6,7 @@ import { badId, guardDelete, guardWrite, prismaError } from '@/lib/admin/route-h
 import { RoleSchema } from '@/lib/admin/role-schema';
 import {
     RoleConfigurationError,
+    syncRoleRequestVisibility,
     syncRolePermissions,
     validateRoleConfiguration,
 } from '@/lib/admin/role-configuration';
@@ -27,7 +28,12 @@ export async function PATCH(
     try {
         const role = await db.$transaction(async (tx) => {
             await validateRoleConfiguration(tx, guard.data, id);
-            const { includedRoleIds, permissionIds, ...roleData } = guard.data;
+            const {
+                includedRoleIds,
+                permissionIds,
+                prerequisiteRoleIds,
+                ...roleData
+            } = guard.data;
             const updated = await tx.role.update({
                 where: { id },
                 data: roleData,
@@ -44,6 +50,7 @@ export async function PATCH(
                 });
             }
             await syncRolePermissions(tx, id, permissionIds);
+            await syncRoleRequestVisibility(tx, id, prerequisiteRoleIds);
             return updated;
         });
         return jsonResponse({ role });

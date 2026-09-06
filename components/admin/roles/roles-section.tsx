@@ -70,7 +70,11 @@ export async function RolesSection({
                 roleCode: true,
                 roleName: true,
                 scopeType: true,
+                requestMode: true,
                 autoGrantEmailRegex: true,
+                requestVisibilityRules: {
+                    select: { requiredRole: { select: { id: true, roleName: true } } },
+                },
                 includedRoles: {
                     select: { includedRole: { select: { id: true, roleName: true } } },
                 },
@@ -147,7 +151,9 @@ export async function RolesSection({
         roleCode: row.roleCode,
         roleName: row.roleName,
         scopeType: row.scopeType,
+        requestMode: row.requestMode,
         autoGrantEmailRegex: row.autoGrantEmailRegex,
+        prerequisiteRoles: row.requestVisibilityRules.map((rule) => rule.requiredRole),
         includedRoles: row.includedRoles.map((edge) => edge.includedRole),
         permissions: row.permissions.map((edge) => edge.permission),
         institution: row.institution,

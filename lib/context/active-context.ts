@@ -51,6 +51,7 @@ export async function listContextOptions(userId: string): Promise<ContextOption[
                 },
             },
             scopeAssignments: {
+                where: { revokedAt: null },
                 select: {
                     offering: {
                         select: {

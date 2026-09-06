@@ -32,6 +32,10 @@ import {
     type AssessmentFormValue,
     type AssessmentSchemaValue,
 } from '@/lib/admin/assessment-schema';
+import {
+    FULL_CRUD_CAPABILITIES,
+    type CrudCapabilities,
+} from '@/lib/admin/resource-capabilities';
 
 type ToolOption = { id: string; code: string; name: string; description: string | null };
 
@@ -64,13 +68,20 @@ export function AssessmentsTable({
     offeringId,
     tools,
     totalWeight,
+    endpoint = `/api/admin/offerings/${offeringId}/assessments`,
+    contextQuery,
+    capabilities = FULL_CRUD_CAPABILITIES,
+    emptyMessage,
 }: {
     assessments: AssessmentListItem[];
     offeringId: string;
     tools: ToolOption[];
     totalWeight: number;
+    endpoint?: string;
+    contextQuery?: string;
+    capabilities?: CrudCapabilities;
+    emptyMessage?: string;
 }) {
-    const endpoint = `/api/admin/offerings/${offeringId}/assessments`;
     const complete = Math.abs(totalWeight - 100) < 1e-9;
     const [editing, setEditing] = useState<AssessmentListItem | 'create' | null>(null);
 
@@ -151,12 +162,14 @@ export function AssessmentsTable({
                         <AssessmentActions
                             assessment={info.row.original}
                             endpoint={endpoint}
+                            contextQuery={contextQuery}
+                            capabilities={capabilities}
                             onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<AssessmentListItem>>,
-        [endpoint],
+        [capabilities, contextQuery, endpoint],
     );
 
     if (editing) {
@@ -165,6 +178,8 @@ export function AssessmentsTable({
                 endpoint={endpoint}
                 tools={tools}
                 assessment={editing === 'create' ? undefined : editing}
+                totalWeight={totalWeight}
+                contextQuery={contextQuery}
                 onCancel={() => setEditing(null)}
             />
         );
@@ -175,7 +190,10 @@ export function AssessmentsTable({
             columns={columns}
             data={assessments}
             pageSize={20}
-            emptyMessage="No assessments yet. Add the first item in this offering's grading plan."
+            emptyMessage={
+                emptyMessage ??
+                "No assessments yet. Add the first item in this offering's grading plan."
+            }
             toolbar={
                 <>
                     <Badge variant={complete ? 'default' : 'secondary'}>
@@ -187,13 +205,15 @@ export function AssessmentsTable({
                         </span>
                     )}
                     <div className="flex-1" />
-                    <Button
-                        disabled={totalWeight >= 100}
-                        onClick={() => setEditing('create')}
-                    >
-                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
-                        New assessment
-                    </Button>
+                    {capabilities.create && (
+                        <Button
+                            disabled={totalWeight >= 100}
+                            onClick={() => setEditing('create')}
+                        >
+                            <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                            New assessment
+                        </Button>
+                    )}
                 </>
             }
         />
@@ -204,16 +224,35 @@ function AssessmentForm({
     endpoint,
     tools,
     assessment,
+    totalWeight,
+    contextQuery,
     onCancel,
 }: {
     endpoint: string;
     tools: ToolOption[];
     assessment?: AssessmentListItem;
+    totalWeight: number;
+    contextQuery?: string;
     onCancel: () => void;
 }) {
+    const maximumWeight = 100 - totalWeight + (assessment?.weight ?? 0);
+    const schema = useMemo(
+        () =>
+            AssessmentSchema.superRefine((value, context) => {
+                if (value.weight > maximumWeight + Number.EPSILON) {
+                    context.addIssue({
+                        code: 'custom',
+                        message: `Weight must not exceed ${maximumWeight}% with the current grading plan`,
+                        path: ['weight'],
+                    });
+                }
+            }),
+        [maximumWeight],
+    );
+
     return (
         <ResourceFormPage<AssessmentFormValue, AssessmentSchemaValue>
-            schema={AssessmentSchema}
+            schema={schema}
             emptyValues={EMPTY_ASSESSMENT_FORM}
             editing={
                 assessment && {
@@ -233,7 +272,12 @@ function AssessmentForm({
                     } as AssessmentFormValue,
                 }
             }
-            createEndpoint={endpoint}
+            createEndpoint={endpointFor(endpoint, contextQuery)}
+            editEndpoint={
+                assessment
+                    ? endpointFor(`${endpoint}/${assessment.id}`, contextQuery)
+                    : undefined
+            }
             title={{ create: 'New assessment', edit: 'Edit assessment' }}
             description={{
                 create: 'Add one item to this offering’s grading plan.',
@@ -262,7 +306,7 @@ function AssessmentForm({
                                 description="The offering total may not exceed 100%."
                                 type="number"
                                 min="0.01"
-                                max="100"
+                                max={maximumWeight}
                                 step="0.01"
                                 inputMode="decimal"
                             />
@@ -351,12 +395,18 @@ function AssessmentForm({
 function AssessmentActions({
     assessment,
     endpoint,
+    contextQuery,
+    capabilities,
     onEdit,
 }: {
     assessment: AssessmentListItem;
     endpoint: string;
+    contextQuery?: string;
+    capabilities: CrudCapabilities;
     onEdit: () => void;
 }) {
+    if (!capabilities.update && !capabilities.delete) return null;
+
     return (
         <div className="flex justify-end">
             <DropdownMenu>
@@ -368,28 +418,39 @@ function AssessmentActions({
                     }
                 />
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onEdit}>
-                        <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
-                        Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DeleteResourceDialog
-                        endpoint={`${endpoint}/${assessment.id}`}
-                        title={`Delete ${assessment.name}?`}
-                        description={
-                            assessment.attempts > 0
-                                ? `This assessment has ${assessment.attempts} attempt${assessment.attempts === 1 ? '' : 's'}, so the database will refuse to delete it.`
-                                : 'No student attempts exist. This cannot be undone.'
-                        }
-                        trigger={
-                            <DropdownMenuItem variant="destructive" closeOnClick={false}>
-                                <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                                Delete
-                            </DropdownMenuItem>
-                        }
-                    />
+                    {capabilities.update && (
+                        <DropdownMenuItem onClick={onEdit}>
+                            <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />
+                            Edit
+                        </DropdownMenuItem>
+                    )}
+                    {capabilities.update && capabilities.delete && <DropdownMenuSeparator />}
+                    {capabilities.delete && (
+                        <DeleteResourceDialog
+                            endpoint={endpointFor(
+                                `${endpoint}/${assessment.id}`,
+                                contextQuery,
+                            )}
+                            title={`Delete ${assessment.name}?`}
+                            description={
+                                assessment.attempts > 0
+                                    ? `This assessment has ${assessment.attempts} attempt${assessment.attempts === 1 ? '' : 's'}, so the database will refuse to delete it.`
+                                    : 'No student attempts exist. This cannot be undone.'
+                            }
+                            trigger={
+                                <DropdownMenuItem variant="destructive" closeOnClick={false}>
+                                    <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                                    Delete
+                                </DropdownMenuItem>
+                            }
+                        />
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
     );
+}
+
+function endpointFor(path: string, query = ''): string {
+    return query ? `${path}?${query}` : path;
 }

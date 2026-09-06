@@ -40,6 +40,7 @@ export default async function SubjectAccessPage({
                 },
             },
             scopeAssignments: {
+                where: { revokedAt: null },
                 select: {
                     id: true,
                     source: true,

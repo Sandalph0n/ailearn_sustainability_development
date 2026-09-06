@@ -14,9 +14,9 @@ import {
 } from './permissions';
 
 describe('permission catalog', () => {
-    it('contains exactly 38 unique codes with complete metadata', () => {
-        expect(ALL_PERMISSION_CODES).toHaveLength(38);
-        expect(new Set(ALL_PERMISSION_CODES).size).toBe(38);
+    it('contains exactly 57 unique codes with complete metadata', () => {
+        expect(ALL_PERMISSION_CODES).toHaveLength(57);
+        expect(new Set(ALL_PERMISSION_CODES).size).toBe(57);
         expect(Object.keys(PERMISSION_CATALOG).sort()).toEqual([...ALL_PERMISSION_CODES].sort());
         expect(Object.values(PERMISSION_CATALOG).every(({ description }) => description.length > 0))
             .toBe(true);
@@ -33,22 +33,22 @@ describe('permission catalog', () => {
     it('matches every row inserted by the permission data migration', () => {
         const migration = readFileSync(
             new URL(
-                '../../prisma/migrations/20260904003000_granular_crud_permissions/migration.sql',
+                '../../prisma/migrations/20260907091000_authorization_permission_catalog/migration.sql',
                 import.meta.url,
             ),
             'utf8',
         );
         const rows = [
             ...migration.matchAll(
-                /\(\s*'([a-z][a-z0-9_.]*)',\s*'(I|IO)',\s*'((?:''|[^'])*)'\s*\)/g,
+                /\(\s*'([a-z][a-z0-9_.]*)',\s*'((?:''|[^'])*)'\s*\)/g,
             ),
         ].map((match) => [
             match[1],
-            { description: match[3].replaceAll("''", "'") },
+            { description: match[2].replaceAll("''", "'") },
         ] as const);
 
-        expect(rows).toHaveLength(38);
-        expect(new Set(rows.map(([code]) => code)).size).toBe(38);
+        expect(rows).toHaveLength(57);
+        expect(new Set(rows.map(([code]) => code)).size).toBe(57);
         expect(Object.fromEntries(rows)).toEqual(
             Object.fromEntries(
                 ALL_PERMISSION_CODES.map((code) => [code, PERMISSION_CATALOG[code]]),
@@ -69,6 +69,39 @@ describe('permission catalog', () => {
                 PERMISSION_CODE.OFFERING_CREATE,
             ),
         ).toBe(false);
+        expect(
+            hasPermission(
+                [PERMISSION_CODE.ROLE_REQUEST_REVIEW],
+                PERMISSION_CODE.ROLE_REQUEST_APPROVE,
+            ),
+        ).toBe(true);
+        expect(
+            hasPermission(
+                [PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_MANAGE],
+                PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_REVOKE,
+            ),
+        ).toBe(true);
+    });
+
+    it('lets full assessment viewers read published assessments without reversing the grant', () => {
+        expect(
+            hasPermission(
+                [PERMISSION_CODE.ASSESSMENT_VIEW],
+                PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED,
+            ),
+        ).toBe(true);
+        expect(
+            hasPermission(
+                [PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED],
+                PERMISSION_CODE.ASSESSMENT_VIEW,
+            ),
+        ).toBe(false);
+        expect(
+            hasPermission(
+                [PERMISSION_CODE.ASSESSMENT_MANAGE],
+                PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED,
+            ),
+        ).toBe(true);
     });
 
     it('recognizes a manage capability only when every granular action is present', () => {

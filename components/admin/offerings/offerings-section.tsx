@@ -15,6 +15,8 @@ export async function OfferingsSection({
     assessmentBasePath,
     contextQuery,
     capabilities,
+    allowedOfferingIds,
+    emptyMessage,
 }: {
     institutionId: string;
     searchParams: Record<string, string | string[] | undefined>;
@@ -22,6 +24,9 @@ export async function OfferingsSection({
     assessmentBasePath?: string | null;
     contextQuery?: string;
     capabilities?: CrudCapabilities;
+    /** Null means every offering in the institution; an array is an exact role scope. */
+    allowedOfferingIds?: readonly string[] | null;
+    emptyMessage?: string;
 }) {
     const SORT_FIELDS = ['subject', 'term', 'assessments'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -30,6 +35,7 @@ export async function OfferingsSection({
     const year = /^\d{4}$/.test(q) ? Number(q) : null;
 
     const where = {
+        ...(allowedOfferingIds ? { id: { in: [...allowedOfferingIds] } } : {}),
         subject: { institutionId },
         ...(subjectId ? { subjectId } : {}),
         ...(termId ? { termId } : {}),
@@ -65,7 +71,7 @@ export async function OfferingsSection({
                     select: {
                         assessments: true,
                         scopeAssignments: {
-                            where: { roleAssignment: { roleRevokedAt: null } },
+                            where: { revokedAt: null, roleAssignment: { roleRevokedAt: null } },
                         },
                     },
                 },
@@ -73,12 +79,22 @@ export async function OfferingsSection({
         }),
         db.offering.count({ where }),
         db.subject.findMany({
-            where: { institutionId },
+            where: {
+                institutionId,
+                ...(allowedOfferingIds
+                    ? { offerings: { some: { id: { in: [...allowedOfferingIds] } } } }
+                    : {}),
+            },
             orderBy: [{ subjectCode: 'asc' }, { id: 'asc' }],
             select: { id: true, subjectCode: true, subjectName: true },
         }),
         db.studyTerm.findMany({
-            where: { institutionId },
+            where: {
+                institutionId,
+                ...(allowedOfferingIds
+                    ? { offerings: { some: { id: { in: [...allowedOfferingIds] } } } }
+                    : {}),
+            },
             orderBy: [{ year: 'desc' }, { session: 'asc' }, { id: 'asc' }],
             select: { id: true, year: true, session: true },
         }),
@@ -111,6 +127,7 @@ export async function OfferingsSection({
             assessmentBasePath={assessmentBasePath}
             contextQuery={contextQuery}
             capabilities={capabilities}
+            emptyMessage={emptyMessage}
         />
     );
 }

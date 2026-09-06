@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -93,11 +94,11 @@ export function AccountBox({ user, onSignOut, pictureItem }: Props) {
 
                     {pictureItem}
 
-                    <DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href="/navigation/profile" />}>
                         <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
                         Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem render={<Link href="/navigation/settings" />}>
                         <HugeiconsIcon icon={Settings01Icon} strokeWidth={2} />
                         Settings
                     </DropdownMenuItem>

@@ -79,6 +79,7 @@ export function OfferingsTable({
     assessmentBasePath,
     contextQuery,
     capabilities = FULL_CRUD_CAPABILITIES,
+    emptyMessage,
 }: {
     offerings: OfferingListItem[];
     institutionId: string;
@@ -95,6 +96,7 @@ export function OfferingsTable({
     assessmentBasePath?: string | null;
     contextQuery?: string;
     capabilities?: CrudCapabilities;
+    emptyMessage?: string;
 }) {
     const list = useListQuery();
     const [editing, setEditing] = useState<OfferingListItem | 'create' | null>(null);
@@ -186,7 +188,7 @@ export function OfferingsTable({
             emptyMessage={
                 list.input || subjectId || termId
                     ? 'No offerings match these filters.'
-                    : 'No offerings yet. Connect a subject to a study term.'
+                    : (emptyMessage ?? 'No offerings yet. Connect a subject to a study term.')
             }
             toolbar={
                 <>

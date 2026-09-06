@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import type { UseFormReturn } from 'react-hook-form';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
@@ -53,7 +54,9 @@ export type RoleListItem = {
     roleCode: string;
     roleName: string;
     scopeType: 'INSTITUTION' | 'OFFERING';
+    requestMode: 'DISABLED' | 'PUBLIC' | 'CONDITIONAL';
     autoGrantEmailRegex: string | null;
+    prerequisiteRoles: Array<{ id: string; roleName: string }>;
     includedRoles: Array<{ id: string; roleName: string }>;
     permissions: Array<{ id: string; permission: string; description: string | null }>;
     institution: { id: string; name: string };
@@ -71,6 +74,7 @@ export type RoleInheritanceOption = {
 
 const column = columnHelperFor<RoleListItem>();
 const ENDPOINT = '/api/admin/roles';
+const CHIEF_MANAGEMENT_ROLE_CODE = 'institution:chief.management';
 
 export function RolesTable({
     roles,
@@ -132,6 +136,24 @@ export function RolesTable({
                             {info.getValue() === 'INSTITUTION' ? 'Institution' : 'Offering'}
                         </Badge>
                     ),
+                }),
+
+                column.accessor('requestMode', {
+                    header: 'Requests',
+                    enableSorting: false,
+                    cell: (info) => {
+                        const role = info.row.original;
+                        if (info.getValue() === 'DISABLED') {
+                            return <span className="text-muted-foreground text-sm">Disabled</span>;
+                        }
+                        if (info.getValue() === 'PUBLIC') return <Badge variant="outline">Public</Badge>;
+                        return (
+                            <span className="text-muted-foreground text-sm">
+                                Conditional · {role.prerequisiteRoles.length} prerequisite
+                                {role.prerequisiteRoles.length === 1 ? '' : 's'}
+                            </span>
+                        );
+                    },
                 }),
 
                 ...(locked
@@ -309,9 +331,13 @@ function RoleForm({
                         roleCode: role.roleCode,
                         roleName: role.roleName,
                         scopeType: role.scopeType,
+                        requestMode: role.requestMode,
                         autoGrantEmailRegex: role.autoGrantEmailRegex ?? '',
                         includedRoleIds: role.includedRoles.map((included) => included.id),
                         permissionIds: role.permissions.map((permission) => permission.id),
+                        prerequisiteRoleIds: role.prerequisiteRoles.map(
+                            (prerequisite) => prerequisite.id,
+                        ),
                     } as unknown as RoleFormValue,
                 }
             }
@@ -328,12 +354,16 @@ function RoleForm({
                 // Chỉ chào các vai trò cùng cơ sở; backend và trigger vẫn kiểm lại độc lập.
                 const chosenInstitution = form.watch('institutionId');
                 const chosenScope = form.watch('scopeType');
+                const requestMode = form.watch('requestMode');
                 const candidates = (rolesByInstitution[chosenInstitution] ?? []).filter(
                     (candidate) =>
                         candidate.id !== role?.id && candidate.scopeType === chosenScope,
                 );
                 const includedRoleIds = new Set(form.watch('includedRoleIds'));
                 const inheritedByPermission = new Map<string, string[]>();
+                const prerequisiteCandidates = (rolesByInstitution[chosenInstitution] ?? []).filter(
+                    (candidate) => candidate.id !== role?.id,
+                );
 
                 for (const candidate of candidates) {
                     if (!includedRoleIds.has(candidate.id)) continue;
@@ -413,6 +443,17 @@ function RoleForm({
                         </ResourceFormSection>
 
                         <ResourceFormSection
+                            title="Request policy"
+                            description="Control whether people may request this role themselves. Conditional prerequisites are evaluated as an OR list."
+                        >
+                            <RoleRequestPolicyFields
+                                form={form}
+                                requestMode={requestMode}
+                                candidates={prerequisiteCandidates}
+                            />
+                        </ResourceFormSection>
+
+                        <ResourceFormSection
                             title="Access model"
                             description="Compose this role from other roles, then add permissions that belong directly to it."
                         >
@@ -462,6 +503,74 @@ function RoleForm({
     );
 }
 
+function RoleRequestPolicyFields({
+    form,
+    requestMode,
+    candidates,
+}: {
+    form: UseFormReturn<RoleFormValue, unknown, RoleSchemaValue>;
+    requestMode: RoleFormValue['requestMode'];
+    candidates: RoleInheritanceOption[];
+}) {
+    useEffect(() => {
+        if (requestMode !== 'CONDITIONAL') {
+            form.setValue('prerequisiteRoleIds', []);
+        }
+    }, [form, requestMode]);
+
+    return (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.7fr)_minmax(22rem,1.3fr)]">
+            <FormSelect
+                control={form.control}
+                name="requestMode"
+                label="Who can request this role"
+                description="Disabled roles can still be granted directly by an authorised manager."
+                items={{
+                    DISABLED: 'Disabled',
+                    PUBLIC: 'Anyone signed in',
+                    CONDITIONAL: 'People with prerequisite roles',
+                }}
+            >
+                <SelectItem value="DISABLED">Disabled</SelectItem>
+                <SelectItem value="PUBLIC">Anyone signed in</SelectItem>
+                <SelectItem value="CONDITIONAL">People with prerequisite roles</SelectItem>
+            </FormSelect>
+
+            {requestMode === 'CONDITIONAL' ? (
+                <FormCheckboxList
+                    control={form.control}
+                    name="prerequisiteRoleIds"
+                    label="Prerequisite roles"
+                    description="Holding any one of these roles makes this role visible and requestable."
+                    emptyMessage="Create another role before configuring a prerequisite."
+                    className="max-h-60"
+                    options={candidates.map((candidate) => ({
+                        value: candidate.id,
+                        label: candidate.roleName,
+                        description:
+                            candidate.scopeType === 'INSTITUTION'
+                                ? 'Institution role'
+                                : 'Offering role',
+                    }))}
+                />
+            ) : (
+                <div className="border-border bg-muted/25 rounded-lg border px-4 py-3 text-sm">
+                    <p className="font-medium">
+                        {requestMode === 'PUBLIC'
+                            ? 'No prerequisite is required.'
+                            : 'This role will not appear in self-service requests.'}
+                    </p>
+                    <p className="text-muted-foreground mt-1 leading-5">
+                        {requestMode === 'PUBLIC'
+                            ? 'Any signed-in user can find and request it at this institution.'
+                            : 'An authorised institution manager must grant it directly.'}
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function RowActions({
     role,
     locked,
@@ -478,6 +587,8 @@ function RowActions({
     onEdit: () => void;
 }) {
     const inUse = role.counts.assignments + role.counts.requests;
+    const protectedInstitutionRole =
+        endpoint !== ENDPOINT && role.roleCode === CHIEF_MANAGEMENT_ROLE_CODE;
 
     if (!locked) {
         return (
@@ -495,7 +606,7 @@ function RowActions({
         );
     }
 
-    if (!capabilities.update && !capabilities.delete) return null;
+    if (protectedInstitutionRole || (!capabilities.update && !capabilities.delete)) return null;
 
     return (
         <div className="flex justify-end">

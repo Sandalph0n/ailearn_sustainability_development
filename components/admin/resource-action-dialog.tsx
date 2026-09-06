@@ -25,14 +25,16 @@ export function ResourceActionDialog({
     confirmLabel,
     destructive = false,
     trigger,
+    onCompleted,
 }: {
     endpoint: string;
-    method?: 'POST' | 'PATCH';
+    method?: 'POST' | 'PATCH' | 'DELETE';
     title: string;
     description: ReactNode;
     confirmLabel: string;
     destructive?: boolean;
     trigger: ReactElement;
+    onCompleted?: () => void;
 }) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
@@ -58,6 +60,7 @@ export function ResourceActionDialog({
 
         setWorking(false);
         setOpen(false);
+        onCompleted?.();
         router.refresh();
     }
 

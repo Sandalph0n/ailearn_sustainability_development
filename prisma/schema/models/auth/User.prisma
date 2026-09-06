@@ -46,14 +46,16 @@ model User {
   ///
   /// Với một hệ thống lấy liêm chính học thuật làm cốt lõi, cho phép xoá tài khoản là mở một
   /// đường xoá sạch bằng chứng. Muốn ngừng cho ai đó dùng thì vô hiệu hoá, không phải xoá.
-  roleAssignments   RoleAssignment[]
-  directRoleGrants  RoleAssignment[]    @relation("directRoleGrants")
-  directScopeAssignments ScopeAssignment[] @relation("directScopeAssignments")
-  createdScopeAssignmentCodes ScopeAssignmentCode[] @relation("createdScopeAssignmentCodes")
+  roleAssignments                  RoleAssignment[]
+  directRoleGrants                 RoleAssignment[]         @relation("directRoleGrants")
+  directScopeAssignments           ScopeAssignment[]        @relation("directScopeAssignments")
+  revokedScopeAssignments          ScopeAssignment[]        @relation("revokedScopeAssignments")
+  createdScopeAssignmentCodes      ScopeAssignmentCode[]    @relation("createdScopeAssignmentCodes")
+  revokedScopeAssignmentCodes      ScopeAssignmentCode[]    @relation("revokedScopeAssignmentCodes")
   processedScopeAssignmentRequests ScopeAssignmentRequest[] @relation("processedScopeAssignmentRequests")
-  roleRequests      RoleRequest[]       @relation("requestedBy")
-  processedRequests RoleRequest[]       @relation("processedBy")
-  attempts          AssessmentAttempt[]
+  roleRequests                     RoleRequest[]            @relation("requestedBy")
+  processedRequests                RoleRequest[]            @relation("processedBy")
+  attempts                         AssessmentAttempt[]
 
   /// Workspace cá nhân thì ngược lại — dữ liệu riêng, không có giá trị đối chứng, xoá theo được.
   personalWorkspaces PersonalWorkspace[]

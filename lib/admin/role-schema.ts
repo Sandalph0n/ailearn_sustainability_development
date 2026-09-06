@@ -5,10 +5,16 @@ import type { RoleModel } from '@/app/generated/prisma/models';
 
 export type RoleSchemaValue = Pick<
     RoleModel,
-    'institutionId' | 'roleCode' | 'roleName' | 'scopeType' | 'autoGrantEmailRegex'
+    | 'institutionId'
+    | 'roleCode'
+    | 'roleName'
+    | 'scopeType'
+    | 'autoGrantEmailRegex'
+    | 'requestMode'
 > & {
     includedRoleIds: string[];
     permissionIds: string[];
+    prerequisiteRoleIds: string[];
 };
 
 export const RoleSchema = z
@@ -34,6 +40,10 @@ export const RoleSchema = z
          *   OFFERING     áp cho một lượt mở môn — sinh viên lớp này, trợ giảng lớp kia
          */
         scopeType: z.enum(['INSTITUTION', 'OFFERING'], { message: 'Choose a scope' }),
+
+        requestMode: z.enum(['DISABLED', 'PUBLIC', 'CONDITIONAL'], {
+            message: 'Choose who may request this role',
+        }),
 
         /**
          * Biểu thức khớp email, dùng để tự gán vai trò lúc người dùng gia nhập trường.
@@ -67,6 +77,9 @@ export const RoleSchema = z
 
         /** Permission là từ vựng toàn hệ thống, role chỉ chọn những quyền đã tồn tại. */
         permissionIds: z.array(z.uuid({ message: 'Invalid permission selection' })).max(200),
+
+        /** Điều kiện OR: người dùng chỉ cần đang giữ một trong các role này. */
+        prerequisiteRoleIds: z.array(z.uuid({ message: 'Invalid prerequisite role' })).max(100),
     })
     .superRefine((value, context) => {
         if (new Set(value.includedRoleIds).size !== value.includedRoleIds.length) {
@@ -82,6 +95,30 @@ export const RoleSchema = z
                 code: 'custom',
                 message: 'A permission can only be selected once',
                 path: ['permissionIds'],
+            });
+        }
+
+        if (new Set(value.prerequisiteRoleIds).size !== value.prerequisiteRoleIds.length) {
+            context.addIssue({
+                code: 'custom',
+                message: 'A prerequisite role can only be selected once',
+                path: ['prerequisiteRoleIds'],
+            });
+        }
+
+        if (value.requestMode === 'CONDITIONAL' && value.prerequisiteRoleIds.length === 0) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Choose at least one prerequisite role',
+                path: ['prerequisiteRoleIds'],
+            });
+        }
+
+        if (value.requestMode !== 'CONDITIONAL' && value.prerequisiteRoleIds.length > 0) {
+            context.addIssue({
+                code: 'custom',
+                message: 'Only conditional roles can have prerequisites',
+                path: ['prerequisiteRoleIds'],
             });
         }
 
@@ -115,7 +152,9 @@ export const EMPTY_ROLE_FORM = {
     roleCode: 'offering:',
     roleName: '',
     scopeType: 'OFFERING',
+    requestMode: 'DISABLED',
     autoGrantEmailRegex: '',
     includedRoleIds: [],
     permissionIds: [],
+    prerequisiteRoleIds: [],
 } as unknown as RoleFormValue;

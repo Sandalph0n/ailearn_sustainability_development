@@ -15,6 +15,8 @@ export async function PeopleSection({
     endpoint,
     contextQuery,
     canManage,
+    roleCapabilities,
+    scopeCapabilities,
     roleFilterParam = 'role',
 }: {
     institutionId: string;
@@ -22,6 +24,8 @@ export async function PeopleSection({
     endpoint?: string;
     contextQuery?: string;
     canManage?: boolean;
+    roleCapabilities?: { create: boolean; revoke: boolean };
+    scopeCapabilities?: { view: boolean; create: boolean; revoke: boolean };
     roleFilterParam?: string;
 }) {
     const SORT_FIELDS = ['user', 'role', 'granted'] as const;
@@ -38,7 +42,7 @@ export async function PeopleSection({
     const where = {
         role: { institutionId },
         ...(roleId ? { roleId } : {}),
-        ...(offeringId ? { scopeAssignments: { some: { offeringId } } } : {}),
+        ...(offeringId ? { scopeAssignments: { some: { offeringId, revokedAt: null } } } : {}),
         ...(status === 'active'
             ? { roleRevokedAt: null }
             : status === 'revoked'
@@ -76,7 +80,13 @@ export async function PeopleSection({
                 user: { select: { id: true, firstName: true, lastName: true, email: true } },
                 role: { select: { id: true, roleName: true, scopeType: true } },
                 scopeAssignments: {
+                    where: { revokedAt: null },
                     select: {
+                        id: true,
+                        source: true,
+                        assignedDirectlyBy: {
+                            select: { firstName: true, lastName: true },
+                        },
                         offering: {
                             select: {
                                 id: true,
@@ -121,20 +131,29 @@ export async function PeopleSection({
         timeZone: 'Australia/Sydney',
     });
     const assignments: AssignmentListItem[] = rows.map((row) => {
-        const scopedOfferings = row.scopeAssignments
-            .map((scope) => scope.offering)
+        const scopes = row.scopeAssignments
+            .map((scope) => ({
+                id: scope.id,
+                source: scope.source,
+                assignedBy: scope.assignedDirectlyBy
+                    ? `${scope.assignedDirectlyBy.firstName} ${scope.assignedDirectlyBy.lastName}`
+                    : null,
+                offering: scope.offering,
+            }))
             .sort(
                 (left, right) =>
-                    right.term.year - left.term.year ||
-                    left.term.session - right.term.session ||
-                    left.subject.subjectCode.localeCompare(right.subject.subjectCode),
+                    right.offering.term.year - left.offering.term.year ||
+                    left.offering.term.session - right.offering.term.session ||
+                    left.offering.subject.subjectCode.localeCompare(
+                        right.offering.subject.subjectCode,
+                    ),
             );
 
         return {
             id: row.id,
             user: row.user,
             role: row.role,
-            offerings: scopedOfferings,
+            scopes: scopeCapabilities?.view === false ? [] : scopes,
             granted: date.format(row.roleGrantedAt),
             revoked: row.roleRevokedAt ? date.format(row.roleRevokedAt) : null,
             source: row.fromRequest ? 'REQUEST' : 'MANUAL',
@@ -158,6 +177,8 @@ export async function PeopleSection({
             endpoint={endpoint}
             contextQuery={contextQuery}
             canManage={canManage}
+            roleCapabilities={roleCapabilities}
+            scopeCapabilities={scopeCapabilities}
             roleFilterParam={roleFilterParam}
         />
     );

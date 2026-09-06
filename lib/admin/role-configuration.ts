@@ -12,7 +12,8 @@ export class RoleConfigurationError extends Error {
             | 'roleCode'
             | 'scopeType'
             | 'includedRoleIds'
-            | 'permissionIds',
+            | 'permissionIds'
+            | 'prerequisiteRoleIds',
     ) {
         super(message);
     }
@@ -77,7 +78,7 @@ export async function validateRoleConfiguration(
         }
     }
 
-    const [includedRoles, permissions] = await Promise.all([
+    const [includedRoles, permissions, prerequisiteRoles] = await Promise.all([
         tx.role.findMany({
             where: { id: { in: data.includedRoleIds } },
             select: { id: true, institutionId: true, scopeType: true },
@@ -85,6 +86,10 @@ export async function validateRoleConfiguration(
         tx.permission.findMany({
             where: { id: { in: data.permissionIds } },
             select: { id: true },
+        }),
+        tx.role.findMany({
+            where: { id: { in: data.prerequisiteRoleIds } },
+            select: { id: true, institutionId: true },
         }),
     ]);
 
@@ -107,6 +112,23 @@ export async function validateRoleConfiguration(
 
     if (permissions.length !== data.permissionIds.length) {
         throw new RoleConfigurationError('One or more permissions do not exist', 'permissionIds');
+    }
+
+    if (
+        prerequisiteRoles.length !== data.prerequisiteRoleIds.length ||
+        prerequisiteRoles.some((role) => role.institutionId !== data.institutionId)
+    ) {
+        throw new RoleConfigurationError(
+            'Prerequisite roles must belong to this institution',
+            'prerequisiteRoleIds',
+        );
+    }
+
+    if (currentRoleId && data.prerequisiteRoleIds.includes(currentRoleId)) {
+        throw new RoleConfigurationError(
+            'A role cannot require itself before it can be requested',
+            'prerequisiteRoleIds',
+        );
     }
 
     if (!currentRoleId || data.includedRoleIds.length === 0) return;
@@ -175,4 +197,21 @@ export async function syncRolePermissions(
             data: toGrant.map((permissionId) => ({ roleId, permissionId, grantedAt: now })),
         });
     }
+}
+
+/** Replace the OR-list that unlocks a conditional role request. */
+export async function syncRoleRequestVisibility(
+    tx: Prisma.TransactionClient,
+    roleId: string,
+    prerequisiteRoleIds: readonly string[],
+): Promise<void> {
+    await tx.roleRequestVisibility.deleteMany({ where: { requestableRoleId: roleId } });
+    if (prerequisiteRoleIds.length === 0) return;
+
+    await tx.roleRequestVisibility.createMany({
+        data: prerequisiteRoleIds.map((requiredRoleId) => ({
+            requestableRoleId: roleId,
+            requiredRoleId,
+        })),
+    });
 }

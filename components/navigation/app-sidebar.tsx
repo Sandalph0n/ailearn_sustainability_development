@@ -6,6 +6,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import {
     BookOpen01Icon,
     CheckListIcon,
+    Folder01Icon,
     Home01Icon,
     Settings01Icon,
     Shield01Icon,
@@ -34,7 +35,7 @@ import {
     CONTEXT_PARAM,
     type AuthorizedContextOption,
 } from '@/lib/context/context-params';
-import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
+import { hasAnyPermission, hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
 
 /**
  * Mục điều hướng, để thành DỮ LIỆU — thêm một mục là thêm một dòng.
@@ -44,6 +45,13 @@ import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
  */
 const PERSONAL_ITEMS = [
     { href: '/navigation/dashboard', label: 'Dashboard', icon: Home01Icon },
+    {
+        href: '/navigation/subjects',
+        label: 'My Subjects',
+        icon: BookOpen01Icon,
+        permissions: [PERMISSION_CODE.OFFERING_VIEW],
+    },
+    { href: '/navigation/workspaces', label: 'Workspaces', icon: Folder01Icon },
 ] as const;
 
 const ACCESS_CONTROL_ITEMS = [
@@ -92,6 +100,10 @@ const INSTITUTION_ITEMS = [
             PERMISSION_CODE.OFFERING_VIEW,
             PERMISSION_CODE.OFFERING_UPDATE,
             PERMISSION_CODE.OFFERING_DELETE,
+            PERMISSION_CODE.ASSESSMENT_CREATE,
+            PERMISSION_CODE.ASSESSMENT_VIEW,
+            PERMISSION_CODE.ASSESSMENT_UPDATE,
+            PERMISSION_CODE.ASSESSMENT_DELETE,
         ],
     },
     {
@@ -111,14 +123,22 @@ const INSTITUTION_ITEMS = [
         icon: UserMultipleIcon,
         permissions: [
             PERMISSION_CODE.MEMBER_VIEW,
+            PERMISSION_CODE.ROLE_ASSIGNMENT_VIEW,
             PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE,
+            PERMISSION_CODE.SCOPE_ASSIGNMENT_VIEW,
+            PERMISSION_CODE.SCOPE_ASSIGNMENT_MANAGE,
         ],
     },
     {
         href: '/navigation/institution/requests',
         label: 'Requests',
         icon: UserSharingIcon,
-        permissions: [PERMISSION_CODE.ROLE_REQUEST_REVIEW],
+        permissions: [
+            PERMISSION_CODE.ROLE_REQUEST_VIEW,
+            PERMISSION_CODE.ROLE_REQUEST_REVIEW,
+            PERMISSION_CODE.SCOPE_REQUEST_VIEW,
+            PERMISSION_CODE.SCOPE_REQUEST_REVIEW,
+        ],
     },
 ] as const;
 
@@ -146,6 +166,15 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
               hasAnyPermission(activeContext.permissions, item.permissions),
           )
         : [];
+    const personalItems = PERSONAL_ITEMS.filter(
+        (item) =>
+            !('permissions' in item) ||
+            (activeContext && hasAnyPermission(activeContext.permissions, item.permissions)),
+    );
+    const toolItems =
+        activeContext && hasPermission(activeContext.permissions, PERMISSION_CODE.TOOL_LAUNCH)
+            ? TOOL_ITEMS
+            : [];
 
     /**
      * Mọi liên kết điều hướng mang theo ngữ cảnh đang hoạt động.
@@ -198,7 +227,7 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                     <SidebarGroupLabel>Personal</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {PERSONAL_ITEMS.map((item) => (
+                            {personalItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}
@@ -256,11 +285,12 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                     </SidebarGroup>
                 )}
 
-                <SidebarGroup>
-                    <SidebarGroupLabel>Tools</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {TOOL_ITEMS.map((item) => (
+                {toolItems.length > 0 && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Tools</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {toolItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         isActive={pathname.startsWith(item.href)}
@@ -271,10 +301,11 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                                         <span>{item.label}</span>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
             </SidebarContent>
 
             <SidebarFooter>

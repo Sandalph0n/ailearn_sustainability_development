@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { canSeeRoleRequest, effectiveRoleIds } from './role-request-policy';
+import { canRequestRole, effectiveRoleIds } from './role-request-policy';
 
 describe('role request visibility', () => {
-    it('shows a role with no visibility requirements to everyone', () => {
-        expect(canSeeRoleRequest([], new Set())).toBe(true);
+    it('allows public roles without visibility requirements', () => {
+        expect(canRequestRole('PUBLIC', [], new Set())).toBe(true);
+    });
+
+    it('never exposes disabled roles, even when a visibility rule matches', () => {
+        expect(canRequestRole('DISABLED', ['staff'], new Set(['staff']))).toBe(false);
+    });
+
+    it('keeps a conditional role closed when it has no visibility rules', () => {
+        expect(canRequestRole('CONDITIONAL', [], new Set(['staff']))).toBe(false);
     });
 
     it('uses OR semantics when a role has several requirements', () => {
-        expect(canSeeRoleRequest(['staff', 'admin'], new Set(['staff']))).toBe(true);
-        expect(canSeeRoleRequest(['staff', 'admin'], new Set(['student']))).toBe(false);
+        expect(canRequestRole('CONDITIONAL', ['staff', 'admin'], new Set(['staff']))).toBe(
+            true,
+        );
+        expect(canRequestRole('CONDITIONAL', ['staff', 'admin'], new Set(['student']))).toBe(
+            false,
+        );
     });
 
     it('counts roles inherited through a diamond as roles the user holds', () => {
@@ -21,6 +33,6 @@ describe('role request visibility', () => {
         ]);
 
         expect([...held]).toEqual(['convenor', 'lecturer', 'tutor', 'staff']);
-        expect(canSeeRoleRequest(['staff'], held)).toBe(true);
+        expect(canRequestRole('CONDITIONAL', ['staff'], held)).toBe(true);
     });
 });

@@ -9,6 +9,11 @@ import { prismaError } from '@/lib/admin/route-helpers';
 import { guardInstitutionWrite } from '@/lib/auth/institution-route-guard';
 import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { PERMISSION_CODE } from '@/lib/auth/permissions';
+import {
+    assertCanDelegateRole,
+    assertCanManageProtectedRole,
+    DelegationPolicyError,
+} from '@/lib/auth/delegation-policy';
 import { db } from '@/lib/db';
 
 export async function POST(
@@ -19,7 +24,7 @@ export async function POST(
     const guard = await guardInstitutionWrite(
         request,
         institutionId,
-        PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE,
+        PERMISSION_CODE.ROLE_ASSIGNMENT_CREATE,
         RoleAssignmentSchema,
         'Role assignment',
     );
@@ -37,6 +42,18 @@ export async function POST(
                     'roleId',
                 );
             }
+            await assertCanDelegateRole(
+                tx,
+                institutionId,
+                guard.data.roleId,
+                guard.context.permissions,
+            );
+            await assertCanManageProtectedRole(
+                tx,
+                institutionId,
+                guard.data.roleId,
+                guard.session.user.id,
+            );
             await validateRoleAssignment(tx, guard.data);
             const { offeringId, ...assignmentData } = guard.data;
             return tx.roleAssignment.create({
@@ -64,6 +81,9 @@ export async function POST(
             return errorResponse(400, 'VALIDATION_ERROR', error.message, {
                 [error.field]: [error.message],
             });
+        }
+        if (error instanceof DelegationPolicyError) {
+            return errorResponse(403, 'AUTHORIZATION_FORBIDDEN', error.message);
         }
         return prismaError(error, 'Role assignment', {
             unique: 'This user already holds that role',

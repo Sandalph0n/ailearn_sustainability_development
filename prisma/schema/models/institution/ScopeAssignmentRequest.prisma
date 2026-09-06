@@ -12,12 +12,12 @@ model ScopeAssignmentRequest {
   status      ScopeAssignmentRequestStatus @default(PENDING)
   processedAt DateTime?
 
-  processedByUserId       String? @db.Uuid
+  processedByUserId         String? @db.Uuid
   approvedScopeAssignmentId String? @unique @db.Uuid
 
-  roleAssignment         RoleAssignment  @relation(fields: [roleAssignmentId], references: [id], onDelete: Restrict)
-  offering               Offering        @relation(fields: [offeringId], references: [id], onDelete: Restrict)
-  processedBy            User?           @relation("processedScopeAssignmentRequests", fields: [processedByUserId], references: [id], onDelete: SetNull)
+  roleAssignment          RoleAssignment   @relation(fields: [roleAssignmentId], references: [id], onDelete: Restrict)
+  offering                Offering         @relation(fields: [offeringId], references: [id], onDelete: Restrict)
+  processedBy             User?            @relation("processedScopeAssignmentRequests", fields: [processedByUserId], references: [id], onDelete: SetNull)
   approvedScopeAssignment ScopeAssignment? @relation(fields: [approvedScopeAssignmentId], references: [id], onDelete: Restrict)
 
   @@index([roleAssignmentId])

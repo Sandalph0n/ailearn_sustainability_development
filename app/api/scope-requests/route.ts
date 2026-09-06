@@ -71,7 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                     select: {
                         role: { select: { scopeType: true, institutionId: true } },
                         scopeAssignments: {
-                            where: { offeringId },
+                            where: { offeringId, revokedAt: null },
                             select: { id: true },
                         },
                         scopeRequests: {

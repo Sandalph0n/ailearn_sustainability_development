@@ -16,9 +16,9 @@ model Offering {
   subject Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   term    StudyTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
 
-  assessments         Assessment[]
-  scopeAssignments    ScopeAssignment[]
-  scopeAssignmentCodes ScopeAssignmentCode[]
+  assessments             Assessment[]
+  scopeAssignments        ScopeAssignment[]
+  scopeAssignmentCodes    ScopeAssignmentCode[]
   scopeAssignmentRequests ScopeAssignmentRequest[]
 
   /// Một môn chỉ mở một lần trong một kỳ.

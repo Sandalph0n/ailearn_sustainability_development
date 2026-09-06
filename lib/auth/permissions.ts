@@ -21,7 +21,14 @@ export const PERMISSION_CODE = {
     OFFERING_CREATE: 'offering.create',
     OFFERING_UPDATE: 'offering.update',
     OFFERING_DELETE: 'offering.delete',
+    ROLE_REQUEST_VIEW: 'role_request.view',
+    ROLE_REQUEST_APPROVE: 'role_request.approve',
+    ROLE_REQUEST_REJECT: 'role_request.reject',
     ROLE_REQUEST_REVIEW: 'role_request.review',
+    SCOPE_REQUEST_VIEW: 'scope_request.view',
+    SCOPE_REQUEST_APPROVE: 'scope_request.approve',
+    SCOPE_REQUEST_REJECT: 'scope_request.reject',
+    SCOPE_REQUEST_REVIEW: 'scope_request.review',
     ROLE_CREATE: 'role.create',
     ROLE_VIEW: 'role.view',
     ROLE_UPDATE: 'role.update',
@@ -31,8 +38,20 @@ export const PERMISSION_CODE = {
     OFFERING_VIEW: 'offering.view',
     OFFERING_MANAGE: 'offering.manage',
     MEMBER_VIEW: 'member.view',
+    ROLE_ASSIGNMENT_VIEW: 'role_assignment.view',
+    ROLE_ASSIGNMENT_CREATE: 'role_assignment.create',
+    ROLE_ASSIGNMENT_REVOKE: 'role_assignment.revoke',
     ROLE_ASSIGNMENT_MANAGE: 'role_assignment.manage',
+    SCOPE_ASSIGNMENT_VIEW: 'scope_assignment.view',
+    SCOPE_ASSIGNMENT_CREATE: 'scope_assignment.create',
+    SCOPE_ASSIGNMENT_REVOKE: 'scope_assignment.revoke',
+    SCOPE_ASSIGNMENT_MANAGE: 'scope_assignment.manage',
+    SCOPE_ASSIGNMENT_CODE_VIEW: 'scope_assignment_code.view',
+    SCOPE_ASSIGNMENT_CODE_CREATE: 'scope_assignment_code.create',
+    SCOPE_ASSIGNMENT_CODE_REVOKE: 'scope_assignment_code.revoke',
+    SCOPE_ASSIGNMENT_CODE_MANAGE: 'scope_assignment_code.manage',
     ASSESSMENT_CREATE: 'assessment.create',
+    ASSESSMENT_VIEW_PUBLISHED: 'assessment.view_published',
     ASSESSMENT_VIEW: 'assessment.view',
     ASSESSMENT_UPDATE: 'assessment.update',
     ASSESSMENT_DELETE: 'assessment.delete',
@@ -100,8 +119,29 @@ export const PERMISSION_CATALOG = {
     [PERMISSION_CODE.OFFERING_CREATE]: {
         description: 'Create subject offerings within the institution.',
     },
+    [PERMISSION_CODE.ROLE_REQUEST_VIEW]: {
+        description: 'View role requests within the institution.',
+    },
+    [PERMISSION_CODE.ROLE_REQUEST_APPROVE]: {
+        description: 'Approve role requests within the institution.',
+    },
+    [PERMISSION_CODE.ROLE_REQUEST_REJECT]: {
+        description: 'Reject role requests within the institution.',
+    },
     [PERMISSION_CODE.ROLE_REQUEST_REVIEW]: {
-        description: 'Approve or reject requests to join the institution.',
+        description: 'View, approve, and reject role requests within the institution.',
+    },
+    [PERMISSION_CODE.SCOPE_REQUEST_VIEW]: {
+        description: 'View offering-scope requests within the institution.',
+    },
+    [PERMISSION_CODE.SCOPE_REQUEST_APPROVE]: {
+        description: 'Approve offering-scope requests within the institution.',
+    },
+    [PERMISSION_CODE.SCOPE_REQUEST_REJECT]: {
+        description: 'Reject offering-scope requests within the institution.',
+    },
+    [PERMISSION_CODE.SCOPE_REQUEST_REVIEW]: {
+        description: 'View, approve, and reject offering-scope requests.',
     },
     [PERMISSION_CODE.ROLE_CREATE]: {
         description: 'Create roles within the institution.',
@@ -136,11 +176,47 @@ export const PERMISSION_CATALOG = {
     [PERMISSION_CODE.MEMBER_VIEW]: {
         description: 'View members and their roles within the assigned scope.',
     },
+    [PERMISSION_CODE.ROLE_ASSIGNMENT_VIEW]: {
+        description: 'View role assignments within the assigned scope.',
+    },
+    [PERMISSION_CODE.ROLE_ASSIGNMENT_CREATE]: {
+        description: 'Grant roles within the assigned scope.',
+    },
+    [PERMISSION_CODE.ROLE_ASSIGNMENT_REVOKE]: {
+        description: 'Revoke role assignments within the assigned scope.',
+    },
     [PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE]: {
-        description: 'Grant and revoke roles within the assigned scope.',
+        description: 'View, grant, and revoke roles within the assigned scope.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_VIEW]: {
+        description: 'View offering scopes attached to role assignments.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_CREATE]: {
+        description: 'Attach offering scopes to role assignments.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_REVOKE]: {
+        description: 'Remove offering scopes from role assignments.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_MANAGE]: {
+        description: 'View, attach, and remove offering scopes.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_VIEW]: {
+        description: 'View offering-scope assignment codes.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_CREATE]: {
+        description: 'Create offering-scope assignment codes.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_REVOKE]: {
+        description: 'Revoke unused offering-scope assignment codes.',
+    },
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_MANAGE]: {
+        description: 'View, create, and revoke offering-scope assignment codes.',
     },
     [PERMISSION_CODE.ASSESSMENT_CREATE]: {
         description: 'Create assessments within the assigned scope.',
+    },
+    [PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED]: {
+        description: 'View published assessments within the assigned scope.',
     },
     [PERMISSION_CODE.ASSESSMENT_VIEW]: {
         description: 'View assessments and their configuration.',
@@ -203,6 +279,31 @@ export const MANAGE_PERMISSION_BUNDLES = {
         PERMISSION_CODE.ROLE_UPDATE,
         PERMISSION_CODE.ROLE_DELETE,
     ],
+    [PERMISSION_CODE.ROLE_REQUEST_REVIEW]: [
+        PERMISSION_CODE.ROLE_REQUEST_VIEW,
+        PERMISSION_CODE.ROLE_REQUEST_APPROVE,
+        PERMISSION_CODE.ROLE_REQUEST_REJECT,
+    ],
+    [PERMISSION_CODE.SCOPE_REQUEST_REVIEW]: [
+        PERMISSION_CODE.SCOPE_REQUEST_VIEW,
+        PERMISSION_CODE.SCOPE_REQUEST_APPROVE,
+        PERMISSION_CODE.SCOPE_REQUEST_REJECT,
+    ],
+    [PERMISSION_CODE.ROLE_ASSIGNMENT_MANAGE]: [
+        PERMISSION_CODE.ROLE_ASSIGNMENT_VIEW,
+        PERMISSION_CODE.ROLE_ASSIGNMENT_CREATE,
+        PERMISSION_CODE.ROLE_ASSIGNMENT_REVOKE,
+    ],
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_MANAGE]: [
+        PERMISSION_CODE.SCOPE_ASSIGNMENT_VIEW,
+        PERMISSION_CODE.SCOPE_ASSIGNMENT_CREATE,
+        PERMISSION_CODE.SCOPE_ASSIGNMENT_REVOKE,
+    ],
+    [PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_MANAGE]: [
+        PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_VIEW,
+        PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_CREATE,
+        PERMISSION_CODE.SCOPE_ASSIGNMENT_CODE_REVOKE,
+    ],
     [PERMISSION_CODE.OFFERING_MANAGE]: [
         PERMISSION_CODE.OFFERING_VIEW,
         PERMISSION_CODE.OFFERING_UPDATE,
@@ -214,6 +315,11 @@ export const MANAGE_PERMISSION_BUNDLES = {
         PERMISSION_CODE.ASSESSMENT_UPDATE,
         PERMISSION_CODE.ASSESSMENT_DELETE,
     ],
+} as const satisfies Partial<Record<PermissionCode, readonly PermissionCode[]>>;
+
+/** Các implication một chiều không phải bundle tổng hợp. */
+export const PERMISSION_IMPLICATIONS = {
+    [PERMISSION_CODE.ASSESSMENT_VIEW]: [PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED],
 } as const satisfies Partial<Record<PermissionCode, readonly PermissionCode[]>>;
 
 export type ManagePermissionCode = keyof typeof MANAGE_PERMISSION_BUNDLES;
@@ -233,12 +339,31 @@ export function hasPermission(
     requestedPermission: PermissionCode,
 ): boolean {
     const granted = new Set(grantedPermissions);
-    if (granted.has(requestedPermission)) return true;
+    const effective = new Set(granted);
+    const queue = [...granted];
+
+    for (let index = 0; index < queue.length; index += 1) {
+        const permission = queue[index];
+        const implied = [
+            ...(MANAGE_PERMISSION_BUNDLES[permission as ManagePermissionCode] ?? []),
+            ...(PERMISSION_IMPLICATIONS[
+                permission as keyof typeof PERMISSION_IMPLICATIONS
+            ] ?? []),
+        ];
+
+        for (const impliedPermission of implied) {
+            if (effective.has(impliedPermission)) continue;
+            effective.add(impliedPermission);
+            queue.push(impliedPermission);
+        }
+    }
+
+    if (effective.has(requestedPermission)) return true;
 
     if (
         isManagePermissionCode(requestedPermission) &&
         MANAGE_PERMISSION_BUNDLES[requestedPermission].every((permission) =>
-            granted.has(permission),
+            effective.has(permission),
         )
     ) {
         return true;
@@ -246,7 +371,7 @@ export function hasPermission(
 
     return Object.entries(MANAGE_PERMISSION_BUNDLES).some(
         ([managePermission, actions]) =>
-            granted.has(managePermission as ManagePermissionCode) &&
+            effective.has(managePermission as ManagePermissionCode) &&
             (actions as readonly PermissionCode[]).includes(requestedPermission),
     );
 }
