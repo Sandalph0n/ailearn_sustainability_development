@@ -54,6 +54,7 @@ type RoleOption = {
     id: string;
     roleName: string;
     scopeType: 'INSTITUTION' | 'OFFERING';
+    protected?: boolean;
 };
 type OfferingOption = {
     id: string;
@@ -114,6 +115,7 @@ export function PeopleTable({
     roleCapabilities,
     scopeCapabilities = { view: false, create: false, revoke: false },
     roleFilterParam = 'role',
+    canManageProtectedRoles = true,
 }: {
     assignments: AssignmentListItem[];
     users: UserOption[];
@@ -133,6 +135,7 @@ export function PeopleTable({
     roleCapabilities?: PeopleRoleCapabilities;
     scopeCapabilities?: PeopleScopeCapabilities;
     roleFilterParam?: string;
+    canManageProtectedRoles?: boolean;
 }) {
     const list = useListQuery();
     const [granting, setGranting] = useState(false);
@@ -168,6 +171,9 @@ export function PeopleTable({
                                     ? 'Institution'
                                     : 'Offering'}
                             </Badge>
+                            {info.row.original.role.protected && (
+                                <Badge variant="secondary">Protected</Badge>
+                            )}
                         </div>
                     ),
                 }),
@@ -208,22 +214,39 @@ export function PeopleTable({
                 column.display({
                     id: 'actions',
                     header: '',
-                    cell: (info) =>
-                        effectiveRoleCapabilities.revoke ||
-                        (scopeCapabilities.view &&
-                            info.row.original.role.scopeType === 'OFFERING') ? (
-                        <AssignmentActions
-                            assignment={info.row.original}
-                            endpoint={endpoint}
-                            contextQuery={contextQuery}
-                            canRevoke={effectiveRoleCapabilities.revoke}
-                            canManageScopes={scopeCapabilities.view}
-                            onManageScopes={() => setManagingScopes(info.row.original)}
-                        />
-                    ) : null,
+                    cell: (info) => {
+                        const canRevokeAssignment =
+                            effectiveRoleCapabilities.revoke &&
+                            (!info.row.original.role.protected ||
+                                canManageProtectedRoles === true);
+
+                        return canRevokeAssignment ||
+                            (scopeCapabilities.view &&
+                                info.row.original.role.scopeType === 'OFFERING') ? (
+                            <AssignmentActions
+                                assignment={info.row.original}
+                                endpoint={endpoint}
+                                contextQuery={contextQuery}
+                                canRevoke={canRevokeAssignment}
+                                canManageScopes={scopeCapabilities.view}
+                                canEditScopes={
+                                    scopeCapabilities.create || scopeCapabilities.revoke
+                                }
+                                onManageScopes={() => setManagingScopes(info.row.original)}
+                            />
+                        ) : null;
+                    },
                 }),
             ] as Array<AdminColumnDef<AssignmentListItem>>,
-        [contextQuery, effectiveRoleCapabilities.revoke, endpoint, scopeCapabilities.view],
+        [
+            canManageProtectedRoles,
+            contextQuery,
+            effectiveRoleCapabilities.revoke,
+            endpoint,
+            scopeCapabilities.create,
+            scopeCapabilities.revoke,
+            scopeCapabilities.view,
+        ],
     );
 
     if (managingScopes) {
@@ -492,6 +515,7 @@ function AssignmentActions({
     contextQuery,
     canRevoke,
     canManageScopes,
+    canEditScopes,
     onManageScopes,
 }: {
     assignment: AssignmentListItem;
@@ -499,6 +523,7 @@ function AssignmentActions({
     contextQuery: string;
     canRevoke: boolean;
     canManageScopes: boolean;
+    canEditScopes: boolean;
     onManageScopes: () => void;
 }) {
     if (assignment.revoked) return null;
@@ -517,7 +542,7 @@ function AssignmentActions({
                     {canManageScopes && assignment.role.scopeType === 'OFFERING' && (
                         <DropdownMenuItem onClick={onManageScopes}>
                             <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                            Manage scopes
+                            {canEditScopes ? 'Manage scopes' : 'View scopes'}
                         </DropdownMenuItem>
                     )}
                     {canManageScopes && canRevoke && <DropdownMenuSeparator />}
@@ -623,7 +648,8 @@ function AssignmentScopesPanel({
                             Access scope
                         </p>
                         <h2 className="font-heading mt-1 text-2xl font-semibold tracking-tight">
-                            Manage {assignment.role.roleName} scopes
+                            {capabilities.create || capabilities.revoke ? 'Manage' : 'View'}{' '}
+                            {assignment.role.roleName} scopes
                         </h2>
                         <p className="text-muted-foreground mt-1 text-sm">
                             {assignment.user.firstName} {assignment.user.lastName} ·{' '}
@@ -632,64 +658,77 @@ function AssignmentScopesPanel({
                     </div>
                 </header>
 
-                <div className="grid items-start gap-8 py-7 lg:grid-cols-[minmax(18rem,0.75fr)_minmax(28rem,1.25fr)]">
-                    <section>
-                        <h3 className="font-heading text-sm font-semibold">Add direct scope</h3>
-                        <p className="text-muted-foreground mt-1 text-sm leading-6">
-                            Connect this role assignment to another offering at the same institution.
-                        </p>
-                        <div className="mt-4 space-y-3">
-                            <Select
-                                items={Object.fromEntries(
-                                    availableOfferings.map((offering) => [
-                                        offering.id,
-                                        offeringLabel(offering),
-                                    ]),
-                                )}
-                                value={offeringId}
-                                onValueChange={setOfferingId}
-                                disabled={!capabilities.create || availableOfferings.length === 0}
-                            >
-                                <SelectTrigger className="w-full" aria-label="Offering to add">
-                                    <SelectValue
-                                        placeholder={
-                                            availableOfferings.length === 0
-                                                ? 'All offerings are already assigned'
-                                                : 'Choose an offering'
-                                        }
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableOfferings.map((offering) => (
-                                        <SelectItem key={offering.id} value={offering.id}>
-                                            {offeringLabel(offering)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                type="button"
-                                onClick={() => void addScope()}
-                                disabled={!offeringId || adding || !capabilities.create}
-                            >
-                                {adding ? <Spinner /> : <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />}
-                                Add scope
-                            </Button>
-                            {!capabilities.create && (
-                                <p className="text-muted-foreground text-xs">
-                                    You may inspect scopes, but cannot add them.
-                                </p>
-                            )}
-                            {error && (
-                                <p
-                                    role="alert"
-                                    className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm"
+                <div
+                    className={
+                        'grid items-start gap-8 py-7 ' +
+                        (capabilities.create
+                            ? 'lg:grid-cols-[minmax(18rem,0.75fr)_minmax(28rem,1.25fr)]'
+                            : '')
+                    }
+                >
+                    {capabilities.create && (
+                        <section>
+                            <h3 className="font-heading text-sm font-semibold">
+                                Add direct scope
+                            </h3>
+                            <p className="text-muted-foreground mt-1 text-sm leading-6">
+                                Connect this role assignment to another offering at the same
+                                institution.
+                            </p>
+                            <div className="mt-4 space-y-3">
+                                <Select
+                                    items={Object.fromEntries(
+                                        availableOfferings.map((offering) => [
+                                            offering.id,
+                                            offeringLabel(offering),
+                                        ]),
+                                    )}
+                                    value={offeringId}
+                                    onValueChange={setOfferingId}
+                                    disabled={
+                                        !capabilities.create || availableOfferings.length === 0
+                                    }
                                 >
-                                    {error}
-                                </p>
-                            )}
-                        </div>
-                    </section>
+                                    <SelectTrigger className="w-full" aria-label="Offering to add">
+                                        <SelectValue
+                                            placeholder={
+                                                availableOfferings.length === 0
+                                                    ? 'All offerings are already assigned'
+                                                    : 'Choose an offering'
+                                            }
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableOfferings.map((offering) => (
+                                            <SelectItem key={offering.id} value={offering.id}>
+                                                {offeringLabel(offering)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    type="button"
+                                    onClick={() => void addScope()}
+                                    disabled={!offeringId || adding || !capabilities.create}
+                                >
+                                    {adding ? (
+                                        <Spinner />
+                                    ) : (
+                                        <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />
+                                    )}
+                                    Add scope
+                                </Button>
+                                {error && (
+                                    <p
+                                        role="alert"
+                                        className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border px-3 py-2 text-sm"
+                                    >
+                                        {error}
+                                    </p>
+                                )}
+                            </div>
+                        </section>
+                    )}
 
                     <section>
                         <div className="flex items-end justify-between gap-4">

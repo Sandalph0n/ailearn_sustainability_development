@@ -6,10 +6,7 @@ import {
 } from '@/lib/admin/offering-configuration';
 import { OfferingSchema } from '@/lib/admin/offering-schema';
 import { badId, prismaError } from '@/lib/admin/route-helpers';
-import {
-    guardInstitutionAction,
-    guardInstitutionWrite,
-} from '@/lib/auth/institution-route-guard';
+import { guardOfferingAction, guardOfferingWrite } from '@/lib/auth/offering-route-guard';
 import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { PERMISSION_CODE } from '@/lib/auth/permissions';
 import { db } from '@/lib/db';
@@ -21,20 +18,15 @@ export async function PATCH(
     const { institutionId, id } = await params;
     const invalid = badId(id);
     if (invalid) return invalid;
-    const guard = await guardInstitutionWrite(
+    const guard = await guardOfferingWrite(
         request,
         institutionId,
+        id,
         PERMISSION_CODE.OFFERING_UPDATE,
         OfferingSchema,
         'Offering',
     );
     if (!guard.ok) return guard.response;
-
-    const current = await db.offering.findFirst({
-        where: { id, subject: { institutionId } },
-        select: { id: true },
-    });
-    if (!current) return errorResponse(404, 'NOT_FOUND', 'Offering does not exist');
 
     try {
         const offering = await db.$transaction(async (tx) => {
@@ -72,18 +64,13 @@ export async function DELETE(
     const { institutionId, id } = await params;
     const invalid = badId(id);
     if (invalid) return invalid;
-    const guard = await guardInstitutionAction(
+    const guard = await guardOfferingAction(
         request,
         institutionId,
+        id,
         PERMISSION_CODE.OFFERING_DELETE,
     );
     if (!guard.ok) return guard.response;
-
-    const current = await db.offering.findFirst({
-        where: { id, subject: { institutionId } },
-        select: { id: true },
-    });
-    if (!current) return errorResponse(404, 'NOT_FOUND', 'Offering does not exist');
 
     try {
         await db.offering.delete({ where: { id } });

@@ -15,6 +15,7 @@ import {
     UserMultipleIcon,
     UserSharingIcon,
     WorkflowSquare01Icon,
+    ViewIcon,
 } from '@hugeicons/core-free-icons';
 
 import { BrandLogo } from '@/components/brand-logo';
@@ -140,6 +141,22 @@ const INSTITUTION_ITEMS = [
             PERMISSION_CODE.SCOPE_REQUEST_REVIEW,
         ],
     },
+    {
+        href: '/navigation/institution/audit',
+        label: 'Audit',
+        icon: ViewIcon,
+        permissions: [PERMISSION_CODE.AUDIT_VIEW],
+    },
+] as const;
+
+const OFFERING_WORKSPACE_ACTIONS = [
+    PERMISSION_CODE.OFFERING_CREATE,
+    PERMISSION_CODE.OFFERING_UPDATE,
+    PERMISSION_CODE.OFFERING_DELETE,
+    PERMISSION_CODE.ASSESSMENT_CREATE,
+    PERMISSION_CODE.ASSESSMENT_VIEW,
+    PERMISSION_CODE.ASSESSMENT_UPDATE,
+    PERMISSION_CODE.ASSESSMENT_DELETE,
 ] as const;
 
 const TOOL_ITEMS = [
@@ -162,9 +179,15 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                 (!wantedOffering || context.offering?.id === wantedOffering),
         ) ?? contexts[0];
     const institutionItems = activeContext
-        ? INSTITUTION_ITEMS.filter((item) =>
-              hasAnyPermission(activeContext.permissions, item.permissions),
-          )
+        ? INSTITUTION_ITEMS.filter((item) => {
+              if (
+                  item.href === '/navigation/institution/offerings' &&
+                  activeContext.role.scopeType === 'OFFERING'
+              ) {
+                  return hasAnyPermission(activeContext.permissions, OFFERING_WORKSPACE_ACTIONS);
+              }
+              return hasAnyPermission(activeContext.permissions, item.permissions);
+          })
         : [];
     const personalItems = PERSONAL_ITEMS.filter(
         (item) =>
@@ -191,11 +214,9 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
     function withContext(href: string): string {
         const carried = new URLSearchParams();
 
-        for (const key of Object.values(CONTEXT_PARAM)) {
-            const value = searchParams.get(key);
-            if (value) {
-                carried.set(key, value);
-            }
+        if (activeContext) {
+            carried.set(CONTEXT_PARAM.institution, activeContext.institution.id);
+            carried.set(CONTEXT_PARAM.role, activeContext.role.id);
         }
 
         const query = carried.toString();

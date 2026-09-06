@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { contextKey, contextLabel, distinctRoleContexts, type ContextOption } from './context-params';
+import {
+    contextKey,
+    contextLabel,
+    contextSearchParams,
+    distinctRoleContexts,
+    roleSearchParams,
+    type ContextOption,
+} from './context-params';
 
 function option(offeringId: string | null): ContextOption {
     return {
@@ -40,5 +47,17 @@ describe('role navigation', () => {
 
         expect(distinctRoleContexts([first, second])).toEqual([first]);
         expect(contextLabel(first)).toBe('Student');
+    });
+
+    it('does not pin role navigation to one offering scope', () => {
+        expect(roleSearchParams(option('offering-1'))).toEqual({
+            institution: 'institution-1',
+            role: 'student-role',
+        });
+        expect(contextSearchParams(option('offering-1'))).toEqual({
+            institution: 'institution-1',
+            role: 'student-role',
+            offering: 'offering-1',
+        });
     });
 });

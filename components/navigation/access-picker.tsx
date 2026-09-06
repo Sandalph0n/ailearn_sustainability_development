@@ -9,8 +9,8 @@ import {
 
 import {
     contextKey,
-    contextSearchParams,
     distinctRoleContexts,
+    roleSearchParams,
     type ContextOption,
 } from '@/lib/context/context-params';
 
@@ -78,7 +78,7 @@ export function AccessPicker({
     }
 
     function hrefFor(option: ContextOption): string {
-        return pathname + '?' + new URLSearchParams(contextSearchParams(option)).toString();
+        return pathname + '?' + new URLSearchParams(roleSearchParams(option)).toString();
     }
 
     return (

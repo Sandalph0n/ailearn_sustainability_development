@@ -88,10 +88,8 @@ export default async function InstitutionOfferingsPage({
             hasPermission(active.permissions, PERMISSION_CODE.OFFERING_CREATE),
         view: hasPermission(active.permissions, PERMISSION_CODE.OFFERING_VIEW),
         update:
-            active.role.scopeType === 'INSTITUTION' &&
             hasPermission(active.permissions, PERMISSION_CODE.OFFERING_UPDATE),
         delete:
-            active.role.scopeType === 'INSTITUTION' &&
             hasPermission(active.permissions, PERMISSION_CODE.OFFERING_DELETE),
     };
 

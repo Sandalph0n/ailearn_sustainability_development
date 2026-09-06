@@ -78,14 +78,8 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
         const next = new URLSearchParams(searchParams);
         next.set(CONTEXT_PARAM.institution, option.institution.id);
         next.set(CONTEXT_PARAM.role, option.role.id);
-
-        if (option.offering) {
-            next.set(CONTEXT_PARAM.offering, option.offering.id);
-        } else {
-            // Vai trò cấp cơ sở không có lượt mở môn. Sót lại `offering` của vai trò trước thì
-            // URL tự mâu thuẫn, và máy chủ sẽ coi cả ngữ cảnh là hỏng rồi rơi về mặc định.
-            next.delete(CONTEXT_PARAM.offering);
-        }
+        // Chọn một RoleAssignment, không chọn một trong hàng chục offering mà role đó phủ.
+        next.delete(CONTEXT_PARAM.offering);
 
         const destination = new URL(pathname, window.location.origin);
         destination.search = next.toString();

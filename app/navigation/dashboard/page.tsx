@@ -16,7 +16,7 @@ import { attachContextPermissions } from '@/lib/auth/authorization-service';
 import { hasAnyPermission, hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
 import { getCurrentSession } from '@/lib/auth/session/service';
 import { resolveActiveContext } from '@/lib/context/active-context';
-import { contextSearchParams } from '@/lib/context/context-params';
+import { roleSearchParams } from '@/lib/context/context-params';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +38,24 @@ const INSTITUTION_PERMISSIONS = [
     PERMISSION_CODE.MEMBER_VIEW,
     PERMISSION_CODE.ROLE_REQUEST_VIEW,
     PERMISSION_CODE.ROLE_REQUEST_REVIEW,
+    PERMISSION_CODE.AUDIT_VIEW,
+    PERMISSION_CODE.OFFERING_CREATE,
+    PERMISSION_CODE.OFFERING_UPDATE,
+    PERMISSION_CODE.OFFERING_DELETE,
+    PERMISSION_CODE.ASSESSMENT_CREATE,
+    PERMISSION_CODE.ASSESSMENT_VIEW,
+    PERMISSION_CODE.ASSESSMENT_UPDATE,
+    PERMISSION_CODE.ASSESSMENT_DELETE,
+] as const;
+
+const OFFERING_WORKSPACE_PERMISSIONS = [
+    PERMISSION_CODE.OFFERING_CREATE,
+    PERMISSION_CODE.OFFERING_UPDATE,
+    PERMISSION_CODE.OFFERING_DELETE,
+    PERMISSION_CODE.ASSESSMENT_CREATE,
+    PERMISSION_CODE.ASSESSMENT_VIEW,
+    PERMISSION_CODE.ASSESSMENT_UPDATE,
+    PERMISSION_CODE.ASSESSMENT_DELETE,
 ] as const;
 
 export default async function DashboardPage({ searchParams }: PageProps<'/navigation/dashboard'>) {
@@ -69,16 +87,17 @@ export default async function DashboardPage({ searchParams }: PageProps<'/naviga
     }
 
     const [active] = await attachContextPermissions(db, [resolved.active]);
-    const contextQuery = new URLSearchParams(contextSearchParams(active)).toString();
+    const contextQuery = new URLSearchParams(roleSearchParams(active)).toString();
     const href = (path: string) => `${path}?${contextQuery}`;
     const offeringWhere = active.role.scopeType === 'INSTITUTION'
         ? { subject: { institutionId: active.institution.id } }
         : { scopeAssignments: { some: { roleAssignmentId: active.assignmentId, revokedAt: null } } };
     const now = new Date();
 
-    const [offeringCount, publishedAssessmentCount, ownAttemptCount, personalWorkspaceCount, pendingRoleRequests, pendingScopeRequests] = await Promise.all([
+    const [offeringCount, publishedAssessmentCount, configuredAssessmentCount, ownAttemptCount, personalWorkspaceCount, pendingRoleRequests, pendingScopeRequests] = await Promise.all([
         db.offering.count({ where: offeringWhere }),
         db.assessment.count({ where: { offering: offeringWhere, publishAt: { lte: now } } }),
+        db.assessment.count({ where: { offering: offeringWhere } }),
         db.assessmentAttempt.count({ where: { userId, assessment: { offering: offeringWhere } } }),
         db.personalWorkspace.count({ where: { userId } }),
         db.roleRequest.count({ where: { userId, status: 'PENDING' } }),
@@ -89,7 +108,14 @@ export default async function DashboardPage({ searchParams }: PageProps<'/naviga
     if (hasPermission(active.permissions, PERMISSION_CODE.OFFERING_VIEW)) {
         learningItems.push({ label: 'Subjects', value: offeringCount, detail: active.role.scopeType === 'INSTITUTION' ? 'Offerings visible institution-wide' : 'Offerings connected to this role', href: href('/navigation/subjects'), icon: BookOpen01Icon });
     }
-    if (hasAnyPermission(active.permissions, [PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED, PERMISSION_CODE.ASSESSMENT_VIEW, PERMISSION_CODE.ASSESSMENT_ATTEMPT])) {
+    if (
+        hasPermission(active.permissions, PERMISSION_CODE.OFFERING_VIEW) &&
+        hasAnyPermission(active.permissions, [
+            PERMISSION_CODE.ASSESSMENT_VIEW_PUBLISHED,
+            PERMISSION_CODE.ASSESSMENT_VIEW,
+            PERMISSION_CODE.ASSESSMENT_ATTEMPT,
+        ])
+    ) {
         learningItems.push({ label: 'Published assessments', value: publishedAssessmentCount, detail: 'Available across the current access scope', href: href('/navigation/subjects'), icon: CheckListIcon });
     }
     if (hasAnyPermission(active.permissions, [PERMISSION_CODE.ASSESSMENT_ATTEMPT, PERMISSION_CODE.ATTEMPT_VIEW_OWN])) {
@@ -98,18 +124,53 @@ export default async function DashboardPage({ searchParams }: PageProps<'/naviga
 
     const institutionItems: DashboardItem[] = [];
     if (active.role.scopeType === 'INSTITUTION' && hasAnyPermission(active.permissions, INSTITUTION_PERMISSIONS)) {
-        const [subjects, terms, offerings, people, openRequests] = await Promise.all([
+        const [subjects, terms, offerings, roles, people, openRequests] = await Promise.all([
             db.subject.count({ where: { institutionId: active.institution.id } }),
             db.studyTerm.count({ where: { institutionId: active.institution.id } }),
             db.offering.count({ where: { subject: { institutionId: active.institution.id } } }),
+            db.role.count({ where: { institutionId: active.institution.id } }),
             db.roleAssignment.count({ where: { role: { institutionId: active.institution.id }, roleRevokedAt: null } }),
             db.roleRequest.count({ where: { institutionId: active.institution.id, status: 'PENDING' } }),
         ]);
+        if (hasPermission(active.permissions, PERMISSION_CODE.INSTITUTION_SETTINGS_VIEW)) institutionItems.push({ label: 'Institution settings', value: 'Open', detail: 'Identity and institution-wide configuration', href: href('/navigation/institution/settings'), icon: UniversityIcon });
         if (hasPermission(active.permissions, PERMISSION_CODE.SUBJECT_VIEW)) institutionItems.push({ label: 'Subjects', value: subjects, detail: 'Institution catalog', href: href('/navigation/institution/subjects'), icon: UniversityIcon });
         if (hasPermission(active.permissions, PERMISSION_CODE.TERM_VIEW)) institutionItems.push({ label: 'Terms', value: terms, detail: 'Academic periods', href: href('/navigation/institution/terms'), icon: CheckListIcon });
         if (hasPermission(active.permissions, PERMISSION_CODE.OFFERING_VIEW)) institutionItems.push({ label: 'Offerings', value: offerings, detail: 'Scheduled subject deliveries', href: href('/navigation/institution/offerings'), icon: BookOpen01Icon });
+        if (hasPermission(active.permissions, PERMISSION_CODE.ROLE_VIEW)) institutionItems.push({ label: 'Roles', value: roles, detail: 'Permission and inheritance definitions', href: href('/navigation/institution/roles'), icon: Shield01Icon });
         if (hasPermission(active.permissions, PERMISSION_CODE.MEMBER_VIEW)) institutionItems.push({ label: 'Role assignments', value: people, detail: 'Active access records', href: href('/navigation/institution/people'), icon: UserMultipleIcon });
         if (hasPermission(active.permissions, PERMISSION_CODE.ROLE_REQUEST_REVIEW)) institutionItems.push({ label: 'Requests waiting', value: openRequests, detail: 'Role requests requiring review', href: href('/navigation/institution/requests'), icon: Shield01Icon });
+        if (hasPermission(active.permissions, PERMISSION_CODE.AUDIT_VIEW)) institutionItems.push({ label: 'Audit history', value: 'View', detail: 'Authorization and access history', href: href('/navigation/institution/audit'), icon: File01Icon });
+    }
+    if (
+        active.role.scopeType === 'OFFERING' &&
+        hasAnyPermission(active.permissions, OFFERING_WORKSPACE_PERMISSIONS)
+    ) {
+        institutionItems.push({
+            label: 'Offerings in scope',
+            value: offeringCount,
+            detail: `Operational scope for ${active.role.roleName}`,
+            href: href('/navigation/institution/offerings'),
+            icon: BookOpen01Icon,
+        });
+    }
+    if (
+        hasAnyPermission(active.permissions, [
+            PERMISSION_CODE.ASSESSMENT_CREATE,
+            PERMISSION_CODE.ASSESSMENT_VIEW,
+            PERMISSION_CODE.ASSESSMENT_UPDATE,
+            PERMISSION_CODE.ASSESSMENT_DELETE,
+        ])
+    ) {
+        institutionItems.push({
+            label: 'Assessment setup',
+            value: configuredAssessmentCount,
+            detail:
+                active.role.scopeType === 'INSTITUTION'
+                    ? 'Assessments across the institution'
+                    : 'Assessments inside assigned offerings',
+            href: href('/navigation/institution/offerings'),
+            icon: CheckListIcon,
+        });
     }
 
     const accessItems: DashboardItem[] = [

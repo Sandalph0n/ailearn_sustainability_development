@@ -44,12 +44,13 @@ export function RoleManagement({
         return Array.from(unique.values());
     }, [assignments]);
 
+    const wantedOffering = searchParams.get(CONTEXT_PARAM.offering);
     const activeContext =
         contexts.find(
             (context) =>
                 context.institution.id === searchParams.get(CONTEXT_PARAM.institution) &&
                 context.role.id === searchParams.get(CONTEXT_PARAM.role) &&
-                (context.offering?.id ?? null) === searchParams.get(CONTEXT_PARAM.offering),
+                (!wantedOffering || context.offering?.id === wantedOffering),
         ) ?? contexts.at(0);
     const activeAssignment = assignments.find(
         (assignment) => assignment.assignmentId === activeContext?.assignmentId,
@@ -93,11 +94,7 @@ export function RoleManagement({
         const next = new URLSearchParams(searchParams);
         next.set(CONTEXT_PARAM.institution, nextContext.institution.id);
         next.set(CONTEXT_PARAM.role, nextContext.role.id);
-        if (nextContext.offering) {
-            next.set(CONTEXT_PARAM.offering, nextContext.offering.id);
-        } else {
-            next.delete(CONTEXT_PARAM.offering);
-        }
+        next.delete(CONTEXT_PARAM.offering);
 
         setIsSwitching(true);
         const destination = new URL(pathname, window.location.origin);

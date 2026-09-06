@@ -49,10 +49,7 @@ export function contextKey(option: ContextOption): string {
 
 /** Ba tham số của một ngữ cảnh, dạng đã sẵn sàng ghép vào `URLSearchParams`. */
 export function contextSearchParams(option: ContextOption): Record<string, string> {
-    const params: Record<string, string> = {
-        [CONTEXT_PARAM.institution]: option.institution.id,
-        [CONTEXT_PARAM.role]: option.role.id,
-    };
+    const params = roleSearchParams(option);
 
     // Vai trò cấp cơ sở KHÔNG mang `offering`. Ghi một chuỗi rỗng vào đó thì URL bẩn mà không
     // thêm nghĩa gì, và phía máy chủ sẽ phải phân biệt "rỗng" với "không có".
@@ -61,6 +58,18 @@ export function contextSearchParams(option: ContextOption): Record<string, strin
     }
 
     return params;
+}
+
+/**
+ * Context dùng cho điều hướng cấp role. Một RoleAssignment OFFERING có thể phủ hàng chục
+ * offering, nên sidebar/bộ đổi role không được vô tình ghim cả ứng dụng vào scope đầu tiên.
+ * Màn hình chi tiết offering vẫn dùng `contextSearchParams` khi nó thực sự cần một target cụ thể.
+ */
+export function roleSearchParams(option: ContextOption): Record<string, string> {
+    return {
+        [CONTEXT_PARAM.institution]: option.institution.id,
+        [CONTEXT_PARAM.role]: option.role.id,
+    };
 }
 
 /** Nhãn ngắn của một ngữ cảnh: `Convenor · COMP1000` hoặc chỉ `Student`. */

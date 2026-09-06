@@ -6,6 +6,7 @@ import {
     parseOptionalUuid,
 } from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
+import { CHIEF_MANAGEMENT_ROLE_CODE } from '@/lib/auth/delegation-policy';
 
 const STATUS_VALUES = ['active', 'revoked', 'all'] as const;
 
@@ -18,6 +19,8 @@ export async function PeopleSection({
     roleCapabilities,
     scopeCapabilities,
     roleFilterParam = 'role',
+    allowedOfferingIds,
+    allowProtectedRoles = true,
 }: {
     institutionId: string;
     searchParams: Record<string, string | string[] | undefined>;
@@ -27,6 +30,10 @@ export async function PeopleSection({
     roleCapabilities?: { create: boolean; revoke: boolean };
     scopeCapabilities?: { view: boolean; create: boolean; revoke: boolean };
     roleFilterParam?: string;
+    /** Null/undefined means the whole institution; an array is the caller's exact offering scope. */
+    allowedOfferingIds?: readonly string[] | null;
+    /** Chief Management is only grantable by another active Chief. */
+    allowProtectedRoles?: boolean;
 }) {
     const SORT_FIELDS = ['user', 'role', 'granted'] as const;
     const { q, page, sort, dir, skip } = parseListParams(searchParams, SORT_FIELDS);
@@ -41,6 +48,16 @@ export async function PeopleSection({
 
     const where = {
         role: { institutionId },
+        ...(allowedOfferingIds
+            ? {
+                  scopeAssignments: {
+                      some: {
+                          offeringId: { in: [...allowedOfferingIds] },
+                          revokedAt: null,
+                      },
+                  },
+              }
+            : {}),
         ...(roleId ? { roleId } : {}),
         ...(offeringId ? { scopeAssignments: { some: { offeringId, revokedAt: null } } } : {}),
         ...(status === 'active'
@@ -78,9 +95,14 @@ export async function PeopleSection({
                 roleGrantedAt: true,
                 roleRevokedAt: true,
                 user: { select: { id: true, firstName: true, lastName: true, email: true } },
-                role: { select: { id: true, roleName: true, scopeType: true } },
+                role: { select: { id: true, roleCode: true, roleName: true, scopeType: true } },
                 scopeAssignments: {
-                    where: { revokedAt: null },
+                    where: {
+                        revokedAt: null,
+                        ...(allowedOfferingIds
+                            ? { offeringId: { in: [...allowedOfferingIds] } }
+                            : {}),
+                    },
                     select: {
                         id: true,
                         source: true,
@@ -105,12 +127,20 @@ export async function PeopleSection({
             select: { id: true, firstName: true, lastName: true, email: true },
         }),
         db.role.findMany({
-            where: { institutionId },
+            where: {
+                institutionId,
+                ...(!allowProtectedRoles
+                    ? { roleCode: { not: CHIEF_MANAGEMENT_ROLE_CODE } }
+                    : {}),
+            },
             orderBy: [{ roleName: 'asc' }, { id: 'asc' }],
             select: { id: true, roleName: true, scopeType: true },
         }),
         db.offering.findMany({
-            where: { subject: { institutionId } },
+            where: {
+                subject: { institutionId },
+                ...(allowedOfferingIds ? { id: { in: [...allowedOfferingIds] } } : {}),
+            },
             orderBy: [
                 { term: { year: 'desc' } },
                 { term: { session: 'asc' } },
@@ -152,7 +182,12 @@ export async function PeopleSection({
         return {
             id: row.id,
             user: row.user,
-            role: row.role,
+            role: {
+                id: row.role.id,
+                roleName: row.role.roleName,
+                scopeType: row.role.scopeType,
+                protected: row.role.roleCode === CHIEF_MANAGEMENT_ROLE_CODE,
+            },
             scopes: scopeCapabilities?.view === false ? [] : scopes,
             granted: date.format(row.roleGrantedAt),
             revoked: row.roleRevokedAt ? date.format(row.roleRevokedAt) : null,
@@ -180,6 +215,7 @@ export async function PeopleSection({
             roleCapabilities={roleCapabilities}
             scopeCapabilities={scopeCapabilities}
             roleFilterParam={roleFilterParam}
+            canManageProtectedRoles={allowProtectedRoles}
         />
     );
 }
