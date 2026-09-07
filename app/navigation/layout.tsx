@@ -31,7 +31,10 @@ import { getCurrentSession } from '@/lib/auth/session/service';
  * Chốt chặn ở đây băm token rồi tra bảng `LoginSession` kèm điều kiện còn hạn. Đặt ở layout chứ
  * không ở từng trang: thêm trang mới dưới `/navigation/` là tự động được bảo vệ.
  */
-export default async function NavigationLayout({ children }: LayoutProps<'/navigation'>) {
+export default async function NavigationLayout({
+    children,
+    pageHeader,
+}: LayoutProps<'/navigation'>) {
     const session = await getCurrentSession();
     if (!session) {
         // Không gắn `?next=` ở đây: layout không biết người dùng đang đứng ở đường dẫn nào — nó
@@ -52,7 +55,7 @@ export default async function NavigationLayout({ children }: LayoutProps<'/navig
                 {/* Header dính trên cùng, có viền dưới để tách khỏi vùng nội dung cuộn. */}
                 <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b px-5 md:px-6">
                     <SidebarTrigger className="-ml-1.5" />
-                    <div className="flex-1" />
+                    <div className="min-w-0 flex-1">{pageHeader}</div>
 
                     {/*
                         Bộ chọn vai trò đứng NGAY CẠNH nút tài khoản, ngăn bằng một vạch dọc.

@@ -1,11 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useRef, useState, type InputHTMLAttributes } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     Add01Icon,
-    ArrowLeft01Icon,
     ArrowRight01Icon,
     Delete02Icon,
     Download01Icon,
@@ -20,7 +18,6 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react';
 import { toast } from 'sonner';
 
-import { ResourceActionDialog } from '@/components/admin/resource-action-dialog';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -64,14 +61,10 @@ type DocumentItem = {
 
 export function WorkspaceDetail({
     workspaceId,
-    initialName,
-    personal,
     readOnly,
     documents,
 }: {
     workspaceId: string;
-    initialName: string;
-    personal: boolean;
     readOnly: boolean;
     documents: DocumentItem[];
 }) {
@@ -80,8 +73,6 @@ export function WorkspaceDetail({
     const searchParams = useSearchParams();
     const fileRef = useRef<HTMLInputElement>(null);
     const folderRef = useRef<HTMLInputElement>(null);
-    const [editingWorkspaceName, setEditingWorkspaceName] = useState(false);
-    const [workspaceName, setWorkspaceName] = useState(initialName);
     const [creatingFolder, setCreatingFolder] = useState(false);
     const [folderName, setFolderName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -119,29 +110,6 @@ export function WorkspaceDetail({
         else params.delete('path');
         const query = params.toString();
         router.replace(query ? `${pathname}?${query}` : pathname);
-    }
-
-    async function renameWorkspace() {
-        if (!workspaceName.trim() || pending) return;
-        setPending(true);
-        setPendingLabel('Saving');
-        try {
-            const response = await fetch(`/api/workspaces/${workspaceId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: workspaceName }),
-            });
-            const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-            if (!response.ok) throw new Error(body.error?.message ?? 'Could not rename workspace');
-            setEditingWorkspaceName(false);
-            toast.success('Workspace renamed.');
-            router.refresh();
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Could not rename workspace');
-        } finally {
-            setPending(false);
-            setPendingLabel(null);
-        }
     }
 
     function startCreatingFolder() {
@@ -298,65 +266,6 @@ export function WorkspaceDetail({
 
     return (
         <div className="bg-background flex h-full min-h-0 flex-col overflow-hidden">
-            <header className="border-border flex min-h-14 shrink-0 items-center gap-2 border-b px-3 py-2 md:px-4">
-                <Button nativeButton={false} variant="ghost" size="icon-sm" render={<Link href="/navigation/workspaces" />} aria-label="Back to workspaces">
-                    <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-                </Button>
-                <div className="bg-border h-6 w-px shrink-0" />
-                {editingWorkspaceName ? (
-                    <Input
-                        value={workspaceName}
-                        onChange={(event) => setWorkspaceName(event.target.value)}
-                        className="h-8 max-w-xl"
-                        maxLength={120}
-                        autoFocus
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter') void renameWorkspace();
-                            if (event.key === 'Escape') {
-                                setWorkspaceName(initialName);
-                                setEditingWorkspaceName(false);
-                            }
-                        }}
-                    />
-                ) : (
-                    <div className="min-w-0 flex-1">
-                        <h1 className="font-heading truncate text-base font-semibold tracking-tight">{initialName}</h1>
-                        <p className="text-muted-foreground truncate text-xs">
-                            {personal
-                                ? 'Personal workspace · activity is not recorded'
-                                : readOnly
-                                  ? 'Submitted assessment workspace · read-only'
-                                  : 'Assessment workspace · changes remain available until submission'}
-                        </p>
-                    </div>
-                )}
-                <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                    {pendingLabel && <span className="text-muted-foreground hidden items-center gap-1.5 text-xs sm:flex"><Spinner />{pendingLabel}</span>}
-                    {!readOnly && (editingWorkspaceName ? (
-                        <>
-                            <Button variant="ghost" size="sm" onClick={() => { setWorkspaceName(initialName); setEditingWorkspaceName(false); }}>Cancel</Button>
-                            <Button size="sm" disabled={!workspaceName.trim() || pending} onClick={() => void renameWorkspace()}>Save</Button>
-                        </>
-                    ) : (
-                        <Button variant="ghost" size="sm" onClick={() => setEditingWorkspaceName(true)}>
-                            <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} /><span className="hidden sm:inline">Rename</span>
-                        </Button>
-                    ))}
-                    {personal && !editingWorkspaceName && (
-                        <ResourceActionDialog
-                            endpoint={`/api/workspaces/${workspaceId}`}
-                            method="DELETE"
-                            title={`Delete ${initialName}?`}
-                            description="The workspace, every folder and every uploaded file will be permanently deleted."
-                            confirmLabel="Delete workspace"
-                            destructive
-                            onCompleted={() => router.push('/navigation/workspaces')}
-                            trigger={<Button variant="ghost" size="icon-sm" className="text-destructive" aria-label="Delete workspace"><HugeiconsIcon icon={Delete02Icon} strokeWidth={2} /></Button>}
-                        />
-                    )}
-                </div>
-            </header>
-
             <section className="flex min-h-0 flex-1 flex-col">
                 <div className="bg-muted/20 flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
                     <nav aria-label="Folder path" className="flex min-w-0 flex-1 items-center gap-0.5">
@@ -372,7 +281,9 @@ export function WorkspaceDetail({
                         })}
                     </nav>
 
-                    {!readOnly && <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                        {pendingLabel && <span className="text-muted-foreground hidden items-center gap-1.5 pr-1 text-xs sm:flex"><Spinner />{pendingLabel}</span>}
+                        {!readOnly && <>
                         <input ref={fileRef} type="file" multiple className="hidden" onChange={(event) => void uploadFiles([...(event.target.files ?? [])], false)} />
                         <input
                             ref={folderRef}
@@ -384,8 +295,9 @@ export function WorkspaceDetail({
                         />
                         <Button variant="outline" size="sm" disabled={pending} onClick={startCreatingFolder}><HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} /><span className="hidden sm:inline">New folder</span></Button>
                         <Button variant="outline" size="sm" disabled={pending} onClick={() => folderRef.current?.click()}><HugeiconsIcon icon={FolderUploadIcon} strokeWidth={2} /><span className="hidden sm:inline">Upload folder</span></Button>
-                        <Button size="sm" disabled={pending} onClick={() => fileRef.current?.click()}><HugeiconsIcon icon={Upload01Icon} strokeWidth={2} /><span className="hidden sm:inline">Upload files</span></Button>
-                    </div>}
+                            <Button size="sm" disabled={pending} onClick={() => fileRef.current?.click()}><HugeiconsIcon icon={Upload01Icon} strokeWidth={2} /><span className="hidden sm:inline">Upload files</span></Button>
+                        </>}
+                    </div>
                 </div>
 
                 <div className="text-muted-foreground hidden shrink-0 grid-cols-[minmax(16rem,1fr)_11rem_8rem_11rem_6rem] border-b px-4 py-2 text-xs font-medium md:grid">
