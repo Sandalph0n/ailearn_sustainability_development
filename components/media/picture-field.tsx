@@ -55,7 +55,7 @@ export function PictureField({
      * `column` khi ô này đứng cạnh một tiêu đề: nút xuống dưới ảnh và bỏ dòng gợi ý định dạng,
      * nếu không cụm điều khiển sẽ chen ngang giữa ảnh và tên.
      */
-    layout?: 'row' | 'column';
+    layout?: 'row' | 'column' | 'profile';
     /** Không có quyền sửa: vẫn thấy ảnh, không thấy nút. */
     disabled?: boolean;
 }) {
@@ -90,6 +90,79 @@ export function PictureField({
     }
 
     const column = layout === 'column';
+    const profile = layout === 'profile';
+
+    if (profile) {
+        return (
+            <div className="w-full max-w-64">
+                <div className="group/picture bg-muted relative aspect-square overflow-hidden rounded-xl border">
+                    <Avatar className="size-full rounded-xl after:rounded-xl">
+                        <AvatarImage
+                            src={pictureUrl(pictureKey)}
+                            alt={alt}
+                            className="rounded-xl object-cover"
+                        />
+                        <AvatarFallback className="rounded-xl text-4xl font-semibold">
+                            {fallback}
+                        </AvatarFallback>
+                    </Avatar>
+
+                    {!disabled && (
+                        <div className="absolute top-3 left-3 z-10 flex translate-y-1 gap-1.5 opacity-0 transition-[opacity,transform] group-hover/picture:translate-y-0 group-hover/picture:opacity-100 group-focus-within/picture:translate-y-0 group-focus-within/picture:opacity-100">
+                            <input
+                                ref={fileInput}
+                                type="file"
+                                accept="image/png,image/jpeg,image/gif,image/webp"
+                                className="sr-only"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0];
+                                    if (file) void send({ method: 'PUT', body: file });
+                                }}
+                            />
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="shadow-sm"
+                                disabled={busy}
+                                onClick={() => fileInput.current?.click()}
+                            >
+                                {busy ? (
+                                    <Spinner />
+                                ) : (
+                                    <HugeiconsIcon icon={Upload01Icon} strokeWidth={2} />
+                                )}
+                                {pictureKey ? 'Replace' : 'Upload'}
+                            </Button>
+                            {pictureKey && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon-sm"
+                                    className="bg-background shadow-sm hover:bg-destructive/15"
+                                    aria-label="Remove profile picture"
+                                    title="Remove picture"
+                                    disabled={busy}
+                                    onClick={() => void send({ method: 'DELETE' })}
+                                >
+                                    <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <p className="text-muted-foreground mt-3 text-xs leading-5">
+                    Hover or focus the picture to replace it. PNG, JPEG, GIF or WebP.
+                </p>
+                {error && (
+                    <p role="alert" className="text-destructive mt-2 text-sm">
+                        {error}
+                    </p>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div

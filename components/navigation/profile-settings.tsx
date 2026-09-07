@@ -4,24 +4,93 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { PictureField } from '@/components/media/picture-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 
-export function ProfileSettings({ firstName: initialFirstName, lastName: initialLastName, email }: { firstName: string; lastName: string; email: string }) {
+export function ProfileSettings({
+    firstName: initialFirstName,
+    lastName: initialLastName,
+    email,
+    avatarKey,
+}: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatarKey: string | null;
+}) {
     const router = useRouter();
     const [firstName, setFirstName] = useState(initialFirstName);
     const [lastName, setLastName] = useState(initialLastName);
     const [pending, setPending] = useState(false);
     async function save() {
         setPending(true);
-        const response = await fetch('/api/me/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName, lastName }) });
-        const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+        const response = await fetch('/api/me/profile', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName, lastName }),
+        });
+        const body = (await response.json().catch(() => ({}))) as {
+            error?: { message?: string };
+        };
         setPending(false);
         if (!response.ok) return toast.error(body.error?.message ?? 'Could not update profile');
-        toast.success('Profile updated.'); router.refresh();
+        toast.success('Profile updated.');
+        router.refresh();
     }
-    return <section className="max-w-3xl rounded-xl border p-6"><h2 className="font-heading text-lg font-semibold">Identity</h2><p className="text-muted-foreground mt-1 text-sm">Your name is shown beside role assignments, requests and assessment work.</p><div className="mt-6 grid gap-5 sm:grid-cols-2"><Field label="First name"><Input value={firstName} onChange={(event) => setFirstName(event.target.value)} /></Field><Field label="Last name"><Input value={lastName} onChange={(event) => setLastName(event.target.value)} /></Field><Field label="Email"><Input value={email} disabled /></Field></div><div className="mt-6 flex justify-end border-t pt-5"><Button disabled={pending || !firstName.trim() || !lastName.trim()} onClick={() => void save()}>{pending && <Spinner />}Save changes</Button></div></section>;
+    const initials = `${firstName.at(0) ?? ''}${lastName.at(0) ?? ''}`.toUpperCase();
+
+    return (
+        <div className="grid items-start gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <aside>
+                <h2 className="font-heading text-sm font-semibold">Profile picture</h2>
+                <p className="text-muted-foreground mt-1 mb-4 text-sm leading-6">
+                    Used beside your work, requests and account details.
+                </p>
+                <PictureField
+                    endpoint="/api/me/avatar"
+                    pictureKey={avatarKey}
+                    fallback={initials || '?'}
+                    alt="Your profile picture"
+                    layout="profile"
+                />
+            </aside>
+
+            <section className="rounded-xl border p-6">
+                <h2 className="font-heading text-lg font-semibold">Identity</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                    Your name is shown beside role assignments, requests and assessment work.
+                </p>
+                <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                    <Field label="First name">
+                        <Input
+                            value={firstName}
+                            onChange={(event) => setFirstName(event.target.value)}
+                        />
+                    </Field>
+                    <Field label="Last name">
+                        <Input
+                            value={lastName}
+                            onChange={(event) => setLastName(event.target.value)}
+                        />
+                    </Field>
+                    <Field label="Email">
+                        <Input value={email} disabled />
+                    </Field>
+                </div>
+                <div className="mt-6 flex justify-end border-t pt-5">
+                    <Button
+                        disabled={pending || !firstName.trim() || !lastName.trim()}
+                        onClick={() => void save()}
+                    >
+                        {pending && <Spinner />}
+                        Save changes
+                    </Button>
+                </div>
+            </section>
+        </div>
+    );
 }
 
 export function SecuritySettings() {

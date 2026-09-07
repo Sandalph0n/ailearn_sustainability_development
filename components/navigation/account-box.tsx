@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -35,8 +34,6 @@ type Props = {
     user: AccountUser;
     /** Bấm "Sign out". Phần gọi API do nơi dùng cung cấp — component này không tự làm gì. */
     onSignOut?: () => void;
-    /** Mục mở hộp thoại đổi ảnh. Truyền vào để component này không cần biết tới `fetch`. */
-    pictureItem?: ReactNode;
 };
 
 /**
@@ -47,7 +44,7 @@ type Props = {
  *
  * Trên màn hình hẹp chỉ còn avatar — tên và email ẩn đi để không chiếm chỗ của header.
  */
-export function AccountBox({ user, onSignOut, pictureItem }: Props) {
+export function AccountBox({ user, onSignOut }: Props) {
     const initials = `${user.firstName.at(0) ?? ''}${user.lastName.at(0) ?? ''}`.toUpperCase();
     const fullName = `${user.firstName} ${user.lastName}`.trim();
 
@@ -91,8 +88,6 @@ export function AccountBox({ user, onSignOut, pictureItem }: Props) {
                     </DropdownMenuLabel>
 
                     <DropdownMenuSeparator />
-
-                    {pictureItem}
 
                     <DropdownMenuItem render={<Link href="/navigation/profile" />}>
                         <HugeiconsIcon icon={UserIcon} strokeWidth={2} />
