@@ -458,20 +458,21 @@ function RoleForm({
                             description="Compose this role from other roles, then add permissions that belong directly to it."
                         >
                             <div className="flex flex-col gap-7">
-                                <div className="max-w-2xl">
-                                    <FormCheckboxList
-                                        control={form.control}
-                                        name="includedRoleIds"
-                                        label="Includes roles"
-                                        description="Inherit every active permission from these roles."
-                                        emptyMessage="No other roles at this institution yet."
-                                        className="max-h-56"
-                                        options={candidates.map((candidate) => ({
-                                            value: candidate.id,
-                                            label: candidate.roleName,
-                                        }))}
-                                    />
-                                </div>
+                                <FormTransferList
+                                    control={form.control}
+                                    name="includedRoleIds"
+                                    label="Includes roles"
+                                    description="Move roles to Selected to inherit all of their active permissions."
+                                    searchPlaceholder="Search roles…"
+                                    availableEmptyMessage="No compatible roles are available at this institution."
+                                    selectedEmptyMessage="This role does not include another role."
+                                    codeLabels={false}
+                                    options={candidates.map((candidate) => ({
+                                        value: candidate.id,
+                                        label: candidate.roleName,
+                                        description: candidate.roleCode,
+                                    }))}
+                                />
                                 <FormTransferList
                                     control={form.control}
                                     name="permissionIds"

@@ -46,6 +46,7 @@ export function FormTransferList<
     searchPlaceholder = 'Search available options…',
     availableEmptyMessage = 'No available options.',
     selectedEmptyMessage = 'Nothing selected yet.',
+    codeLabels = true,
 }: {
     control: Control<TValues, unknown, TTransformedValues>;
     name: FieldPath<TValues>;
@@ -57,6 +58,8 @@ export function FormTransferList<
     searchPlaceholder?: string;
     availableEmptyMessage?: string;
     selectedEmptyMessage?: string;
+    /** Permission keys read best as code; named resources such as roles use normal UI text. */
+    codeLabels?: boolean;
 }) {
     const [query, setQuery] = useState('');
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -127,6 +130,7 @@ export function FormTransferList<
                                     }
                                     direction="add"
                                     onMove={add}
+                                    codeLabels={codeLabels}
                                 />
                             </TransferPanel>
 
@@ -138,6 +142,7 @@ export function FormTransferList<
                                     onMove={remove}
                                     lockedByValue={lockedByValue}
                                     directlySelectedValues={new Set(selectedValues)}
+                                    codeLabels={codeLabels}
                                 />
                             </TransferPanel>
                         </div>
@@ -177,6 +182,7 @@ function TransferItems({
     onMove,
     lockedByValue = new Map(),
     directlySelectedValues = new Set(),
+    codeLabels,
 }: {
     options: TransferListOption[];
     emptyMessage: string;
@@ -184,6 +190,7 @@ function TransferItems({
     onMove: (value: string) => void;
     lockedByValue?: Map<string, LockedTransferListOption>;
     directlySelectedValues?: Set<string>;
+    codeLabels: boolean;
 }) {
     const adding = direction === 'add';
 
@@ -237,7 +244,13 @@ function TransferItems({
                         }
                     >
                         <div className="min-w-0 flex-1">
-                            <p className="truncate font-mono text-sm font-medium">{option.label}</p>
+                            <p
+                                className={
+                                    'truncate text-sm font-medium ' + (codeLabels ? 'font-mono' : '')
+                                }
+                            >
+                                {option.label}
+                            </p>
                             {option.description && (
                                 <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-4">
                                     {option.description}
