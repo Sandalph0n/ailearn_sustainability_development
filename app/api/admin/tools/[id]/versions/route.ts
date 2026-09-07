@@ -70,7 +70,6 @@ export async function POST(
                     toolId: id,
                     createdById: guard.session.user.id,
                     version: inspected.manifest.version,
-                    protocolVersion: inspected.manifest.protocolVersion,
                     entryPath: inspected.manifest.entry,
                     manifest: inspected.manifest,
                     archiveKey: storedPackage.archiveKey,

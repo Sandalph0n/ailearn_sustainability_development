@@ -9,8 +9,7 @@ model ToolVersion {
   createdById String @db.Uuid
 
   /// Phiên bản do manifest công bố. Chỉ cần duy nhất trong phạm vi một Tool.
-  version         String
-  protocolVersion String
+  version String
   /// Chỉ có MỘT entry. Replay là một capability/tab của cùng ứng dụng, không phải entry riêng.
   entryPath       String
 

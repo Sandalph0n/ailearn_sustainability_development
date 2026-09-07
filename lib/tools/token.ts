@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 export const TOOL_TOKEN_ISSUER = 'ailearn';
 export const TOOL_TOKEN_AUDIENCE = 'ailearn-tool-api';
+export const TOOL_TOKEN_TTL_SECONDS = 5 * 60;
 
 export const ToolCapabilitySchema = z.enum([
     'files:read',
@@ -21,6 +22,7 @@ const ToolClaimsSchema = z.object({
     toolVersionId: z.uuid(),
     workSessionId: z.uuid(),
     assignmentWorkspaceId: z.uuid(),
+    roleAssignmentId: z.uuid(),
     mode: z.enum(['OWNER', 'REVIEWER']),
     readOnly: z.boolean(),
     capabilities: z.array(ToolCapabilitySchema),
@@ -41,6 +43,7 @@ export async function signToolToken(context: ToolTokenContext): Promise<string> 
         toolVersionId: context.toolVersionId,
         workSessionId: context.workSessionId,
         assignmentWorkspaceId: context.assignmentWorkspaceId,
+        roleAssignmentId: context.roleAssignmentId,
         mode: context.mode,
         readOnly: context.readOnly,
         capabilities: context.capabilities,
@@ -51,7 +54,7 @@ export async function signToolToken(context: ToolTokenContext): Promise<string> 
         .setSubject(context.userId)
         .setJti(crypto.randomUUID())
         .setIssuedAt(now)
-        .setExpirationTime(now + 5 * 60)
+        .setExpirationTime(now + TOOL_TOKEN_TTL_SECONDS)
         .sign(toolTokenKey());
 }
 

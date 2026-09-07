@@ -177,10 +177,10 @@ export function ToolPackageForm({ tool }: { tool?: { id: string; code: string; n
                         </div>
                         {fieldErrors.package?.[0] && <FieldError>{fieldErrors.package[0]}</FieldError>}
                         <div className="text-muted-foreground mt-4 grid gap-1 font-mono text-xs">
-                            <span>/ailearn-tool.json</span><span>/index.html</span><span>/assets/…</span>
+                            <span>/tool.json</span><span>/index.html</span><span>/assets/…</span>
                         </div>
                         <p className="text-muted-foreground mt-3 text-xs leading-5">
-                            Manifest fields: schemaVersion, code, semantic version, protocolVersion and one HTML entry. Direct upload supports up to {formatBytes(MAX_TOOL_PACKAGE_BYTES)} compressed and {formatBytes(MAX_TOOL_UNPACKED_BYTES)} unpacked.
+                            Manifest fields: schemaVersion, code, semantic version and one HTML entry. Direct upload supports up to {formatBytes(MAX_TOOL_PACKAGE_BYTES)} compressed and {formatBytes(MAX_TOOL_UNPACKED_BYTES)} unpacked.
                         </p>
                     </section>
                 </div>

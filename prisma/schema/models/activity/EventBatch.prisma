@@ -17,6 +17,10 @@ model EventBatch {
 
   assignmentWorkSessionId String @db.Uuid
 
+  /// ID ổn định do tool tạo cho mỗi batch. Gửi lại cùng batch sau khi mất mạng không được tạo
+  /// thêm một dòng hay làm sequence tiến lên lần nữa.
+  clientBatchId String @db.Uuid
+
   /// Số thứ tự sự kiện đầu và cuối của lô, trong phạm vi một buổi.
   ///
   /// Cặp này phát hiện MẤT DỮ LIỆU: `seqStart` của lô sau không nối tiếp `seqEnd` của lô trước
@@ -35,5 +39,6 @@ model EventBatch {
 
   workSession AssignmentWorkSession @relation(fields: [assignmentWorkSessionId], references: [id], onDelete: Cascade)
 
+  @@unique([assignmentWorkSessionId, clientBatchId])
   @@index([assignmentWorkSessionId, seqStart])
 }

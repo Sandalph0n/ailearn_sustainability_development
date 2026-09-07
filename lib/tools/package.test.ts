@@ -7,7 +7,7 @@ import {
 } from './package';
 
 const VALID_ZIP = Buffer.from(
-    'UEsDBBQAAAAIADaqJ132NUmCVAAAAGcAAAARAAAAYWlsZWFybi10b29sLmpzb249yzEOgCAMBdDdY/y5EFg5iLuBJpIANVCNxnh3J93fuzHiynWZuY8sDcEToiRGwJ6N8lCjIgWE4xPw1lkHwtZFJUr5LzwI3LRfCMgt8WlXrQXP9AJQSwMEFAAAAAgANqonXZo+9glyAAAAkgAAAAoAAABpbmRleC5odG1sJY5BDsMgDATvfYXLvUK99eD4Ff2AC05AARwFN1J+XzVc9jA7Ky3eowY7N4FktRD+Ewq3ZXLSHGESjoRVjCEk3rvY5L42P16O0LIVobdqgY3DyouASTf0o0A/xh+NJ2Hl3IZ7yN6zNniivyD6Yfjrwe0HUEsBAhQAFAAAAAgANqonXfY1SYJUAAAAZwAAABEAAAAAAAAAAAAAAAAAAAAAAGFpbGVhcm4tdG9vbC5qc29uUEsBAhQAFAAAAAgANqonXZo+9glyAAAAkgAAAAoAAAAAAAAAAAAAAAAAgwAAAGluZGV4Lmh0bWxQSwUGAAAAAAIAAgB3AAAAHQEAAAAA',
+    'UEsDBBQAAAAIAGayJ13CvZYoTwAAAFAAAAAJAAAAdG9vbC5qc29uNMoxCsAgDAXQu/xZRdccpHvRgIIaMGlpKb17p775PdBceewbL20yQckhS2EQjuaN1byJdDic/0AKMUQ48LR1g9Bm4StUGx3vBwAA//8DAFBLAwQUAAAACABmsiddC4180ioAAAAtAAAACgAAAGluZGV4Lmh0bWyyUUzJTy6pLEhVyCjJzbGzgZBJ+SmVdiH5+Tk2+mCmjT5YHAAAAP//AwBQSwECFAAUAAAACABmsiddwr2WKE8AAABQAAAACQAAAAAAAAAAAAAAAAAAAAAAdG9vbC5qc29uUEsBAhQAFAAAAAgAZrInXQuNfNIqAAAALQAAAAoAAAAAAAAAAAAAAAAAdgAAAGluZGV4Lmh0bWxQSwUGAAAAAAIAAgBvAAAAyAAAAAAA',
     'base64',
 );
 
@@ -19,11 +19,10 @@ describe('tool package contract', () => {
             schemaVersion: 1,
             code: 'ui-test-tool',
             version: '1.0.0',
-            protocolVersion: '1',
             entry: 'index.html',
         });
         expect(result.files.map((file) => file.path)).toEqual([
-            'ailearn-tool.json',
+            'tool.json',
             'index.html',
         ]);
         expect(result.sha256).toMatch(/^[a-f0-9]{64}$/);
@@ -47,7 +46,6 @@ describe('tool package contract', () => {
                 schemaVersion: 1,
                 code: 'code-editor',
                 version: '1.0.0',
-                protocolVersion: '1',
                 entry: 'index.html',
                 replayEntry: 'replay.html',
             }).success,

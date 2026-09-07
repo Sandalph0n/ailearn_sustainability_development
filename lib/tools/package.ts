@@ -20,7 +20,7 @@ export {
     MAX_TOOL_UNPACKED_BYTES,
 } from './limits';
 
-export const TOOL_MANIFEST_FILE = 'ailearn-tool.json';
+export const TOOL_MANIFEST_FILE = 'tool.json';
 
 const safePath = z
     .string()
@@ -39,7 +39,6 @@ export const ToolManifestSchema = z.strictObject({
             /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/,
             'Must be a semantic version such as 1.0.0',
         ),
-    protocolVersion: z.string().trim().min(1).max(40),
     entry: safePath.refine((value) => value.toLowerCase().endsWith('.html'), 'Entry must be an HTML file'),
 });
 

@@ -27,7 +27,6 @@ export default async function ToolDetailPage({ params }: PageProps<'/admin/tools
                 select: {
                     id: true,
                     version: true,
-                    protocolVersion: true,
                     entryPath: true,
                     sha256: true,
                     compressedSize: true,
@@ -85,7 +84,7 @@ export default async function ToolDetailPage({ params }: PageProps<'/admin/tools
                                 const active = version.id === tool.activeVersionId;
                                 return (
                                     <TableRow key={version.id}>
-                                        <TableCell><div className="flex items-center gap-2"><span className="font-mono font-medium">v{version.version}</span>{active && <Badge>Active</Badge>}</div><span className="text-muted-foreground mt-1 block font-mono text-xs">protocol {version.protocolVersion} · {version.entryPath}</span></TableCell>
+                                        <TableCell><div className="flex items-center gap-2"><span className="font-mono font-medium">v{version.version}</span>{active && <Badge>Active</Badge>}</div><span className="text-muted-foreground mt-1 block font-mono text-xs">{version.entryPath}</span></TableCell>
                                         <TableCell><span className="text-sm tabular-nums">{version.fileCount} files · {formatBytes(version.unpackedSize)}</span><span className="text-muted-foreground mt-1 block font-mono text-[11px]" title={version.sha256}>sha256 {version.sha256.slice(0, 12)}…</span></TableCell>
                                         <TableCell><span className="text-sm">{version.createdBy.firstName} {version.createdBy.lastName}</span><span className="text-muted-foreground block text-xs">{version.createdBy.email}</span></TableCell>
                                         <TableCell className="text-muted-foreground whitespace-nowrap text-sm">{formatDate(version.createdAt)}</TableCell>
