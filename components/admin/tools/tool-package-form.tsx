@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { ToolSchema } from '@/lib/admin/tool-schema';
+import { MAX_TOOL_PACKAGE_BYTES, MAX_TOOL_UNPACKED_BYTES } from '@/lib/tools/limits';
 import { cn } from '@/lib/utils';
 
 type ApiBody = {
@@ -36,6 +37,17 @@ export function ToolPackageForm({ tool }: { tool?: { id: string; code: string; n
     const backHref = create ? '/admin/tools' : `/admin/tools/${tool.id}`;
 
     function acceptFile(next: File | undefined) {
+        setError(undefined);
+        if (next && next.size > MAX_TOOL_PACKAGE_BYTES) {
+            setFile(null);
+            setFieldErrors((current) => ({
+                ...current,
+                package: [`Package is ${formatBytes(next.size)}; direct upload supports up to ${formatBytes(MAX_TOOL_PACKAGE_BYTES)}.`],
+            }));
+            if (inputRef.current) inputRef.current.value = '';
+            return;
+        }
+
         setFile(next ?? null);
         setFieldErrors((current) => ({ ...current, package: [] }));
     }
@@ -117,7 +129,7 @@ export function ToolPackageForm({ tool }: { tool?: { id: string; code: string; n
 
                 <div className="pt-5"><FormAlert message={error} /></div>
 
-                <div className={cn('grid gap-8 py-7', create ? 'lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.9fr)]' : 'lg:grid-cols-[minmax(22rem,0.8fr)_minmax(0,1fr)]')}>
+                <div className={cn('grid items-start gap-8 py-7', create ? 'lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.9fr)]' : 'lg:grid-cols-[minmax(22rem,0.8fr)_minmax(0,1fr)]')}>
                     {create && (
                         <section>
                             <SectionHeading title="Tool identity" description="Public metadata is separate from the uploaded runtime." />
@@ -167,7 +179,9 @@ export function ToolPackageForm({ tool }: { tool?: { id: string; code: string; n
                         <div className="text-muted-foreground mt-4 grid gap-1 font-mono text-xs">
                             <span>/ailearn-tool.json</span><span>/index.html</span><span>/assets/…</span>
                         </div>
-                        <p className="text-muted-foreground mt-3 text-xs leading-5">Manifest fields: schemaVersion, code, semantic version, protocolVersion and one HTML entry. Maximum 25 MB compressed.</p>
+                        <p className="text-muted-foreground mt-3 text-xs leading-5">
+                            Manifest fields: schemaVersion, code, semantic version, protocolVersion and one HTML entry. Direct upload supports up to {formatBytes(MAX_TOOL_PACKAGE_BYTES)} compressed and {formatBytes(MAX_TOOL_UNPACKED_BYTES)} unpacked.
+                        </p>
                     </section>
                 </div>
 
@@ -181,12 +195,12 @@ export function ToolPackageForm({ tool }: { tool?: { id: string; code: string; n
 }
 
 function SectionHeading({ title, description }: { title: string; description: string }) {
-    return <div className="mb-5"><h2 className="font-heading text-sm font-semibold">{title}</h2><p className="text-muted-foreground mt-1 max-w-xl text-sm leading-6">{description}</p></div>;
+    return <div className="mb-5 lg:min-h-18"><h2 className="font-heading text-sm font-semibold">{title}</h2><p className="text-muted-foreground mt-1 max-w-xl text-sm leading-6">{description}</p></div>;
 }
 
 function TextField({ label, value, onChange, error, placeholder, description, mono }: { label: string; value: string; onChange: (value: string) => void; error?: string; placeholder?: string; description?: string; mono?: boolean }) {
     const id = `tool-${label.toLowerCase().replaceAll(' ', '-')}`;
-    return <div><label htmlFor={id} className="text-sm font-medium">{label}</label>{description && <p className="text-muted-foreground mt-1 text-xs">{description}</p>}<Input id={id} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} aria-invalid={Boolean(error)} className={cn('mt-2', mono && 'font-mono')} />{error && <FieldError>{error}</FieldError>}</div>;
+    return <div><label htmlFor={id} className="text-sm font-medium">{label}</label><Input id={id} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} aria-invalid={Boolean(error)} className={cn('mt-2', mono && 'font-mono')} />{error && <FieldError>{error}</FieldError>}{description && <p className="text-muted-foreground mt-1.5 text-xs leading-5">{description}</p>}</div>;
 }
 
 function FieldError({ children }: { children: string }) {
