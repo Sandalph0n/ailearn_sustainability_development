@@ -51,15 +51,14 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useWorkspaceFolderHistory } from '@/components/navigation/workspaces/use-workspace-folder-history';
 import {
-    documentBaseName,
-    documentParentPath,
-    joinDocumentPath,
+    normalizeDocumentName,
     normalizeDocumentPath,
 } from '@/lib/workspaces/document-path';
 
 type DocumentItem = {
     id: string;
-    displayPath: string;
+    name: string;
+    parentFolderId: string | null;
     entryKind: 'FILE' | 'FOLDER';
     hash: string | null;
     mimeType: string | null;
@@ -71,10 +70,16 @@ type DocumentItem = {
 export function WorkspaceDetail({
     workspaceId,
     readOnly,
+    currentFolderId,
+    folderIds,
+    breadcrumbs,
     documents,
 }: {
     workspaceId: string;
     readOnly: boolean;
+    currentFolderId: string | null;
+    folderIds: string[];
+    breadcrumbs: Array<{ id: string; name: string }>;
     documents: DocumentItem[];
 }) {
     const router = useRouter();
@@ -91,53 +96,42 @@ export function WorkspaceDetail({
     const [pending, setPending] = useState(false);
     const [pendingLabel, setPendingLabel] = useState<string | null>(null);
 
-    const requestedPath = searchParams.get('path') ?? '';
-    const normalizedRequestedPath = requestedPath ? normalizeDocumentPath(requestedPath) : '';
-    const currentPath = normalizedRequestedPath && documents.some(
-        (document) => document.entryKind === 'FOLDER' && document.displayPath === normalizedRequestedPath,
-    ) ? normalizedRequestedPath : '';
     const visibleEntries = useMemo(
-        () => documents
-            .filter((document) => documentParentPath(document.displayPath) === currentPath)
-            .sort((left, right) =>
+        () => [...documents].sort((left, right) =>
                 Number(right.entryKind === 'FOLDER') - Number(left.entryKind === 'FOLDER') ||
-                documentBaseName(left.displayPath).localeCompare(
-                    documentBaseName(right.displayPath),
+                left.name.localeCompare(
+                    right.name,
                     undefined,
                     { numeric: true, sensitivity: 'base' },
                 )),
-        [currentPath, documents],
-    );
-    const validFolderPaths = useMemo(
-        () => new Set([
-            '',
-            ...documents
-                .filter((document) => document.entryKind === 'FOLDER')
-                .map((document) => document.displayPath),
-        ]),
         [documents],
+    );
+    const validFolderIds = useMemo(
+        () => new Set(['', ...folderIds]),
+        [folderIds],
     );
     const folderHistory = useWorkspaceFolderHistory({
         workspaceId,
-        currentPath,
-        validPaths: validFolderPaths,
+        currentFolderId: currentFolderId ?? '',
+        validFolderIds,
     });
     const selectedItem = visibleEntries.find((document) => document.id === selectedId) ?? null;
 
-    function navigateTo(path: string) {
+    function navigateTo(folderId: string | null) {
         setSelectedId(null);
         setRenamingId(null);
         setCreatingFolder(false);
         const params = new URLSearchParams(searchParams.toString());
-        if (path) params.set('path', path);
-        else params.delete('path');
+        params.delete('path');
+        if (folderId) params.set('folder', folderId);
+        else params.delete('folder');
         const query = params.toString();
         router.replace(query ? `${pathname}?${query}` : pathname);
     }
 
     function navigateHistory(direction: -1 | 1) {
-        const path = direction === -1 ? folderHistory.goBack() : folderHistory.goForward();
-        if (path !== null) navigateTo(path);
+        const folderId = direction === -1 ? folderHistory.goBack() : folderHistory.goForward();
+        if (folderId !== null) navigateTo(folderId || null);
     }
 
     function startCreatingFolder() {
@@ -148,25 +142,33 @@ export function WorkspaceDetail({
         setSelectedId(null);
     }
 
-    async function createFolderAtPath(displayPath: string, allowExisting = false) {
+    async function createFolderEntry(
+        name: string,
+        parentFolderId: string | null,
+        reuseExisting = false,
+    ): Promise<{ id: string; name: string; parentFolderId: string | null }> {
         const response = await fetch(`/api/workspaces/${workspaceId}/documents`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entryKind: 'FOLDER', displayPath }),
+            body: JSON.stringify({ entryKind: 'FOLDER', name, parentFolderId, reuseExisting }),
         });
-        const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-        if (!response.ok && !(allowExisting && response.status === 409)) {
+        const body = (await response.json().catch(() => ({}))) as {
+            document?: { id: string; name: string; parentFolderId: string | null };
+            error?: { message?: string };
+        };
+        if (!response.ok || !body.document) {
             throw new Error(body.error?.message ?? 'Could not create folder');
         }
+        return body.document;
     }
 
     async function createFolder() {
-        const displayPath = joinDocumentPath(currentPath, folderName);
-        if (!displayPath || pending) return;
+        const name = normalizeDocumentName(folderName);
+        if (!name || pending) return;
         setPending(true);
         setPendingLabel('Creating folder');
         try {
-            await createFolderAtPath(displayPath);
+            await createFolderEntry(name, currentFolderId);
             setFolderName('');
             setCreatingFolder(false);
             toast.success('Folder created.');
@@ -179,10 +181,11 @@ export function WorkspaceDetail({
         }
     }
 
-    async function uploadFile(file: File, displayPath: string) {
+    async function uploadFile(file: File, name: string, parentFolderId: string | null) {
         const form = new FormData();
         form.set('file', file);
-        form.set('displayPath', displayPath);
+        form.set('name', name);
+        if (parentFolderId) form.set('parentFolderId', parentFolderId);
         const response = await fetch(`/api/workspaces/${workspaceId}/documents`, { method: 'POST', body: form });
         const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
         if (!response.ok) throw new Error(body.error?.message ?? `Could not upload ${file.name}`);
@@ -192,25 +195,17 @@ export function WorkspaceDetail({
         if (files.length === 0 || pending) return;
         setPending(true);
         try {
+            const folderByParentAndName = new Map(
+                documents
+                    .filter((document) => document.entryKind === 'FOLDER')
+                    .map((document) => [
+                        `${document.parentFolderId ?? ''}\u0000${document.name}`,
+                        document.id,
+                    ]),
+            );
+
             if (preserveFolders) {
-                const folderPaths = new Set<string>();
-                for (const file of files) {
-                    const relativePath = normalizeDocumentPath(file.webkitRelativePath || file.name);
-                    if (!relativePath) throw new Error(`Invalid path for ${file.name}`);
-                    const segments = relativePath.split('/').slice(0, -1);
-                    for (let length = 1; length <= segments.length; length += 1) {
-                        const folderPath = joinDocumentPath(currentPath, segments.slice(0, length).join('/'));
-                        if (!folderPath) throw new Error(`Invalid folder path for ${file.name}`);
-                        folderPaths.add(folderPath);
-                    }
-                }
-                const orderedFolders = [...folderPaths].sort(
-                    (left, right) => left.split('/').length - right.split('/').length,
-                );
-                for (let index = 0; index < orderedFolders.length; index += 1) {
-                    setPendingLabel(`Creating folders ${index + 1}/${orderedFolders.length}`);
-                    await createFolderAtPath(orderedFolders[index], true);
-                }
+                setPendingLabel('Preparing folders');
             }
 
             for (let index = 0; index < files.length; index += 1) {
@@ -218,10 +213,27 @@ export function WorkspaceDetail({
                 const relativePath = preserveFolders
                     ? normalizeDocumentPath(file.webkitRelativePath || file.name)
                     : file.name;
-                const displayPath = relativePath && joinDocumentPath(currentPath, relativePath);
-                if (!displayPath) throw new Error(`Invalid path for ${file.name}`);
+                if (!relativePath) throw new Error(`Invalid path for ${file.name}`);
+                const segments = relativePath.split('/');
+                const name = normalizeDocumentName(segments.pop() ?? '');
+                if (!name) throw new Error(`Invalid name for ${file.name}`);
+
+                let parentFolderId = currentFolderId;
+                for (const rawFolderName of segments) {
+                    const folderName = normalizeDocumentName(rawFolderName);
+                    if (!folderName) throw new Error(`Invalid folder name for ${file.name}`);
+                    const key = `${parentFolderId ?? ''}\u0000${folderName}`;
+                    let folderId = folderByParentAndName.get(key);
+                    if (!folderId) {
+                        const folder = await createFolderEntry(folderName, parentFolderId, true);
+                        folderId = folder.id;
+                        folderByParentAndName.set(key, folderId);
+                    }
+                    parentFolderId = folderId;
+                }
+
                 setPendingLabel(`Uploading ${index + 1}/${files.length}`);
-                await uploadFile(file, displayPath);
+                await uploadFile(file, name, parentFolderId);
             }
             toast.success(preserveFolders
                 ? `Folder uploaded with ${files.length} ${files.length === 1 ? 'file' : 'files'}.`
@@ -241,20 +253,20 @@ export function WorkspaceDetail({
     function beginRename(document: DocumentItem) {
         setSelectedId(document.id);
         setRenamingId(document.id);
-        setEntryName(documentBaseName(document.displayPath));
+        setEntryName(document.name);
         setCreatingFolder(false);
     }
 
     async function renameEntry(document: DocumentItem) {
-        const displayPath = joinDocumentPath(documentParentPath(document.displayPath), entryName);
-        if (!displayPath || pending) return;
+        const name = normalizeDocumentName(entryName);
+        if (!name || pending) return;
         setPending(true);
         setPendingLabel('Renaming');
         try {
             const response = await fetch(`/api/workspaces/${workspaceId}/documents/${document.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ displayPath }),
+                body: JSON.stringify({ name }),
             });
             const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
             if (!response.ok) throw new Error(body.error?.message ?? 'Could not rename item');
@@ -278,7 +290,7 @@ export function WorkspaceDetail({
             const response = await fetch(`/api/workspaces/${workspaceId}/documents/${deleteTarget.id}`, { method: 'DELETE' });
             const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
             if (!response.ok) throw new Error(body.error?.message ?? 'Could not delete item');
-            toast.success(`${documentBaseName(deleteTarget.displayPath)} deleted.`);
+            toast.success(`${deleteTarget.name} deleted.`);
             setDeleteTarget(null);
             setSelectedId(null);
             router.refresh();
@@ -290,7 +302,7 @@ export function WorkspaceDetail({
         }
     }
 
-    const breadcrumbs = currentPath ? currentPath.split('/') : [];
+    const currentPathLabel = breadcrumbs.map((breadcrumb) => breadcrumb.name).join('/');
 
     return (
         <div className="bg-background flex h-full min-h-0 flex-col overflow-hidden">
@@ -318,14 +330,13 @@ export function WorkspaceDetail({
                             <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
                         </Button>
                         <span aria-hidden className="bg-border mx-1 h-5 w-px shrink-0" />
-                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigateTo('')} aria-label="Workspace root">
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigateTo(null)} aria-label="Workspace root">
                             <HugeiconsIcon icon={Home01Icon} strokeWidth={2} />Root
                         </Button>
-                        {breadcrumbs.map((segment, index) => {
-                            const path = breadcrumbs.slice(0, index + 1).join('/');
-                            return <span key={path} className="flex min-w-0 items-center">
+                        {breadcrumbs.map((breadcrumb) => {
+                            return <span key={breadcrumb.id} className="flex min-w-0 items-center">
                                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="text-muted-foreground size-3.5 shrink-0" />
-                                <Button variant="ghost" size="sm" className="h-8 max-w-44 truncate px-2" onClick={() => navigateTo(path)}>{segment}</Button>
+                                <Button variant="ghost" size="sm" className="h-8 max-w-44 truncate px-2" onClick={() => navigateTo(breadcrumb.id)}>{breadcrumb.name}</Button>
                             </span>;
                         })}
                     </nav>
@@ -391,7 +402,7 @@ export function WorkspaceDetail({
                                 pending={pending}
                                 onSelect={() => setSelectedId(document.id)}
                                 onEntryNameChange={setEntryName}
-                                onOpenFolder={() => navigateTo(document.displayPath)}
+                                onOpenFolder={() => navigateTo(document.id)}
                                 onBeginRename={() => beginRename(document)}
                                 onCancelRename={() => { setRenamingId(null); setEntryName(''); }}
                                 onRename={() => void renameEntry(document)}
@@ -401,8 +412,8 @@ export function WorkspaceDetail({
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-60 rounded-lg">
                         <ContextMenuGroup>
-                            <ContextMenuLabel className="py-1.5">{selectedItem ? documentBaseName(selectedItem.displayPath) : `/${currentPath}`}</ContextMenuLabel>
-                            {selectedItem?.entryKind === 'FOLDER' && <ContextMenuItem onClick={() => navigateTo(selectedItem.displayPath)}><HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />Open</ContextMenuItem>}
+                            <ContextMenuLabel className="py-1.5">{selectedItem ? selectedItem.name : `/${currentPathLabel}`}</ContextMenuLabel>
+                            {selectedItem?.entryKind === 'FOLDER' && <ContextMenuItem onClick={() => navigateTo(selectedItem.id)}><HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />Open</ContextMenuItem>}
                             {selectedItem?.entryKind === 'FILE' && selectedItem.downloadHref && <ContextMenuItem render={<a href={selectedItem.downloadHref} download />}><HugeiconsIcon icon={Download01Icon} strokeWidth={2} />Download</ContextMenuItem>}
                             {selectedItem && <ContextMenuSeparator />}
                             <ContextMenuItem disabled={readOnly || pending} onClick={startCreatingFolder}><HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} />New folder</ContextMenuItem>
@@ -416,14 +427,14 @@ export function WorkspaceDetail({
                 </ContextMenu>
 
                 <footer className="bg-muted/20 text-muted-foreground flex shrink-0 items-center justify-between border-t px-4 py-2 text-xs">
-                    <span>{visibleEntries.length} {visibleEntries.length === 1 ? 'item' : 'items'}</span><span className="truncate pl-4 font-mono">/{currentPath}</span>
+                    <span>{visibleEntries.length} {visibleEntries.length === 1 ? 'item' : 'items'}</span><span className="truncate pl-4 font-mono">/{currentPathLabel}</span>
                 </footer>
             </section>
 
             <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && !pending && setDeleteTarget(null)}>
                 <AlertDialogContent className="rounded-xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {deleteTarget ? documentBaseName(deleteTarget.displayPath) : 'item'}?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete {deleteTarget?.name ?? 'item'}?</AlertDialogTitle>
                         <AlertDialogDescription>{deleteTarget?.entryKind === 'FOLDER' ? 'This folder and every file or folder inside it will be permanently deleted.' : 'This file and its stored content will be permanently deleted.'}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -454,7 +465,7 @@ function ExplorerRow({
     onRename: () => void;
     onDelete: () => void;
 }) {
-    const name = documentBaseName(document.displayPath);
+    const name = document.name;
     const folder = document.entryKind === 'FOLDER';
     return <div
         data-entry-row
@@ -527,8 +538,8 @@ function fileTypeLabel(document: DocumentItem): string {
         const [, subtype] = document.mimeType.split('/');
         if (subtype) return subtype.toUpperCase().replace('X-', '');
     }
-    const extension = documentBaseName(document.displayPath).split('.').at(-1);
-    return extension && extension !== documentBaseName(document.displayPath) ? `${extension.toUpperCase()} file` : 'File';
+    const extension = document.name.split('.').at(-1);
+    return extension && extension !== document.name ? `${extension.toUpperCase()} file` : 'File';
 }
 
 function formatBytes(bytes: number | null): string {

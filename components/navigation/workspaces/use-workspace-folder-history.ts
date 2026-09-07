@@ -40,12 +40,12 @@ function writeHistory(key: string, history: FolderHistoryState) {
 
 export function useWorkspaceFolderHistory({
     workspaceId,
-    currentPath,
-    validPaths,
+    currentFolderId,
+    validFolderIds,
 }: {
     workspaceId: string;
-    currentPath: string;
-    validPaths: ReadonlySet<string>;
+    currentFolderId: string;
+    validFolderIds: ReadonlySet<string>;
 }) {
     const key = storageKey(workspaceId);
     const subscribe = useCallback(
@@ -78,15 +78,15 @@ export function useWorkspaceFolderHistory({
     }, [key]);
     const serialized = useSyncExternalStore(subscribe, getSnapshot, serverSnapshot);
     const history = parseFolderHistory(serialized);
-    const backTarget = findFolderHistoryTarget(history, -1, validPaths);
-    const forwardTarget = findFolderHistoryTarget(history, 1, validPaths);
+    const backTarget = findFolderHistoryTarget(history, -1, validFolderIds);
+    const forwardTarget = findFolderHistoryTarget(history, 1, validFolderIds);
 
     useEffect(() => {
-        writeHistory(key, recordFolderVisit(readHistory(key), currentPath));
-    }, [currentPath, key]);
+        writeHistory(key, recordFolderVisit(readHistory(key), currentFolderId));
+    }, [currentFolderId, key]);
 
     function move(direction: -1 | 1): string | null {
-        const target = findFolderHistoryTarget(readHistory(key), direction, validPaths);
+        const target = findFolderHistoryTarget(readHistory(key), direction, validFolderIds);
         if (!target) return null;
         writeHistory(key, target.history);
         return target.path;

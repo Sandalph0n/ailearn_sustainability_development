@@ -5,8 +5,8 @@
 /// Nội dung sống trong kho tệp, và khoá của nó CHÍNH LÀ `id` của dòng này. Vì tài liệu có thể là
 /// bất cứ thứ gì — văn bản, ảnh nhúng trong sơ đồ, tệp tải lên.
 ///
-/// Khoá kho tệp phải bất biến, nên không được dùng `displayPath`: đổi tên tệp mà phải di chuyển
-/// đối tượng trong kho là sai. `displayPath` chỉ là tên hiển thị.
+/// Khoá kho tệp phải bất biến, nên không được dùng tên hay đường dẫn: đổi tên tệp mà phải di
+/// chuyển đối tượng trong kho là sai. `name` và `parentFolderId` chỉ là metadata.
 ///
 /// ─── Thứ tự ghi ─────────────────────────────────────────────────────────────
 ///
@@ -17,15 +17,15 @@ model Document {
 
   workspaceId String @db.Uuid
 
-  /// Đường dẫn hiển thị: `src/main.js`, `so-do/erd.json`. Cây thư mục dựng lại từ cột này.
-  ///
-  /// Phải chuẩn hoá LÚC GHI — chỉ dùng `/`, bỏ `./`, gộp `//` — và TỪ CHỐI mọi đoạn `..`:
-  /// tài liệu có lúc được đổ ra hệ thống tệp thật để chạy mã.
-  displayPath String
+  /// Tên của riêng entry này, không chứa đường dẫn hay dấu phân cách thư mục.
+  /// Đường dẫn đầy đủ chỉ được dựng khi đọc bằng cách đi ngược chuỗi `parentFolder`.
+  name String
+
+  /// Root có `parentFolderId = null`; mọi entry còn lại trỏ tới đúng một folder trong cùng
+  /// workspace. Quan hệ tự tham chiếu này giúp rename chỉ cập nhật một row.
+  parentFolderId String? @db.Uuid
 
   /// Folder cũng là một entry trong bảng này, nhưng không có object tương ứng trong kho tệp.
-  /// Cây cha-con được suy ra từ các đoạn của `displayPath`, nhờ vậy đổi tên/move vẫn chỉ cần
-  /// cập nhật metadata và không làm thay đổi object key bất biến của file.
   entryKind WorkspaceEntryKind @default(FILE)
 
   /// Băm nội dung tại lần lưu gần nhất. Đây là MỐC KIỂM CHỨNG: phát lại chuỗi sự kiện tới thời
@@ -39,9 +39,14 @@ model Document {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parentFolder Document?  @relation("DocumentHierarchy", fields: [workspaceId, parentFolderId], references: [workspaceId, id], onDelete: Cascade, onUpdate: Cascade)
+  children     Document[] @relation("DocumentHierarchy")
 
-  @@unique([workspaceId, displayPath])
+  /// Khoá ghép này là đích của FK tự tham chiếu, bảo đảm cha và con luôn cùng workspace.
+  @@unique([workspaceId, id])
+  @@unique([workspaceId, parentFolderId, name])
+  @@index([workspaceId, parentFolderId])
 }
 
 enum WorkspaceEntryKind {

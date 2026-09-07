@@ -45,19 +45,6 @@ export async function findOwnedWorkspace(userId: string, workspaceId: string) {
                     },
                 },
             },
-            documents: {
-                orderBy: [{ displayPath: 'asc' }, { id: 'asc' }],
-                select: {
-                    id: true,
-                    displayPath: true,
-                    entryKind: true,
-                    contentHash: true,
-                    mimeType: true,
-                    sizeBytes: true,
-                    createdAt: true,
-                    updatedAt: true,
-                },
-            },
         },
     });
 }

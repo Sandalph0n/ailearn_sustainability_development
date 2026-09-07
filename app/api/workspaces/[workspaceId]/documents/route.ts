@@ -14,30 +14,28 @@ import { getCurrentSession } from '@/lib/auth/session/service';
 import { db } from '@/lib/db';
 import { putObject } from '@/lib/storage/objects';
 import { findOwnedWorkspace, isWorkspaceWritable } from '@/lib/workspaces/access';
-import {
-    documentParentPath,
-    normalizeDocumentPath,
-} from '@/lib/workspaces/document-path';
+import { normalizeDocumentName } from '@/lib/workspaces/document-path';
 
 const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const folderSchema = z.strictObject({
     entryKind: z.literal('FOLDER'),
-    displayPath: z.string(),
+    name: z.string(),
+    parentFolderId: z.uuid().nullable().optional(),
+    reuseExisting: z.boolean().optional(),
 });
 
-async function parentFolderExists(workspaceId: string, displayPath: string): Promise<boolean> {
-    const parentPath = documentParentPath(displayPath);
-    if (!parentPath) return true;
+async function parentFolderExists(workspaceId: string, parentFolderId: string | null): Promise<boolean> {
+    if (!parentFolderId) return true;
     return Boolean(
         await db.document.findFirst({
-            where: { workspaceId, displayPath: parentPath, entryKind: 'FOLDER' },
+            where: { workspaceId, id: parentFolderId, entryKind: 'FOLDER' },
             select: { id: true },
         }),
     );
 }
 
 function conflictResponse() {
-    return errorResponse(409, 'RESOURCE_IN_USE', 'An item already uses that path');
+    return errorResponse(409, 'RESOURCE_IN_USE', 'An item already uses that name in this folder');
 }
 
 export async function POST(
@@ -62,22 +60,22 @@ export async function POST(
         const body = await readAuthJson(request);
         if (!body.ok) return invalidBodyResponse(body.reason);
         const parsed = folderSchema.safeParse(body.value);
-        const displayPath = parsed.success
-            ? normalizeDocumentPath(parsed.data.displayPath)
-            : null;
-        if (!displayPath) {
+        const name = parsed.success ? normalizeDocumentName(parsed.data.name) : null;
+        const parentFolderId = parsed.success ? parsed.data.parentFolderId ?? null : null;
+        if (!parsed.success || !name) {
             return errorResponse(400, 'VALIDATION_ERROR', 'Enter a safe folder name');
         }
-        if (!(await parentFolderExists(workspaceId, displayPath))) {
+        if (!(await parentFolderExists(workspaceId, parentFolderId))) {
             return errorResponse(400, 'VALIDATION_ERROR', 'The parent folder does not exist');
         }
 
         try {
             const document = await db.document.create({
-                data: { workspaceId, displayPath, entryKind: 'FOLDER' },
+                data: { workspaceId, name, parentFolderId, entryKind: 'FOLDER' },
                 select: {
                     id: true,
-                    displayPath: true,
+                    name: true,
+                    parentFolderId: true,
                     entryKind: true,
                     createdAt: true,
                     updatedAt: true,
@@ -91,6 +89,20 @@ export async function POST(
                 'code' in error &&
                 error.code === 'P2002'
             ) {
+                if (parsed.data.reuseExisting) {
+                    const existing = await db.document.findFirst({
+                        where: { workspaceId, parentFolderId, name, entryKind: 'FOLDER' },
+                        select: {
+                            id: true,
+                            name: true,
+                            parentFolderId: true,
+                            entryKind: true,
+                            createdAt: true,
+                            updatedAt: true,
+                        },
+                    });
+                    if (existing) return jsonResponse({ document: existing });
+                }
                 return conflictResponse();
             }
             throw error;
@@ -104,14 +116,20 @@ export async function POST(
         return errorResponse(400, 'VALIDATION_ERROR', 'Upload a valid document');
     }
     const file = form.get('file');
-    const displayPath = normalizeDocumentPath(String(form.get('displayPath') ?? ''));
-    if (!(file instanceof File) || !displayPath) {
-        return errorResponse(400, 'VALIDATION_ERROR', 'Choose a file and a safe display path');
+    const name = normalizeDocumentName(String(form.get('name') ?? ''));
+    const rawParentFolderId = String(form.get('parentFolderId') ?? '');
+    const parentFolderId = rawParentFolderId || null;
+    if (
+        !(file instanceof File) ||
+        !name ||
+        (parentFolderId !== null && !z.uuid().safeParse(parentFolderId).success)
+    ) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'Choose a file and a safe name');
     }
     if (file.size > MAX_DOCUMENT_BYTES) {
         return errorResponse(413, 'PAYLOAD_TOO_LARGE', 'Documents must be 20 MB or smaller');
     }
-    if (!(await parentFolderExists(workspaceId, displayPath))) {
+    if (!(await parentFolderExists(workspaceId, parentFolderId))) {
         return errorResponse(400, 'VALIDATION_ERROR', 'The parent folder does not exist');
     }
 
@@ -130,7 +148,8 @@ export async function POST(
             data: {
                 id: documentId,
                 workspaceId,
-                displayPath,
+                name,
+                parentFolderId,
                 entryKind: 'FILE',
                 contentHash,
                 mimeType: file.type || 'application/octet-stream',
@@ -138,7 +157,8 @@ export async function POST(
             },
             select: {
                 id: true,
-                displayPath: true,
+                name: true,
+                parentFolderId: true,
                 entryKind: true,
                 contentHash: true,
                 mimeType: true,
