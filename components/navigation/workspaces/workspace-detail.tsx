@@ -13,6 +13,7 @@ import {
     FolderAddIcon,
     FolderUploadIcon,
     Home01Icon,
+    MoreVerticalIcon,
     PencilEdit01Icon,
     Upload01Icon,
 } from '@hugeicons/core-free-icons';
@@ -29,7 +30,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     ContextMenu,
@@ -40,6 +40,13 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useWorkspaceFolderHistory } from '@/components/navigation/workspaces/use-workspace-folder-history';
@@ -478,10 +485,39 @@ function ExplorerRow({
             {renaming ? <>
                 <Button variant="ghost" size="icon-sm" onClick={onCancelRename} aria-label="Cancel rename"><span aria-hidden>×</span></Button>
                 <Button size="icon-sm" disabled={!entryName.trim() || pending} onClick={onRename} aria-label="Save name">{pending ? <Spinner /> : <span aria-hidden>✓</span>}</Button>
-            </> : !readOnly ? <>
-                <Button variant="ghost" size="icon-sm" onClick={onBeginRename} aria-label={`Rename ${name}`}><HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} /></Button>
-                <Button variant="ghost" size="icon-sm" className="text-destructive" onClick={onDelete} aria-label={`Delete ${name}`}><HugeiconsIcon icon={Delete02Icon} strokeWidth={2} /></Button>
-            </> : <Badge variant="secondary">Read only</Badge>}
+            </> : <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <Button variant="ghost" size="icon-sm" aria-label={`Open actions for ${name}`}>
+                            <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
+                        </Button>
+                    }
+                />
+                <DropdownMenuContent align="end" className="min-w-44 rounded-lg">
+                    {folder ? (
+                        <DropdownMenuItem onClick={onOpenFolder}>
+                            <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />
+                            Open
+                        </DropdownMenuItem>
+                    ) : document.downloadHref ? (
+                        <DropdownMenuItem render={<a href={document.downloadHref} download />}>
+                            <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                            Download
+                        </DropdownMenuItem>
+                    ) : null}
+                    {!readOnly && <>
+                        {(folder || document.downloadHref) && <DropdownMenuSeparator />}
+                        <DropdownMenuItem onClick={onBeginRename}>
+                            <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} />
+                            Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                            <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                            Delete
+                        </DropdownMenuItem>
+                    </>}
+                </DropdownMenuContent>
+            </DropdownMenu>}
         </div>
     </div>;
 }
