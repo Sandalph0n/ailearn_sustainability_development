@@ -3,15 +3,42 @@ import { createHash, randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { isSameOriginRequest } from '@/lib/auth/http/request';
-import { errorResponse, invalidOriginResponse, jsonResponse } from '@/lib/auth/http/response';
+import { isSameOriginRequest, readAuthJson } from '@/lib/auth/http/request';
+import {
+    errorResponse,
+    invalidBodyResponse,
+    invalidOriginResponse,
+    jsonResponse,
+} from '@/lib/auth/http/response';
 import { getCurrentSession } from '@/lib/auth/session/service';
 import { db } from '@/lib/db';
 import { putObject } from '@/lib/storage/objects';
 import { findOwnedWorkspace, isWorkspaceWritable } from '@/lib/workspaces/access';
-import { normalizeDocumentPath } from '@/lib/workspaces/document-path';
+import {
+    documentParentPath,
+    normalizeDocumentPath,
+} from '@/lib/workspaces/document-path';
 
 const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
+const folderSchema = z.strictObject({
+    entryKind: z.literal('FOLDER'),
+    displayPath: z.string(),
+});
+
+async function parentFolderExists(workspaceId: string, displayPath: string): Promise<boolean> {
+    const parentPath = documentParentPath(displayPath);
+    if (!parentPath) return true;
+    return Boolean(
+        await db.document.findFirst({
+            where: { workspaceId, displayPath: parentPath, entryKind: 'FOLDER' },
+            select: { id: true },
+        }),
+    );
+}
+
+function conflictResponse() {
+    return errorResponse(409, 'RESOURCE_IN_USE', 'An item already uses that path');
+}
 
 export async function POST(
     request: NextRequest,
@@ -31,6 +58,45 @@ export async function POST(
         return errorResponse(409, 'RESOURCE_IN_USE', 'A submitted workspace is read-only');
     }
 
+    if (request.headers.get('content-type')?.includes('application/json')) {
+        const body = await readAuthJson(request);
+        if (!body.ok) return invalidBodyResponse(body.reason);
+        const parsed = folderSchema.safeParse(body.value);
+        const displayPath = parsed.success
+            ? normalizeDocumentPath(parsed.data.displayPath)
+            : null;
+        if (!displayPath) {
+            return errorResponse(400, 'VALIDATION_ERROR', 'Enter a safe folder name');
+        }
+        if (!(await parentFolderExists(workspaceId, displayPath))) {
+            return errorResponse(400, 'VALIDATION_ERROR', 'The parent folder does not exist');
+        }
+
+        try {
+            const document = await db.document.create({
+                data: { workspaceId, displayPath, entryKind: 'FOLDER' },
+                select: {
+                    id: true,
+                    displayPath: true,
+                    entryKind: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            });
+            return jsonResponse({ document }, { status: 201 });
+        } catch (error) {
+            if (
+                typeof error === 'object' &&
+                error !== null &&
+                'code' in error &&
+                error.code === 'P2002'
+            ) {
+                return conflictResponse();
+            }
+            throw error;
+        }
+    }
+
     let form: FormData;
     try {
         form = await request.formData();
@@ -39,11 +105,14 @@ export async function POST(
     }
     const file = form.get('file');
     const displayPath = normalizeDocumentPath(String(form.get('displayPath') ?? ''));
-    if (!(file instanceof File) || file.size === 0 || !displayPath) {
+    if (!(file instanceof File) || !displayPath) {
         return errorResponse(400, 'VALIDATION_ERROR', 'Choose a file and a safe display path');
     }
     if (file.size > MAX_DOCUMENT_BYTES) {
         return errorResponse(413, 'PAYLOAD_TOO_LARGE', 'Documents must be 20 MB or smaller');
+    }
+    if (!(await parentFolderExists(workspaceId, displayPath))) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'The parent folder does not exist');
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -58,13 +127,30 @@ export async function POST(
 
     try {
         const document = await db.document.create({
-            data: { id: documentId, workspaceId, displayPath, contentHash },
-            select: { id: true, displayPath: true, contentHash: true, createdAt: true, updatedAt: true },
+            data: {
+                id: documentId,
+                workspaceId,
+                displayPath,
+                entryKind: 'FILE',
+                contentHash,
+                mimeType: file.type || 'application/octet-stream',
+                sizeBytes: file.size,
+            },
+            select: {
+                id: true,
+                displayPath: true,
+                entryKind: true,
+                contentHash: true,
+                mimeType: true,
+                sizeBytes: true,
+                createdAt: true,
+                updatedAt: true,
+            },
         });
         return jsonResponse({ document }, { status: 201 });
     } catch (error) {
         if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
-            return errorResponse(409, 'RESOURCE_IN_USE', 'A document already uses that path');
+            return conflictResponse();
         }
         throw error;
     }

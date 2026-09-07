@@ -62,7 +62,9 @@ export async function DELETE(
         return errorResponse(409, 'RESOURCE_IN_USE', 'Assessment workspaces cannot be deleted');
     }
 
-    const objectKeys = workspace.documents.map((document) => document.id);
+    const objectKeys = workspace.documents
+        .filter((document) => document.entryKind === 'FILE')
+        .map((document) => document.id);
     await db.workspace.delete({ where: { id: workspace.id } });
     await Promise.allSettled(objectKeys.map((key) => deleteObject({ bucket: 'docs', key })));
     return jsonResponse({ deleted: true });

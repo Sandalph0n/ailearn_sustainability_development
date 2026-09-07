@@ -7,7 +7,10 @@ import { getCurrentSession } from '@/lib/auth/session/service';
 import { db } from '@/lib/db';
 import { deleteObject, getObject } from '@/lib/storage/objects';
 import { findOwnedWorkspace, isWorkspaceWritable } from '@/lib/workspaces/access';
-import { normalizeDocumentPath } from '@/lib/workspaces/document-path';
+import {
+    documentParentPath,
+    normalizeDocumentPath,
+} from '@/lib/workspaces/document-path';
 
 const renameSchema = z.strictObject({ displayPath: z.string() });
 
@@ -28,6 +31,9 @@ export async function GET(
     const workspace = await access(session.user.id, workspaceId, documentId);
     if (!workspace) return errorResponse(404, 'NOT_FOUND', 'Document not found');
     const document = workspace.documents.find((item) => item.id === documentId)!;
+    if (document.entryKind !== 'FILE') {
+        return errorResponse(409, 'RESOURCE_IN_USE', 'Folders do not have downloadable content');
+    }
     const object = await getObject({ bucket: 'docs', key: documentId });
     if (!object) return errorResponse(404, 'NOT_FOUND', 'Document content not found');
 
@@ -60,16 +66,80 @@ export async function PATCH(
     const displayPath = parsed.success ? normalizeDocumentPath(parsed.data.displayPath) : null;
     if (!displayPath) return errorResponse(400, 'VALIDATION_ERROR', 'Enter a safe display path');
 
+    const current = workspace.documents.find((item) => item.id === documentId)!;
+    if (displayPath === current.displayPath) {
+        return jsonResponse({ document: current });
+    }
+    if (
+        current.entryKind === 'FOLDER' &&
+        displayPath.startsWith(`${current.displayPath}/`)
+    ) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'A folder cannot be moved inside itself');
+    }
+
+    const parentPath = documentParentPath(displayPath);
+    if (
+        parentPath &&
+        !workspace.documents.some(
+            (item) => item.displayPath === parentPath && item.entryKind === 'FOLDER',
+        )
+    ) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'The destination folder does not exist');
+    }
+
+    const affected =
+        current.entryKind === 'FOLDER'
+            ? workspace.documents.filter(
+                  (item) =>
+                      item.id === current.id ||
+                      item.displayPath.startsWith(`${current.displayPath}/`),
+              )
+            : [current];
+    const moves = affected.map((item) => ({
+        id: item.id,
+        displayPath:
+            item.id === current.id
+                ? displayPath
+                : `${displayPath}${item.displayPath.slice(current.displayPath.length)}`,
+    }));
+    if (moves.some((move) => !normalizeDocumentPath(move.displayPath))) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'A resulting path is too long');
+    }
+
+    const conflict = await db.document.findFirst({
+        where: {
+            workspaceId,
+            id: { notIn: affected.map((item) => item.id) },
+            displayPath: { in: moves.map((move) => move.displayPath) },
+        },
+        select: { id: true },
+    });
+    if (conflict) {
+        return errorResponse(409, 'RESOURCE_IN_USE', 'An item already uses that path');
+    }
+
     try {
-        const document = await db.document.update({
-            where: { id: documentId },
-            data: { displayPath },
-            select: { id: true, displayPath: true, updatedAt: true },
+        const document = await db.$transaction(async (tx) => {
+            for (const move of moves) {
+                await tx.document.update({
+                    where: { id: move.id },
+                    data: { displayPath: move.displayPath },
+                });
+            }
+            return tx.document.findUniqueOrThrow({
+                where: { id: documentId },
+                select: {
+                    id: true,
+                    displayPath: true,
+                    entryKind: true,
+                    updatedAt: true,
+                },
+            });
         });
         return jsonResponse({ document });
     } catch (error) {
         if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
-            return errorResponse(409, 'RESOURCE_IN_USE', 'A document already uses that path');
+            return errorResponse(409, 'RESOURCE_IN_USE', 'An item already uses that path');
         }
         throw error;
     }
@@ -87,11 +157,21 @@ export async function DELETE(
     if (!workspace) return errorResponse(404, 'NOT_FOUND', 'Document not found');
     if (!isWorkspaceWritable(workspace)) return errorResponse(409, 'RESOURCE_IN_USE', 'A submitted workspace is read-only');
 
-    await db.document.delete({ where: { id: documentId } });
-    try {
-        await deleteObject({ bucket: 'docs', key: documentId });
-    } catch {
-        // Database state is authoritative; an orphaned object can be swept later.
-    }
-    return jsonResponse({ deleted: true });
+    const current = workspace.documents.find((item) => item.id === documentId)!;
+    const removed =
+        current.entryKind === 'FOLDER'
+            ? workspace.documents.filter(
+                  (item) =>
+                      item.id === current.id ||
+                      item.displayPath.startsWith(`${current.displayPath}/`),
+              )
+            : [current];
+
+    await db.document.deleteMany({ where: { id: { in: removed.map((item) => item.id) } } });
+    await Promise.allSettled(
+        removed
+            .filter((item) => item.entryKind === 'FILE')
+            .map((item) => deleteObject({ bucket: 'docs', key: item.id })),
+    );
+    return jsonResponse({ deleted: true, removedCount: removed.length });
 }

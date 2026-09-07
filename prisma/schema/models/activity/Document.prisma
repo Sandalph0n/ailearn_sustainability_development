@@ -23,9 +23,18 @@ model Document {
   /// tài liệu có lúc được đổ ra hệ thống tệp thật để chạy mã.
   displayPath String
 
+  /// Folder cũng là một entry trong bảng này, nhưng không có object tương ứng trong kho tệp.
+  /// Cây cha-con được suy ra từ các đoạn của `displayPath`, nhờ vậy đổi tên/move vẫn chỉ cần
+  /// cập nhật metadata và không làm thay đổi object key bất biến của file.
+  entryKind WorkspaceEntryKind @default(FILE)
+
   /// Băm nội dung tại lần lưu gần nhất. Đây là MỐC KIỂM CHỨNG: phát lại chuỗi sự kiện tới thời
-  /// điểm lưu rồi băm, lệch nghĩa là đã bỏ sót sự kiện.
-  contentHash String
+  /// điểm lưu rồi băm, lệch nghĩa là đã bỏ sót sự kiện. Folder không có nội dung nên để trống.
+  contentHash String?
+
+  /// Properties lấy tại lần upload gần nhất. Folder không có MIME type hay kích thước byte.
+  mimeType  String?
+  sizeBytes Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -33,4 +42,9 @@ model Document {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, displayPath])
+}
+
+enum WorkspaceEntryKind {
+  FILE
+  FOLDER
 }
