@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type InputHTMLAttributes } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     Add01Icon,
+    ArrowLeft01Icon,
     ArrowRight01Icon,
     Delete02Icon,
     Download01Icon,
@@ -41,6 +42,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useWorkspaceFolderHistory } from '@/components/navigation/workspaces/use-workspace-folder-history';
 import {
     documentBaseName,
     documentParentPath,
@@ -99,6 +101,20 @@ export function WorkspaceDetail({
                 )),
         [currentPath, documents],
     );
+    const validFolderPaths = useMemo(
+        () => new Set([
+            '',
+            ...documents
+                .filter((document) => document.entryKind === 'FOLDER')
+                .map((document) => document.displayPath),
+        ]),
+        [documents],
+    );
+    const folderHistory = useWorkspaceFolderHistory({
+        workspaceId,
+        currentPath,
+        validPaths: validFolderPaths,
+    });
     const selectedItem = visibleEntries.find((document) => document.id === selectedId) ?? null;
 
     function navigateTo(path: string) {
@@ -110,6 +126,11 @@ export function WorkspaceDetail({
         else params.delete('path');
         const query = params.toString();
         router.replace(query ? `${pathname}?${query}` : pathname);
+    }
+
+    function navigateHistory(direction: -1 | 1) {
+        const path = direction === -1 ? folderHistory.goBack() : folderHistory.goForward();
+        if (path !== null) navigateTo(path);
     }
 
     function startCreatingFolder() {
@@ -269,6 +290,27 @@ export function WorkspaceDetail({
             <section className="flex min-h-0 flex-1 flex-col">
                 <div className="bg-muted/20 flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
                     <nav aria-label="Folder path" className="flex min-w-0 flex-1 items-center gap-0.5">
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={!folderHistory.canGoBack}
+                            onClick={() => navigateHistory(-1)}
+                            aria-label="Previous folder"
+                            title="Previous folder"
+                        >
+                            <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={!folderHistory.canGoForward}
+                            onClick={() => navigateHistory(1)}
+                            aria-label="Next folder"
+                            title="Next folder"
+                        >
+                            <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+                        </Button>
+                        <span aria-hidden className="bg-border mx-1 h-5 w-px shrink-0" />
                         <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigateTo('')} aria-label="Workspace root">
                             <HugeiconsIcon icon={Home01Icon} strokeWidth={2} />Root
                         </Button>
