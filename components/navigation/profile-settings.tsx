@@ -43,11 +43,7 @@ export function ProfileSettings({
 
     return (
         <div className="grid items-start gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
-            <aside>
-                <h2 className="font-heading text-sm font-semibold">Profile picture</h2>
-                <p className="text-muted-foreground mt-1 mb-4 text-sm leading-6">
-                    Used beside your work, requests and account details.
-                </p>
+            <section aria-label="Profile picture">
                 <PictureField
                     endpoint="/api/me/avatar"
                     pictureKey={avatarKey}
@@ -55,7 +51,7 @@ export function ProfileSettings({
                     alt="Your profile picture"
                     layout="profile"
                 />
-            </aside>
+            </section>
 
             <section className="rounded-xl border p-6">
                 <h2 className="font-heading text-lg font-semibold">Identity</h2>
