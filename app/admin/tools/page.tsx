@@ -16,7 +16,7 @@ import { db } from '@/lib/db';
  */
 export const dynamic = 'force-dynamic';
 
-const SORT_FIELDS = ['name', 'code', 'assessments', 'sessions'] as const;
+const SORT_FIELDS = ['name', 'code', 'versions', 'assessments'] as const;
 
 export default async function AdminToolsPage({ searchParams }: PageProps<'/admin/tools'>) {
     const { q, page, sort, dir, skip } = parseListParams(await searchParams, SORT_FIELDS);
@@ -36,9 +36,11 @@ export default async function AdminToolsPage({ searchParams }: PageProps<'/admin
             ? { name: dir }
             : sort === 'code'
               ? { code: dir }
-              : sort === 'assessments'
-                ? { assessments: { _count: dir } }
-                : { workSessions: { _count: dir } };
+              : sort === 'versions'
+                ? { versions: { _count: dir } }
+                : sort === 'assessments'
+                  ? { assessments: { _count: dir } }
+                  : { name: dir };
 
     const [rows, total] = await Promise.all([
         db.tool.findMany({
@@ -51,8 +53,8 @@ export default async function AdminToolsPage({ searchParams }: PageProps<'/admin
                 code: true,
                 name: true,
                 description: true,
-                codeBaseLocation: true,
-                _count: { select: { assessments: true, workSessions: true } },
+                activeVersion: { select: { id: true, version: true } },
+                _count: { select: { versions: true, assessments: true, workSessions: true } },
             },
         }),
         db.tool.count({ where }),
@@ -63,8 +65,12 @@ export default async function AdminToolsPage({ searchParams }: PageProps<'/admin
         code: row.code,
         name: row.name,
         description: row.description,
-        codeBaseLocation: row.codeBaseLocation,
-        counts: { assessments: row._count.assessments, sessions: row._count.workSessions },
+        activeVersion: row.activeVersion,
+        counts: {
+            versions: row._count.versions,
+            assessments: row._count.assessments,
+            sessions: row._count.workSessions,
+        },
     }));
 
     return (
@@ -72,8 +78,8 @@ export default async function AdminToolsPage({ searchParams }: PageProps<'/admin
             <section className="flex flex-col gap-1.5">
                 <h1 className="font-heading text-xl font-semibold tracking-tight">Tools</h1>
                 <p className="text-muted-foreground max-w-2xl text-sm">
-                    The tools an assessment can hand to students. Every session inside one of these
-                    is recorded and can be replayed.
+                    Independent web applications available to assessments. Uploads create immutable
+                    versions so old sessions keep the code they were recorded with.
                 </p>
             </section>
 

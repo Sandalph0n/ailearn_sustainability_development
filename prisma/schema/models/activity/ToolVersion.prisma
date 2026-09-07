@@ -33,9 +33,11 @@ model ToolVersion {
 
   /// Mặt ngược của `Tool.activeVersion`. Một version chỉ có thể active cho chính Tool của nó;
   /// route ghi kiểm thêm điều kiện đó trước khi đổi con trỏ.
-  activeFor Tool? @relation("ActiveToolVersion")
+  activeFor    Tool?                   @relation("ActiveToolVersion")
+  workSessions AssignmentWorkSession[]
 
   @@unique([toolId, version])
+  @@unique([id, toolId])
   @@index([toolId, createdAt])
   @@index([createdById])
 }

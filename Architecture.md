@@ -24,26 +24,35 @@ Về lâu dài điều này mở đường cho công cụ do bên thứ ba viế
 
 ---
 
-## 2. `Tool` trong database TRỎ TỚI công cụ, không ĐỊNH NGHĨA công cụ
+## 2. `Tool` và `ToolVersion`
 
-Bảng `Tool` chứa một `id` và một tên hiển thị. Nó không chứa — và không thể chứa — mã nguồn.
+`Tool` là danh tính bền vững của một phần mềm: UUID nội bộ, `code` bất biến dùng trong URL, tên và mô tả. Mã thực thi không nằm trực tiếp trên dòng này.
 
-Nên **thêm một dòng vào bảng `Tool` không tạo ra công cụ nào cả.** Danh mục những gì thật sự tồn tại nằm ở phía mã nguồn. Dòng dữ liệu chỉ nói: cái tên đó được phép dùng cho bài tập này.
+Mỗi lần upload ZIP tạo một `ToolVersion` mới và một prefix mới trong bucket `tools`. Version chứa manifest đã kiểm, hash SHA-256, đường dẫn entry duy nhất và metadata của package. Nội dung version không có API sửa hay ghi đè.
 
-Điểm hẹn duy nhất giữa hai thế giới là **`Tool.id` dạng chuỗi** (`code`, `diagram`) do người phát triển đặt. Đó là lý do nó không phải UUID: cả mã nguồn lẫn dữ liệu đều phải viết được cái tên này ra, bằng tay.
+`Tool.activeVersionId` chỉ là con trỏ mặc định cho phiên mới. `AssignmentWorkSession.toolVersionId` pin version chạy thật; đổi active version không làm một phiên cũ đổi code, nên replay luôn dùng đúng phần mềm đã sinh ra chuỗi event đó.
 
-Cái giá phải chấp nhận: **`Tool.id` không được đổi sau khi đã dùng**, vì nó nằm rải trong mọi bản ghi sự kiện đã lưu.
+Package phải có cấu trúc tối thiểu:
 
-### Hai bên lệch nhau
+```text
+/ailearn-tool.json
+/index.html
+/assets/…
+```
 
-Không có trình biên dịch nào bắt được:
+Manifest hiện tại:
 
-| Tình huống | Hậu quả |
-|---|---|
-| Có dòng trong DB, không có mã | Vỡ lúc chạy khi ai đó mở bài |
-| Có mã, không có dòng trong DB | Công cụ tàng hình |
+```json
+{
+  "schemaVersion": 1,
+  "code": "code-editor",
+  "version": "1.0.0",
+  "protocolVersion": "1",
+  "entry": "index.html"
+}
+```
 
-Cần một phép kiểm lúc khởi động: đối chiếu danh sách công cụ đã đăng ký trong mã với bảng `Tool`, báo lệch ngay thay vì chờ tới lúc có người mở bài.
+Chỉ có **một entry**. Replay không phải application hoặc entry thứ hai.
 
 ---
 
@@ -108,52 +117,21 @@ Nguyên tắc chung: **giữ thứ suy ra không được, bỏ thứ suy ra đ�
 
 ## 5. Hợp đồng công cụ
 
-Hai chiều, và chiều thứ nhất KHÔNG phải lời gọi hàm — nó là thứ công cụ xuất ra.
+Tool là một web application độc lập được chạy từ subpath của nền tảng. Nó không import mã nguồn nội bộ và không gọi database; toàn bộ giao tiếp đi qua HTTP API công khai của nền tảng.
 
-### Chiều 1 — nền tảng gọi vào công cụ
-
-```ts
-export default {
-  id: 'diagram',
-  mount(container: HTMLElement, ctx: ToolContext): void,
-  dispose(): void,
-}
-```
-
-`mount` nhận một thẻ DOM và **quyền sở hữu hoàn toàn** thẻ đó. Từ giao điểm này trở đi, nền tảng không đụng vào bên trong nữa.
-
-### Chiều 2 — công cụ gọi vào nền tảng
+Khi mở một work session, nền tảng phát JWT sống ngắn. JWT pin `toolId`, `toolVersionId`, `workSessionId`, workspace, chế độ và các capability cụ thể:
 
 ```ts
-import ailearn from 'ailearn'
-
-ailearn.files.read(path)
-ailearn.files.write(path, content, { hash })
-ailearn.files.list()
-
-ailearn.events.emit(event)              // gửi sự kiện, nền tảng gom lô
-ailearn.events.read(workSessionId)      // đọc lại — máy chủ kiểm quyền
-
-ailearn.context                         // xem ToolContext bên dưới
+type ToolCapability =
+  | 'files:read'
+  | 'files:write'
+  | 'events:append'
+  | 'replay:read'
 ```
 
-### Ngữ cảnh
+Tool dùng bearer token cho API đọc/ghi file và gửi/đọc event batch. API kiểm chữ ký, audience, expiry và capability trên từng request. JWT tránh truy vấn login session và RBAC cho từng autosave/event batch; lúc refresh token, máy chủ kiểm lại quyền đầy đủ. TTL hiện tại là năm phút để giới hạn độ trễ khi quyền bị thu hồi.
 
-```ts
-interface ToolContext {
-  userId: string
-  role: 'OWNER' | 'MARKER'    // chủ bài, hay người chấm
-  workSessionId: string
-  attemptId: string | null    // null = phiên tự do
-  readOnly: boolean           // đã nộp, hoặc đang xem bài người khác
-}
-```
-
-`role` ở đây là **vai trò đối với bài đang mở**, không phải chức danh trong hệ thống. Nền tảng suy ra nó từ `Membership` trước khi trao cho công cụ.
-
-### Trong 4 tuần đầu: giữ hợp đồng, đừng đóng gói
-
-Hai công cụ nằm cùng repo, nhưng **chỉ được đi qua đúng interface trên** — không gọi tắt vào database, không import chéo. Giữ được kỷ luật đó thì việc tách ra thành gói riêng về sau chỉ là chuyển file.
+Ẩn một tab theo capability chỉ là UX. API vẫn từ chối nếu token thiếu capability tương ứng.
 
 ---
 
@@ -161,15 +139,15 @@ Hai công cụ nằm cùng repo, nhưng **chỉ được đi qua đúng interfac
 
 Nền tảng không biết `node-move` nghĩa là gì, nên nó không thể dựng lại trạng thái. Chỉ công cụ làm được.
 
-Do đó **không có màn hình chấm bài riêng ở nền tảng.** Cùng một công cụ, mở bởi vai trò khác nhau thì hiện khác nhau:
+Do đó **không có màn hình replay riêng ở nền tảng.** Cùng một entry của công cụ, mở với capability khác nhau thì hiện khác nhau:
 
 | Ai mở | Công cụ hiện gì |
 |---|---|
 | Chủ bài, đang làm | Giao diện soạn thảo bình thường |
 | Chủ bài, đã nộp | Như trên, chỉ đọc |
-| Người chấm | Thêm phần tua lại theo dòng thời gian |
+| Người có `replay:read` | Thêm tab tua lại theo dòng thời gian |
 
-Công cụ đọc `ctx.role` rồi tự quyết.
+Công cụ đọc claims/capability rồi tự quyết. Không có `replayEntry`: code editor và replay của code editor là hai tab trong cùng một tool version.
 
 ### Kiểm chứng bằng mốc hash
 

@@ -13,19 +13,24 @@
 model AssignmentWorkSession {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  assignmentWorkspaceId String @db.Uuid
-  toolId                String @db.Uuid
+  assignmentWorkspaceId String  @db.Uuid
+  toolId                String  @db.Uuid
+  /// Version chạy thật trong buổi này. Nullable chỉ để giữ dữ liệu cũ tạo trước khi versioning
+  /// tồn tại; mọi route mở phiên mới phải pin `Tool.activeVersionId` vào đây.
+  toolVersionId         String? @db.Uuid
 
   startAt DateTime  @default(now())
   /// Rỗng = chưa đóng. Ranh giới buổi vốn mờ: máy sập thì không có tín hiệu nào cả.
   endAt   DateTime?
 
-  workspace AssignmentWorkspace @relation(fields: [assignmentWorkspaceId], references: [workspaceId], onDelete: Cascade)
+  workspace   AssignmentWorkspace @relation(fields: [assignmentWorkspaceId], references: [workspaceId], onDelete: Cascade)
   /// `Restrict`: đã có buổi làm việc dùng công cụ này thì không gỡ nó khỏi hệ thống được.
-  tool      Tool                @relation(fields: [toolId], references: [id], onDelete: Restrict)
+  tool        Tool                @relation(fields: [toolId], references: [id], onDelete: Restrict)
+  toolVersion ToolVersion?        @relation(fields: [toolVersionId, toolId], references: [id, toolId], onDelete: Restrict)
 
   eventBatches EventBatch[]
 
   @@index([assignmentWorkspaceId, startAt])
   @@index([toolId])
+  @@index([toolVersionId])
 }
