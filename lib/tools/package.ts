@@ -197,7 +197,9 @@ function validateEntry(entry: Entry, names: Set<string>): void {
 }
 
 function isSafeArchivePath(value: string): boolean {
-    if (!value || value.includes('\\') || value.includes('\0') || value.startsWith('/')) return false;
+    if (!value || value.includes('\\') || /[\u0000-\u001f\u007f]/.test(value) || value.startsWith('/')) {
+        return false;
+    }
     if (/^[A-Za-z]:/.test(value)) return false;
     const normalized = path.posix.normalize(value);
     return normalized === value && !normalized.startsWith('../') && normalized !== '..';

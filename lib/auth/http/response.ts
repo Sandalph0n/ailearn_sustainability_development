@@ -1,10 +1,12 @@
 import type { ValidationErrors } from '@/lib/auth/validation/credentials';
 import { NextResponse } from 'next/server';
 
-type ErrorCode =
+export type ErrorCode =
     | 'AUTHENTICATION_REQUIRED'
     | 'AUTHORIZATION_FORBIDDEN'
     | 'EMAIL_ALREADY_EXISTS'
+    | 'EVENT_SEQUENCE_CONFLICT'
+    | 'IDEMPOTENCY_CONFLICT'
     | 'INTERNAL_ERROR'
     | 'INVALID_CREDENTIALS'
     | 'INVALID_INSTITUTION'
@@ -13,12 +15,15 @@ type ErrorCode =
     | 'NAME_ALREADY_EXISTS'
     | 'NOT_FOUND'
     | 'PAYLOAD_TOO_LARGE'
+    | 'PRECONDITION_FAILED'
+    | 'PRECONDITION_REQUIRED'
     | 'RESOURCE_IN_USE'
     | 'REQUEST_ALREADY_PROCESSED'
     | 'ROLE_ALREADY_ASSIGNED'
     | 'ROLE_REQUEST_ALREADY_PENDING'
     | 'UNSUPPORTED_CONTENT_TYPE'
-    | 'VALIDATION_ERROR';
+    | 'VALIDATION_ERROR'
+    | 'TOOL_VERSION_MISMATCH';
 
 export function jsonResponse(body: unknown, init: ResponseInit = {}): NextResponse {
     const headers = new Headers(init.headers);
@@ -32,6 +37,7 @@ export function errorResponse(
     code: ErrorCode,
     message: string,
     fields?: ValidationErrors,
+    details?: Record<string, unknown>,
 ): NextResponse {
     // Đi qua `jsonResponse` chứ không gọi thẳng `NextResponse.json`, nếu không thì mất
     // `Cache-Control: no-store` và phản hồi lỗi đăng nhập có thể bị proxy đem dùng lại.
@@ -41,6 +47,7 @@ export function errorResponse(
                 code,
                 message,
                 ...(fields ? { fields } : {}),
+                ...(details ? { details } : {}),
             },
         },
         { status },

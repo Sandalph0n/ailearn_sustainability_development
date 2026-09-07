@@ -2,6 +2,9 @@
 
 Nền tảng học tập đa cơ sở giáo dục. Xem [Project Plan.md](./Project%20Plan.md) để biết phạm vi và kiến trúc.
 
+Nhà phát triển công cụ xem [Tool Platform Contract](./docs/tool-platform/README.md),
+[OpenAPI v1](./docs/tool-platform/openapi.yaml), và [schema của `tool.json`](./docs/tool-platform/tool.schema.json).
+
 ## Bắt đầu
 
 Cần sẵn: **pnpm**, **Docker Desktop đang chạy**, và Node 20+.
@@ -13,7 +16,8 @@ pnpm app:init
 pnpm dev
 ```
 
-`app:init` làm tất cả: cài phụ thuộc, kiểm Docker, tạo `.env`, dựng Postgres rồi **chờ tới khi nó thật sự nhận kết nối**, sinh Prisma Client, áp migration.
+`app:init` làm tất cả: cài phụ thuộc, kiểm Docker, tạo hoặc bổ sung biến bảo mật còn thiếu trong
+`.env`, dựng Postgres rồi **chờ tới khi nó thật sự nhận kết nối**, sinh Prisma Client, áp migration.
 
 Chạy lại bao nhiêu lần cũng được — mỗi bước tự bỏ qua nếu đã xong, và **`.env` đã có thì không bị ghi đè** (bạn đổi cổng hay trỏ sang database khác thì vẫn giữ nguyên).
 

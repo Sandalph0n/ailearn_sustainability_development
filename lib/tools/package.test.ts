@@ -51,4 +51,23 @@ describe('tool package contract', () => {
             }).success,
         ).toBe(false);
     });
+
+    it('rejects unsafe entry paths before a runtime URL can be built', () => {
+        expect(
+            ToolManifestSchema.safeParse({
+                schemaVersion: 1,
+                code: 'code-editor',
+                version: '1.0.0',
+                entry: 'folder/../index.html',
+            }).success,
+        ).toBe(false);
+        expect(
+            ToolManifestSchema.safeParse({
+                schemaVersion: 1,
+                code: 'code-editor',
+                version: '1.0.0',
+                entry: 'index\n.html',
+            }).success,
+        ).toBe(false);
+    });
 });

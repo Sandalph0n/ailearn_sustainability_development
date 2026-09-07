@@ -16,8 +16,8 @@ import { deleteObject, putObject } from '@/lib/storage/objects';
 import { findOwnedWorkspace, isWorkspaceWritable } from '@/lib/workspaces/access';
 import { getDescendantFilesForDocuments } from '@/lib/workspaces/document-tree';
 import { normalizeDocumentName } from '@/lib/workspaces/document-path';
+import { MAX_DOCUMENT_BYTES } from '@/lib/workspaces/limits';
 
-const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
 const folderSchema = z.strictObject({
     entryKind: z.literal('FOLDER'),
     name: z.string(),

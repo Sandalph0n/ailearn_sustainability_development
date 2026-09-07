@@ -9,6 +9,7 @@ const context = {
     workSessionId: '10000000-0000-4000-8000-000000000004',
     assignmentWorkspaceId: '10000000-0000-4000-8000-000000000005',
     roleAssignmentId: '10000000-0000-4000-8000-000000000006',
+    loginSessionId: '10000000-0000-4000-8000-000000000007',
     mode: 'OWNER' as const,
     readOnly: false,
     capabilities: ['files:read', 'files:write', 'events:append'] as const,
@@ -25,6 +26,7 @@ describe('tool JWT', () => {
         expect(claims.sub).toBe(context.userId);
         expect(claims.toolVersionId).toBe(context.toolVersionId);
         expect(claims.roleAssignmentId).toBe(context.roleAssignmentId);
+        expect(claims.loginSessionId).toBe(context.loginSessionId);
         expect(claims.capabilities).not.toContain('replay:read');
     });
 

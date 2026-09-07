@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tool.schema.json",
+  "title": "AI-Learn tool package manifest",
+  "description": "Manifest stored as /tool.json at the root of every uploaded tool ZIP.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "code", "version", "entry"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "description": "Version of the tool.json document shape. This is not the runtime API version."
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{2,40}$",
+      "description": "Stable tool identifier. It must match the Tool record receiving the upload."
+    },
+    "version": {
+      "type": "string",
+      "maxLength": 80,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "description": "Immutable semantic version of this package."
+    },
+    "entry": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!\\.{1,2}/)(?!.*//)(?!.*\\/\\.{1,2}(?:\\/|$))(?!.*\\\\)[^\\u0000-\\u001F\\u007F]+\\.[Hh][Tt][Mm][Ll]$",
+      "description": "Safe relative path to the single HTML entry point inside the ZIP."
+    }
+  },
+  "examples": [
+    {
+      "schemaVersion": 1,
+      "code": "code-editor",
+      "version": "1.0.0",
+      "entry": "index.html"
+    }
+  ]
+}

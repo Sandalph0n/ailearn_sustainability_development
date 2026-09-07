@@ -1,0 +1,833 @@
+openapi: 3.1.0
+info:
+  title: AI-Learn Tool Runtime API
+  version: 1.0.0
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+  description: >-
+    Scoped HTTP contract for untrusted browser tools. A token is bound to one user, role
+    assignment, immutable tool version, work session, and assignment workspace.
+servers:
+  - url: /api/tool/v1
+    description: Current AI-Learn deployment
+tags:
+  - name: Session
+    description: Launch, refresh, and close version-pinned tool sessions.
+  - name: Context
+    description: Read the server-derived user and learning context.
+  - name: Documents
+    description: Manage the token-bound assignment workspace tree and file content.
+  - name: Events
+    description: Append and recover the current work session event stream.
+  - name: Replay
+    description: Read opaque history for replay inside the same tool runtime.
+
+paths:
+  /sessions:
+    post:
+      tags: [Session]
+      operationId: createToolSession
+      summary: Launch an owner or replay runtime
+      description: >-
+        Called by the trusted platform shell. The server derives every scope from the authenticated
+        user and verifies the supplied role assignment. A WORK launch creates a work session; a
+        REPLAY launch reuses the target session and its pinned tool version.
+      security:
+        - platformSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/WorkSessionRequest'
+                - $ref: '#/components/schemas/ReplaySessionRequest'
+              discriminator:
+                propertyName: mode
+      responses:
+        '200':
+          description: Replay runtime authorized
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionGrant' }
+        '201':
+          description: Work session created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionGrant' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /token:
+    post:
+      tags: [Session]
+      operationId: refreshToolToken
+      summary: Refresh a live tool JWT
+      description: >-
+        Call before the current five-minute token expires. Revalidates the platform login session,
+        role, offering scope, permissions, submission state, tool allowance, and pinned version.
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: Replacement grant
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionGrant' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /session:
+    patch:
+      tags: [Session]
+      operationId: closeToolSession
+      summary: Close the current owner work session
+      description: Idempotent. Replay runtimes cannot close recorded sessions.
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: Session is closed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session]
+                properties:
+                  session:
+                    type: object
+                    required: [id, endAt]
+                    properties:
+                      id: { $ref: '#/components/schemas/Uuid' }
+                      endAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /context:
+    get:
+      tags: [Context]
+      operationId: getToolContext
+      summary: Read the complete safe launch context
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: Context bound to this token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuntimeContext' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /documents:
+    get:
+      tags: [Documents]
+      operationId: listToolDocuments
+      summary: List one folder
+      security:
+        - toolBearer: []
+      parameters:
+        - name: parentFolderId
+          in: query
+          description: Folder UUID, `root`, or omitted for root.
+          schema: { type: string }
+        - $ref: '#/components/parameters/DocumentCursor'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 100 }
+      responses:
+        '200':
+          description: Direct children only
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [documents, nextCursor]
+                properties:
+                  documents:
+                    type: array
+                    items: { $ref: '#/components/schemas/Document' }
+                  nextCursor:
+                    oneOf:
+                      - { $ref: '#/components/schemas/Uuid' }
+                      - { type: 'null' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Documents]
+      operationId: createToolDocument
+      summary: Create an entry or upload a file
+      security:
+        - toolBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDocument' }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                name:
+                  type: string
+                  description: Optional override; defaults to the uploaded filename.
+                parentFolderId:
+                  type: string
+                  description: Folder UUID or an empty string for root.
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+
+  /documents/{documentId}:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+    get:
+      tags: [Documents]
+      operationId: getToolDocument
+      summary: Read file or folder metadata
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: Metadata
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Documents]
+      operationId: updateToolDocument
+      summary: Rename or move an entry
+      security:
+        - toolBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name: { type: string }
+                parentFolderId:
+                  oneOf:
+                    - { $ref: '#/components/schemas/Uuid' }
+                    - { type: 'null' }
+      responses:
+        '200':
+          description: Updated metadata
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+    delete:
+      tags: [Documents]
+      operationId: deleteToolDocument
+      summary: Delete an entry recursively
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: Entry and descendants deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted, deletedFiles]
+                properties:
+                  deleted: { type: boolean, const: true }
+                  deletedFiles: { type: integer, minimum: 0 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /documents/{documentId}/content:
+    parameters:
+      - $ref: '#/components/parameters/DocumentId'
+    get:
+      tags: [Documents]
+      operationId: getToolDocumentContent
+      summary: Download current file bytes
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: File bytes; ETag is the SHA-256 content hash.
+          headers:
+            ETag:
+              required: true
+              schema: { type: string }
+          content:
+            '*/*':
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Documents]
+      operationId: replaceToolDocumentContent
+      summary: Replace file bytes optimistically
+      security:
+        - toolBearer: []
+      parameters:
+        - name: If-Match
+          in: header
+          required: true
+          description: ETag/contentHash returned by the last read.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary, maxLength: 20971520 }
+          text/plain:
+            schema: { type: string, maxLength: 20971520 }
+      responses:
+        '200':
+          description: Content replaced
+          headers:
+            ETag:
+              required: true
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentEnvelope' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '428':
+          description: If-Match is missing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /events:
+    post:
+      tags: [Events]
+      operationId: appendToolEvents
+      summary: Append one opaque, idempotent event batch
+      security:
+        - toolBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventBatchRequest' }
+      responses:
+        '200':
+          description: A retry of an already accepted batch
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventBatchReceipt' }
+        '201':
+          description: New batch accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventBatchReceipt' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: >-
+            Session closed, sequence does not continue at expectedSeqStart, or batchId was reused
+            for a different payload.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+
+  /events/checkpoint:
+    get:
+      tags: [Events]
+      operationId: getToolEventCheckpoint
+      summary: Read the append recovery point
+      security:
+        - toolBearer: []
+      responses:
+        '200':
+          description: Last accepted inclusive sequence and next expected sequence.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [checkpoint, nextSeq, closed]
+                properties:
+                  checkpoint: { type: integer, minimum: -1 }
+                  nextSeq: { type: integer, minimum: 0 }
+                  closed: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /replay/sessions:
+    get:
+      tags: [Replay]
+      operationId: listToolReplaySessions
+      summary: List recorded sessions for this workspace and tool
+      security:
+        - toolBearer: []
+      parameters:
+        - $ref: '#/components/parameters/SessionCursor'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Session page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessions, nextCursor]
+                properties:
+                  sessions:
+                    type: array
+                    items: { $ref: '#/components/schemas/ReplaySession' }
+                  nextCursor:
+                    oneOf:
+                      - { $ref: '#/components/schemas/Uuid' }
+                      - { type: 'null' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /replay/sessions/{sessionId}/events:
+    get:
+      tags: [Replay]
+      operationId: listToolReplayEvents
+      summary: Read opaque event batches in sequence order
+      security:
+        - toolBearer: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - name: afterSeq
+          in: query
+          description: Last inclusive sequence already received; use -1 for the beginning.
+          schema: { type: integer, minimum: -1, default: -1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 100 }
+      responses:
+        '200':
+          description: Ordered batch page
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batches, nextAfterSeq]
+                properties:
+                  batches:
+                    type: array
+                    items: { $ref: '#/components/schemas/StoredEventBatch' }
+                  nextAfterSeq:
+                    oneOf:
+                      - { type: integer, minimum: 0 }
+                      - { type: 'null' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Target was recorded by another immutable tool version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+components:
+  securitySchemes:
+    platformSession:
+      type: apiKey
+      in: cookie
+      name: ailearn_session
+      description: Trusted AI-Learn browser session; exact cookie name is an implementation detail.
+    toolBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Uuid' }
+    DocumentCursor:
+      name: cursor
+      in: query
+      schema: { $ref: '#/components/schemas/Uuid' }
+    SessionCursor:
+      name: cursor
+      in: query
+      schema: { $ref: '#/components/schemas/Uuid' }
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Missing, invalid, expired, or non-refreshable credentials
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: Valid credentials without the required capability or authorization
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Resource is absent from the token-bound scope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    PreconditionFailed:
+      description: If-Match no longer equals the stored content hash
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    PayloadTooLarge:
+      description: Payload exceeds the documented endpoint limit
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    UnsupportedMediaType:
+      description: Unsupported Content-Type
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+
+    Capability:
+      type: string
+      enum: [files:read, files:write, events:append, replay:read]
+
+    WorkSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [mode, attemptId, toolId, roleAssignmentId]
+      properties:
+        mode: { type: string, const: WORK }
+        attemptId: { $ref: '#/components/schemas/Uuid' }
+        toolId: { $ref: '#/components/schemas/Uuid' }
+        roleAssignmentId: { $ref: '#/components/schemas/Uuid' }
+
+    ReplaySessionRequest:
+      type: object
+      additionalProperties: false
+      required: [mode, workSessionId, roleAssignmentId]
+      properties:
+        mode: { type: string, const: REPLAY }
+        workSessionId: { $ref: '#/components/schemas/Uuid' }
+        roleAssignmentId: { $ref: '#/components/schemas/Uuid' }
+
+    SessionGrant:
+      type: object
+      required: [token, tokenType, expiresIn, runtimeUrl, session]
+      properties:
+        token:
+          type: string
+          description: Short-lived scoped JWT. Keep in memory only.
+        tokenType: { type: string, const: Bearer }
+        expiresIn: { type: integer, const: 300 }
+        runtimeUrl:
+          type: string
+          description: Version-pinned entry URL carrying the one-time launch token in its fragment.
+        session:
+          type: object
+          required: [id, mode, readOnly, capabilities]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            mode: { type: string, enum: [OWNER, REVIEWER] }
+            readOnly: { type: boolean }
+            capabilities:
+              type: array
+              uniqueItems: true
+              items: { $ref: '#/components/schemas/Capability' }
+
+    RuntimeContext:
+      type: object
+      required: [apiVersion, user, role, tool, session, workspace, attempt, assessment, offering]
+      properties:
+        apiVersion: { type: string, const: v1 }
+        user: { $ref: '#/components/schemas/Person' }
+        role:
+          type: object
+          required: [id, roleCode, roleName, scopeType]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            roleCode: { type: string }
+            roleName: { type: string }
+            scopeType: { type: string, enum: [INSTITUTION, OFFERING] }
+        tool:
+          type: object
+          required: [id, code, name, description, version]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            code: { type: string }
+            name: { type: string }
+            description: { type: [string, 'null'] }
+            version:
+              type: object
+              required: [id, version, entry]
+              properties:
+                id: { $ref: '#/components/schemas/Uuid' }
+                version: { type: string }
+                entry: { type: string }
+        session:
+          allOf:
+            - $ref: '#/components/schemas/SessionSummary'
+            - type: object
+              required: [startedAt, endedAt]
+              properties:
+                startedAt: { type: string, format: date-time }
+                endedAt: { type: [string, 'null'], format: date-time }
+        workspace:
+          type: object
+          required: [id, name, createdAt, lastOpenedAt]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            name: { type: string }
+            createdAt: { type: string, format: date-time }
+            lastOpenedAt: { type: [string, 'null'], format: date-time }
+        attempt:
+          type: object
+          required: [id, startedAt, submittedAt, owner]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            startedAt: { type: string, format: date-time }
+            submittedAt: { type: [string, 'null'], format: date-time }
+            owner: { $ref: '#/components/schemas/Person' }
+        assessment:
+          type: object
+          required: [id, name, description, weight, hurdle, isGroup, publishAt, dueAt, expectedDue]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            name: { type: string }
+            description: { type: [string, 'null'] }
+            weight: { type: number }
+            hurdle: { type: boolean }
+            isGroup: { type: boolean }
+            publishAt: { type: [string, 'null'], format: date-time }
+            dueAt: { type: [string, 'null'], format: date-time }
+            expectedDue: { type: [string, 'null'] }
+        offering:
+          type: object
+          required: [id, institution, subject, term]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            institution:
+              type: object
+              required: [id, name]
+              properties:
+                id: { $ref: '#/components/schemas/Uuid' }
+                name: { type: string }
+            subject:
+              type: object
+              required: [code, name]
+              properties:
+                code: { type: string }
+                name: { type: string }
+            term:
+              type: object
+              required: [id, year, session]
+              properties:
+                id: { $ref: '#/components/schemas/Uuid' }
+                year: { type: integer }
+                session: { type: integer }
+
+    SessionSummary:
+      type: object
+      required: [id, mode, readOnly, capabilities]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        mode: { type: string, enum: [OWNER, REVIEWER] }
+        readOnly: { type: boolean }
+        capabilities:
+          type: array
+          items: { $ref: '#/components/schemas/Capability' }
+
+    Person:
+      type: object
+      required: [id, displayName, avatarUrl]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'] }
+
+    Document:
+      type: object
+      required:
+        [id, name, parentFolderId, entryKind, contentHash, mimeType, sizeBytes, createdAt, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        parentFolderId:
+          oneOf:
+            - { $ref: '#/components/schemas/Uuid' }
+            - { type: 'null' }
+        entryKind: { type: string, enum: [FILE, FOLDER] }
+        contentHash: { type: [string, 'null'] }
+        mimeType: { type: [string, 'null'] }
+        sizeBytes: { type: [integer, 'null'], minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DocumentEnvelope:
+      type: object
+      required: [document]
+      properties:
+        document: { $ref: '#/components/schemas/Document' }
+
+    CreateDocument:
+      type: object
+      additionalProperties: false
+      required: [entryKind, name]
+      properties:
+        entryKind: { type: string, enum: [FILE, FOLDER] }
+        name: { type: string }
+        parentFolderId:
+          oneOf:
+            - { $ref: '#/components/schemas/Uuid' }
+            - { type: 'null' }
+
+    EventBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [batchId, seqStart, seqEnd, clientAt, events]
+      properties:
+        batchId: { $ref: '#/components/schemas/Uuid' }
+        seqStart: { type: integer, minimum: 0, maximum: 2147483647 }
+        seqEnd: { type: integer, minimum: 0, maximum: 2147483647 }
+        clientAt: { type: string, format: date-time }
+        events:
+          type: array
+          minItems: 1
+          maxItems: 2000
+          items: {}
+      description: events.length must equal seqEnd - seqStart + 1.
+
+    EventBatchReceipt:
+      type: object
+      required: [accepted, duplicate, checkpoint, batch]
+      properties:
+        accepted: { type: boolean, const: true }
+        duplicate: { type: boolean }
+        checkpoint: { type: integer, minimum: 0 }
+        batch:
+          type: object
+          required: [id, seqStart, seqEnd, receivedAt]
+          properties:
+            id: { $ref: '#/components/schemas/Uuid' }
+            seqStart: { type: integer, minimum: 0 }
+            seqEnd: { type: integer, minimum: 0 }
+            receivedAt: { type: string, format: date-time }
+
+    ReplaySession:
+      type: object
+      required:
+        [id, startedAt, endedAt, toolVersion, eventBatchCount, checkpoint, lastReceivedAt, currentRuntimeCompatible]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: [string, 'null'], format: date-time }
+        toolVersion:
+          oneOf:
+            - type: object
+              required: [id, version]
+              properties:
+                id: { $ref: '#/components/schemas/Uuid' }
+                version: { type: string }
+            - { type: 'null' }
+        eventBatchCount: { type: integer, minimum: 0 }
+        checkpoint: { type: integer, minimum: -1 }
+        lastReceivedAt: { type: [string, 'null'], format: date-time }
+        currentRuntimeCompatible: { type: boolean }
+
+    StoredEventBatch:
+      type: object
+      required: [id, clientBatchId, seqStart, seqEnd, clientAt, receivedAt, events]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        clientBatchId: { $ref: '#/components/schemas/Uuid' }
+        seqStart: { type: integer, minimum: 0 }
+        seqEnd: { type: integer, minimum: 0 }
+        clientAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time }
+        events:
+          type: array
+          items: {}
+
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTHENTICATION_REQUIRED
+                - AUTHORIZATION_FORBIDDEN
+                - EVENT_SEQUENCE_CONFLICT
+                - IDEMPOTENCY_CONFLICT
+                - INTERNAL_ERROR
+                - INVALID_JSON
+                - INVALID_ORIGIN
+                - NOT_FOUND
+                - PAYLOAD_TOO_LARGE
+                - PRECONDITION_FAILED
+                - PRECONDITION_REQUIRED
+                - RESOURCE_IN_USE
+                - TOOL_VERSION_MISMATCH
+                - UNSUPPORTED_CONTENT_TYPE
+                - VALIDATION_ERROR
+            message: { type: string }
+            fields:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+            details:
+              type: object
+              additionalProperties: true

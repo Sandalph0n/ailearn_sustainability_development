@@ -3,17 +3,13 @@ import 'server-only';
 import { SignJWT, jwtVerify } from 'jose';
 import { z } from 'zod';
 
+import { ToolCapabilitySchema, type ToolCapability } from './api-contract';
+
 export const TOOL_TOKEN_ISSUER = 'ailearn';
 export const TOOL_TOKEN_AUDIENCE = 'ailearn-tool-api';
 export const TOOL_TOKEN_TTL_SECONDS = 5 * 60;
 
-export const ToolCapabilitySchema = z.enum([
-    'files:read',
-    'files:write',
-    'events:append',
-    'replay:read',
-]);
-export type ToolCapability = z.infer<typeof ToolCapabilitySchema>;
+export { ToolCapabilitySchema, type ToolCapability } from './api-contract';
 
 const ToolClaimsSchema = z.object({
     sub: z.uuid(),
@@ -23,6 +19,7 @@ const ToolClaimsSchema = z.object({
     workSessionId: z.uuid(),
     assignmentWorkspaceId: z.uuid(),
     roleAssignmentId: z.uuid(),
+    loginSessionId: z.uuid(),
     mode: z.enum(['OWNER', 'REVIEWER']),
     readOnly: z.boolean(),
     capabilities: z.array(ToolCapabilitySchema),
@@ -44,6 +41,7 @@ export async function signToolToken(context: ToolTokenContext): Promise<string> 
         workSessionId: context.workSessionId,
         assignmentWorkspaceId: context.assignmentWorkspaceId,
         roleAssignmentId: context.roleAssignmentId,
+        loginSessionId: context.loginSessionId,
         mode: context.mode,
         readOnly: context.readOnly,
         capabilities: context.capabilities,

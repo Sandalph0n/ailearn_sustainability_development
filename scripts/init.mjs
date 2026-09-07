@@ -20,7 +20,8 @@
  * Mỗi bước tự kiểm rồi bỏ qua nếu đã xong. Không có bước nào phá thứ đang có.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, copyFileSync, readdirSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -62,6 +63,22 @@ function pnpmCandidates(args) {
     return list;
 }
 
+function dockerCandidates(args) {
+    const list = [['docker', args]];
+    if (process.platform === 'win32') {
+        const dockerDesktopCli = join(
+            process.env.ProgramFiles ?? 'C:\\Program Files',
+            'Docker',
+            'Docker',
+            'resources',
+            'bin',
+            'docker.exe',
+        );
+        if (existsSync(dockerDesktopCli)) list.push([dockerDesktopCli, args]);
+    }
+    return list;
+}
+
 /**
  * Chạy một lệnh, để output chảy thẳng ra terminal.
  *
@@ -76,7 +93,12 @@ function pnpmCandidates(args) {
  */
 function run(cmd, args, { quiet = false } = {}) {
     const opts = { cwd: root, stdio: quiet ? 'ignore' : 'inherit' };
-    const attempts = cmd === 'pnpm' ? pnpmCandidates(args) : [[cmd, args]];
+    const attempts =
+        cmd === 'pnpm'
+            ? pnpmCandidates(args)
+            : cmd === 'docker'
+              ? dockerCandidates(args)
+              : [[cmd, args]];
 
     for (const [file, argv] of attempts) {
         const r = spawnSync(file, argv, opts);
@@ -124,6 +146,28 @@ if (existsSync(envPath)) {
 } else {
     copyFileSync(join(root, '.env.example'), envPath);
     ok('.env tạo từ .env.example');
+}
+
+// File .env cũ được giữ nguyên ở trên, nhưng một biến bảo mật mới không thể có default trong mã
+// nguồn. Bổ sung riêng biến còn thiếu; tuyệt đối không thay giá trị người dùng đã cấu hình.
+let envContents = readFileSync(envPath, 'utf8');
+const toolSecretLine = envContents.match(/^TOOL_TOKEN_SECRET\s*=\s*(.*)$/m);
+const configuredToolSecret = toolSecretLine?.[1]?.trim().replace(/^(['"])(.*)\1$/, '$2') ?? '';
+
+if (configuredToolSecret && new TextEncoder().encode(configuredToolSecret).byteLength < 32) {
+    die('TOOL_TOKEN_SECRET quá ngắn.', 'Đặt một chuỗi ngẫu nhiên ít nhất 32 byte trong .env.');
+}
+
+if (configuredToolSecret) {
+    skip('TOOL_TOKEN_SECRET đã có, giữ nguyên');
+} else {
+    const generatedToolSecret = randomBytes(48).toString('base64url');
+    const separator = envContents.length === 0 || /\r?\n$/.test(envContents) ? '' : '\n';
+    envContents = toolSecretLine
+        ? envContents.replace(/^TOOL_TOKEN_SECRET\s*=.*$/m, `TOOL_TOKEN_SECRET="${generatedToolSecret}"`)
+        : `${envContents}${separator}\n# JWT ngắn hạn cho web tool; tự sinh bởi app:init.\nTOOL_TOKEN_SECRET="${generatedToolSecret}"\n`;
+    writeFileSync(envPath, envContents, 'utf8');
+    ok('TOOL_TOKEN_SECRET đã được sinh và thêm vào .env');
 }
 
 // ─── 4. Hạ tầng: Postgres + kho tệp ──────────────────────────────────────────

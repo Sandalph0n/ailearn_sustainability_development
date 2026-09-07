@@ -159,12 +159,13 @@ Offering        subjectId, termId
 User            id, email, passwordHash, firstName, lastName, homeInstitutionId
 Session         userId, tokenHash, expiresAt, revokedAt
 Membership      userId, offeringId, role: STUDENT | TUTOR | CONVENOR
-Tool            id, name, version
+Tool            id, code, name, activeVersionId
+ToolVersion     toolId, version, entryPath, manifest, storagePrefix, sha256
 Assessment      offeringId, title, weighting, dueAt, isHurdle, allowedToolIds[]
 Attempt         assessmentId, userId, startedAt, submittedAt?
-WorkSession     userId, toolId, attemptId?
-Document        sessionId, path, toolId, currentContent, contentHash
-EventBatch      sessionId, seqStart, seqEnd, events JSONB, clientAt, receivedAt
+WorkSession     assignmentWorkspaceId, toolId, toolVersionId, startAt, endAt?
+Document        workspaceId, parentFolderId?, name, entryKind, contentHash, metadata
+EventBatch      workSessionId, clientBatchId, seqStart, seqEnd, events JSONB, clientAt, receivedAt
 Flag            sessionId, seq, kind, severity, detail JSONB
 Marking         attemptId, markerId, score, rubric JSONB, notes, createdAt
 CalendarEvent   userId, title, startAt, endAt, allDay, rrule, timezone,

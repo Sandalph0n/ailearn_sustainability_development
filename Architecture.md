@@ -30,12 +30,12 @@ Về lâu dài điều này mở đường cho công cụ do bên thứ ba viế
 
 Mỗi lần upload ZIP tạo một `ToolVersion` mới và một prefix mới trong bucket `tools`. Version chứa manifest đã kiểm, hash SHA-256, đường dẫn entry duy nhất và metadata của package. Nội dung version không có API sửa hay ghi đè.
 
-`Tool.activeVersionId` chỉ là con trỏ mặc định cho phiên mới. `AssignmentWorkSession.toolVersionId` pin version chạy thật; đổi active version không làm một phiên cũ đổi code, nên replay luôn dùng đúng phần mềm đã sinh ra chuỗi event đó.
+`Tool.activeVersionId` chỉ là con trỏ mặc định cho phiên mới. `AssignmentWorkSession.toolVersionId` pin version chạy thật; đổi active version không làm một phiên cũ đổi code, nên replay luôn dùng đúng phần mềm đã sinh ra chuỗi event đó. Hợp đồng đầy đủ nằm tại [`docs/tool-platform`](./docs/tool-platform/README.md).
 
 Package phải có cấu trúc tối thiểu:
 
 ```text
-/ailearn-tool.json
+/tool.json
 /index.html
 /assets/…
 ```
@@ -47,7 +47,6 @@ Manifest hiện tại:
   "schemaVersion": 1,
   "code": "code-editor",
   "version": "1.0.0",
-  "protocolVersion": "1",
   "entry": "index.html"
 }
 ```
@@ -105,7 +104,7 @@ Khi nhận, máy chủ gắn thêm `receivedAt` bằng đồng hồ của chính
 
 Một buổi làm bài cỡ thật sinh hàng nghìn sự kiện. Mỗi sự kiện một dòng là hàng nghìn lần ghi database cho một buổi. Vì phát lại luôn đọc tuần tự từ đầu, gom lô không mất gì.
 
-`EventBatch` giữ `seqStart`/`seqEnd`. Cặp số này cho phép phát hiện lô thất lạc: `seqStart` của lô sau không nối tiếp `seqEnd` của lô trước nghĩa là có gì đó đã mất trên đường.
+`EventBatch` giữ `seqStart`/`seqEnd`. Cặp số này cho phép phát hiện lô thất lạc: `seqStart` của lô sau không nối tiếp `seqEnd` của lô trước nghĩa là có gì đó đã mất trên đường. `clientBatchId` do tool sinh làm idempotency key, nên gửi lại đúng một lô sau khi mất kết nối không tạo dữ liệu trùng.
 
 ### Gộp sự kiện — trách nhiệm của công cụ
 
@@ -219,18 +218,18 @@ Ba điều bắt buộc:
 
 Giữ cây kế thừa **nông**, hai ba tầng. Sâu hơn thì không ai trả lời nổi *"vì sao người này có quyền đó"* — mà đó đúng là câu hỏi cần trả lời lúc có sự cố.
 
-### 7.6 KHÔNG kế thừa theo phạm vi (đã chốt)
+### 7.6 Phạm vi vai trò quyết định tập tài nguyên
 
-Quản trị viên cấp **cơ sở** không tự động làm được việc cấp **lớp** trong cơ sở đó. Muốn động vào một lớp thì phải được gán vai trò ở chính lớp ấy.
+Vai trò `INSTITUTION` áp dụng quyền của nó lên toàn bộ cơ sở. Nếu quyền đó thao tác tài nguyên cấp offering (assessment, attempt, tool session...), nó bao phủ mọi offering hiện tại và tương lai của cơ sở ấy.
 
-Lưu ý dễ nhầm: **bao gồm vai trò không giải quyết việc này.** Hai thứ nằm trên hai trục khác nhau —
+Vai trò `OFFERING` chỉ áp dụng lên các offering được nối bằng `ScopeAssignment`. Một assignment có thể nối tới nhiều offering; không cần cấp lại cùng role nhiều lần. Assignment chưa có scope vẫn tồn tại hợp lệ nhưng chưa tác động lên offering nào.
 
-- *bao gồm vai trò* trả lời **quyền nào**, trong cùng một phạm vi
-- *kế thừa phạm vi* trả lời **thực thể nào**, cùng một quyền ở chỗ khác
+Tài nguyên thuần cấp cơ sở như tên trường, term hoặc việc tạo subject không thể được sửa bằng vai trò `OFFERING`, vì không có một offering riêng lẻ nào là phạm vi có nghĩa cho hành động đó.
 
-Phép gán ghi phạm vi là cơ sở; phép kiểm hỏi phạm vi là lượt mở môn. Vai trò có bao gồm bao nhiêu vai trò khác thì hai phạm vi vẫn không khớp.
+Bao gồm vai trò và phạm vi vẫn là hai trục độc lập:
 
-Cái giá đã biết và chấp nhận: trường lớn thì gán tay nhiều.
+- *bao gồm vai trò* trả lời **có quyền nào**;
+- `Role.scopeType` cùng `ScopeAssignment` trả lời **quyền ấy tác động lên tài nguyên nào**.
 
 ### 7.7 Một cửa duy nhất
 
