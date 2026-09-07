@@ -51,6 +51,10 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useWorkspaceFolderHistory } from '@/components/navigation/workspaces/use-workspace-folder-history';
 import {
+    updateExplorerSelection,
+    type ExplorerSelectionModifiers,
+} from '@/lib/workspaces/explorer-selection';
+import {
     normalizeDocumentName,
     normalizeDocumentPath,
 } from '@/lib/workspaces/document-path';
@@ -91,8 +95,9 @@ export function WorkspaceDetail({
     const [folderName, setFolderName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [entryName, setEntryName] = useState('');
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<DocumentItem | null>(null);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null);
+    const [deleteTargets, setDeleteTargets] = useState<DocumentItem[] | null>(null);
     const [pending, setPending] = useState(false);
     const [pendingLabel, setPendingLabel] = useState<string | null>(null);
 
@@ -115,10 +120,48 @@ export function WorkspaceDetail({
         currentFolderId: currentFolderId ?? '',
         validFolderIds,
     });
-    const selectedItem = visibleEntries.find((document) => document.id === selectedId) ?? null;
+    const orderedIds = useMemo(
+        () => visibleEntries.map((document) => document.id),
+        [visibleEntries],
+    );
+    const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+    const selectedItems = useMemo(
+        () => visibleEntries.filter((document) => selectedIdSet.has(document.id)),
+        [selectedIdSet, visibleEntries],
+    );
+    const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
+    const selectedFiles = selectedItems.filter(
+        (document) => document.entryKind === 'FILE' && document.downloadHref,
+    );
+
+    function clearSelection() {
+        setSelectedIds([]);
+        setSelectionAnchorId(null);
+    }
+
+    function selectEntry(documentId: string, modifiers: ExplorerSelectionModifiers) {
+        const next = updateExplorerSelection(
+            { selectedIds, anchorId: selectionAnchorId },
+            orderedIds,
+            documentId,
+            modifiers,
+        );
+        setSelectedIds(next.selectedIds);
+        setSelectionAnchorId(next.anchorId);
+    }
+
+    function selectForActions(document: DocumentItem) {
+        if (selectedIdSet.has(document.id)) return;
+        setSelectedIds([document.id]);
+        setSelectionAnchorId(document.id);
+    }
+
+    function actionTargets(document: DocumentItem): DocumentItem[] {
+        return selectedIdSet.has(document.id) ? selectedItems : [document];
+    }
 
     function navigateTo(folderId: string | null) {
-        setSelectedId(null);
+        clearSelection();
         setRenamingId(null);
         setCreatingFolder(false);
         const params = new URLSearchParams(searchParams.toString());
@@ -139,7 +182,7 @@ export function WorkspaceDetail({
         setCreatingFolder(true);
         setFolderName('');
         setRenamingId(null);
-        setSelectedId(null);
+        clearSelection();
     }
 
     async function createFolderEntry(
@@ -251,7 +294,8 @@ export function WorkspaceDetail({
     }
 
     function beginRename(document: DocumentItem) {
-        setSelectedId(document.id);
+        setSelectedIds([document.id]);
+        setSelectionAnchorId(document.id);
         setRenamingId(document.id);
         setEntryName(document.name);
         setCreatingFolder(false);
@@ -282,24 +326,52 @@ export function WorkspaceDetail({
         }
     }
 
-    async function deleteEntry() {
-        if (!deleteTarget || pending) return;
+    function requestDelete(targets: DocumentItem[]) {
+        if (targets.length === 0 || readOnly || pending) return;
+        setDeleteTargets(targets);
+    }
+
+    async function deleteEntries() {
+        if (!deleteTargets || deleteTargets.length === 0 || pending) return;
+        const targets = deleteTargets;
         setPending(true);
-        setPendingLabel('Deleting');
+        setPendingLabel(targets.length === 1 ? 'Deleting item' : `Deleting ${targets.length} items`);
         try {
-            const response = await fetch(`/api/workspaces/${workspaceId}/documents/${deleteTarget.id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/workspaces/${workspaceId}/documents`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ documentIds: targets.map((target) => target.id) }),
+            });
             const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-            if (!response.ok) throw new Error(body.error?.message ?? 'Could not delete item');
-            toast.success(`${deleteTarget.name} deleted.`);
-            setDeleteTarget(null);
-            setSelectedId(null);
+            if (!response.ok) throw new Error(body.error?.message ?? 'Could not delete selected items');
+            toast.success(targets.length === 1
+                ? `${targets[0].name} deleted.`
+                : `${targets.length} items deleted.`);
+            setDeleteTargets(null);
+            clearSelection();
             router.refresh();
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Could not delete item');
+            toast.error(error instanceof Error ? error.message : 'Could not delete selected items');
         } finally {
             setPending(false);
             setPendingLabel(null);
         }
+    }
+
+    function downloadEntries(targets: DocumentItem[]) {
+        const files = targets.filter(
+            (document) => document.entryKind === 'FILE' && document.downloadHref,
+        );
+        for (const file of files) {
+            const link = window.document.createElement('a');
+            link.href = file.downloadHref!;
+            link.download = file.name;
+            link.hidden = true;
+            window.document.body.append(link);
+            link.click();
+            link.remove();
+        }
+        if (files.length > 1) toast.success(`${files.length} downloads started.`);
     }
 
     const currentPathLabel = breadcrumbs.map((breadcrumb) => breadcrumb.name).join('/');
@@ -344,17 +416,42 @@ export function WorkspaceDetail({
                     <div className="flex items-center gap-1.5">
                         {pendingLabel && <span className="text-muted-foreground hidden items-center gap-1.5 pr-1 text-xs sm:flex"><Spinner />{pendingLabel}</span>}
                         {!readOnly && <>
-                        <input ref={fileRef} type="file" multiple className="hidden" onChange={(event) => void uploadFiles([...(event.target.files ?? [])], false)} />
-                        <input
-                            ref={folderRef}
-                            type="file"
-                            multiple
-                            className="hidden"
-                            {...({ webkitdirectory: '', directory: '' } as InputHTMLAttributes<HTMLInputElement>)}
-                            onChange={(event) => void uploadFiles([...(event.target.files ?? [])], true)}
-                        />
-                        <Button variant="outline" size="sm" disabled={pending} onClick={startCreatingFolder}><HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} /><span className="hidden sm:inline">New folder</span></Button>
-                        <Button variant="outline" size="sm" disabled={pending} onClick={() => folderRef.current?.click()}><HugeiconsIcon icon={FolderUploadIcon} strokeWidth={2} /><span className="hidden sm:inline">Upload folder</span></Button>
+                            <input ref={fileRef} type="file" multiple className="hidden" onChange={(event) => void uploadFiles([...(event.target.files ?? [])], false)} />
+                            <input
+                                ref={folderRef}
+                                type="file"
+                                multiple
+                                className="hidden"
+                                {...({ webkitdirectory: '', directory: '' } as InputHTMLAttributes<HTMLInputElement>)}
+                                onChange={(event) => void uploadFiles([...(event.target.files ?? [])], true)}
+                            />
+                        </>}
+                        {selectedItems.length > 0 ? <>
+                            <span className="text-muted-foreground mr-1 text-xs tabular-nums">
+                                {selectedItems.length} selected
+                            </span>
+                            {selectedFiles.length > 0 && <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={pending}
+                                onClick={() => downloadEntries(selectedItems)}
+                            >
+                                <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
+                                <span className="hidden sm:inline">Download{selectedFiles.length > 1 ? ` (${selectedFiles.length})` : ''}</span>
+                            </Button>}
+                            {!readOnly && <Button
+                                variant="destructive"
+                                size="sm"
+                                disabled={pending}
+                                onClick={() => requestDelete(selectedItems)}
+                            >
+                                <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
+                                <span className="hidden sm:inline">Delete</span>
+                            </Button>}
+                            <Button variant="ghost" size="sm" disabled={pending} onClick={clearSelection}>Clear</Button>
+                        </> : !readOnly && <>
+                            <Button variant="outline" size="sm" disabled={pending} onClick={startCreatingFolder}><HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} /><span className="hidden sm:inline">New folder</span></Button>
+                            <Button variant="outline" size="sm" disabled={pending} onClick={() => folderRef.current?.click()}><HugeiconsIcon icon={FolderUploadIcon} strokeWidth={2} /><span className="hidden sm:inline">Upload folder</span></Button>
                             <Button size="sm" disabled={pending} onClick={() => fileRef.current?.click()}><HugeiconsIcon icon={Upload01Icon} strokeWidth={2} /><span className="hidden sm:inline">Upload files</span></Button>
                         </>}
                     </div>
@@ -367,8 +464,18 @@ export function WorkspaceDetail({
                 <ContextMenu>
                     <ContextMenuTrigger
                         className="min-h-0 flex-1 overflow-y-auto outline-none"
-                        onContextMenu={(event) => { if (!(event.target as HTMLElement).closest('[data-entry-row]')) setSelectedId(null); }}
-                        onClick={(event) => { if (!(event.target as HTMLElement).closest('[data-entry-row]')) setSelectedId(null); }}
+                        onContextMenu={(event) => { if (!(event.target as HTMLElement).closest('[data-entry-row]')) clearSelection(); }}
+                        onClick={(event) => { if (!(event.target as HTMLElement).closest('[data-entry-row]')) clearSelection(); }}
+                        onKeyDown={(event) => {
+                            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+                                event.preventDefault();
+                                setSelectedIds(orderedIds);
+                                setSelectionAnchorId(orderedIds[0] ?? null);
+                            }
+                            if (event.key === 'Escape' && !renamingId && !creatingFolder) {
+                                clearSelection();
+                            }
+                        }}
                     >
                         {creatingFolder && <div className="bg-primary/[0.035] grid items-center gap-3 border-b px-4 py-3 md:grid-cols-[minmax(16rem,1fr)_11rem_8rem_11rem_6rem]">
                             <div className="flex min-w-0 items-center gap-3">
@@ -396,74 +503,89 @@ export function WorkspaceDetail({
                                 key={document.id}
                                 document={document}
                                 readOnly={readOnly}
-                                selected={selectedId === document.id}
+                                selected={selectedIdSet.has(document.id)}
+                                selectionSize={selectedIdSet.has(document.id) ? selectedItems.length : 1}
+                                selectionDownloadCount={selectedIdSet.has(document.id)
+                                    ? selectedFiles.length
+                                    : Number(document.entryKind === 'FILE' && Boolean(document.downloadHref))}
                                 renaming={renamingId === document.id}
                                 entryName={entryName}
                                 pending={pending}
-                                onSelect={() => setSelectedId(document.id)}
+                                onSelect={(modifiers) => selectEntry(document.id, modifiers)}
+                                onSelectForActions={() => selectForActions(document)}
                                 onEntryNameChange={setEntryName}
                                 onOpenFolder={() => navigateTo(document.id)}
                                 onBeginRename={() => beginRename(document)}
                                 onCancelRename={() => { setRenamingId(null); setEntryName(''); }}
                                 onRename={() => void renameEntry(document)}
-                                onDelete={() => setDeleteTarget(document)}
+                                onDelete={() => requestDelete(actionTargets(document))}
+                                onDownload={() => downloadEntries(actionTargets(document))}
                             />
                         ))}
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-60 rounded-lg">
                         <ContextMenuGroup>
-                            <ContextMenuLabel className="py-1.5">{selectedItem ? selectedItem.name : `/${currentPathLabel}`}</ContextMenuLabel>
+                            <ContextMenuLabel className="py-1.5">{selectedItems.length > 1 ? `${selectedItems.length} items selected` : selectedItem ? selectedItem.name : `/${currentPathLabel}`}</ContextMenuLabel>
                             {selectedItem?.entryKind === 'FOLDER' && <ContextMenuItem onClick={() => navigateTo(selectedItem.id)}><HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />Open</ContextMenuItem>}
-                            {selectedItem?.entryKind === 'FILE' && selectedItem.downloadHref && <ContextMenuItem render={<a href={selectedItem.downloadHref} download />}><HugeiconsIcon icon={Download01Icon} strokeWidth={2} />Download</ContextMenuItem>}
-                            {selectedItem && <ContextMenuSeparator />}
+                            {selectedFiles.length > 0 && <ContextMenuItem onClick={() => downloadEntries(selectedItems)}><HugeiconsIcon icon={Download01Icon} strokeWidth={2} />{selectedFiles.length > 1 ? `Download ${selectedFiles.length} files` : 'Download'}</ContextMenuItem>}
+                            {selectedItems.length > 0 && <ContextMenuSeparator />}
                             <ContextMenuItem disabled={readOnly || pending} onClick={startCreatingFolder}><HugeiconsIcon icon={FolderAddIcon} strokeWidth={2} />New folder</ContextMenuItem>
                             <ContextMenuItem disabled={readOnly || pending} onClick={() => fileRef.current?.click()}><HugeiconsIcon icon={Upload01Icon} strokeWidth={2} />Upload files</ContextMenuItem>
                             <ContextMenuItem disabled={readOnly || pending} onClick={() => folderRef.current?.click()}><HugeiconsIcon icon={FolderUploadIcon} strokeWidth={2} />Upload folder</ContextMenuItem>
                             <ContextMenuSeparator />
                             <ContextMenuItem disabled={!selectedItem || readOnly || pending} onClick={() => selectedItem && beginRename(selectedItem)}><HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} />Rename selected</ContextMenuItem>
-                            <ContextMenuItem variant="destructive" disabled={!selectedItem || readOnly || pending} onClick={() => selectedItem && setDeleteTarget(selectedItem)}><HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />Delete selected</ContextMenuItem>
+                            <ContextMenuItem variant="destructive" disabled={selectedItems.length === 0 || readOnly || pending} onClick={() => requestDelete(selectedItems)}><HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />Delete selected{selectedItems.length > 1 ? ` (${selectedItems.length})` : ''}</ContextMenuItem>
                         </ContextMenuGroup>
                     </ContextMenuContent>
                 </ContextMenu>
 
                 <footer className="bg-muted/20 text-muted-foreground flex shrink-0 items-center justify-between border-t px-4 py-2 text-xs">
-                    <span>{visibleEntries.length} {visibleEntries.length === 1 ? 'item' : 'items'}</span><span className="truncate pl-4 font-mono">/{currentPathLabel}</span>
+                    <span>{visibleEntries.length} {visibleEntries.length === 1 ? 'item' : 'items'}{selectedItems.length > 0 ? ` · ${selectedItems.length} selected` : ''}</span><span className="truncate pl-4 font-mono">/{currentPathLabel}</span>
                 </footer>
             </section>
 
-            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && !pending && setDeleteTarget(null)}>
+            {deleteTargets && <AlertDialog open onOpenChange={(open) => !open && !pending && setDeleteTargets(null)}>
                 <AlertDialogContent className="rounded-xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {deleteTarget?.name ?? 'item'}?</AlertDialogTitle>
-                        <AlertDialogDescription>{deleteTarget?.entryKind === 'FOLDER' ? 'This folder and every file or folder inside it will be permanently deleted.' : 'This file and its stored content will be permanently deleted.'}</AlertDialogDescription>
+                        <AlertDialogTitle>{deleteTargets?.length === 1 ? `Delete ${deleteTargets[0].name}?` : `Delete ${deleteTargets?.length ?? 0} items?`}</AlertDialogTitle>
+                        <AlertDialogDescription>{deleteTargets?.length === 1
+                            ? deleteTargets[0].entryKind === 'FOLDER'
+                                ? 'This folder and every file or folder inside it will be permanently deleted.'
+                                : 'This file and its stored content will be permanently deleted.'
+                            : 'Every selected item will be permanently deleted. This also deletes everything inside any selected folders.'}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction variant="destructive" disabled={pending} onClick={() => void deleteEntry()}>{pending && <Spinner />}Delete</AlertDialogAction>
+                        <AlertDialogAction variant="destructive" disabled={pending} onClick={() => void deleteEntries()}>{pending && <Spinner />}Delete{deleteTargets && deleteTargets.length > 1 ? ` ${deleteTargets.length} items` : ''}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
-            </AlertDialog>
+            </AlertDialog>}
         </div>
     );
 }
 
 function ExplorerRow({
-    document, readOnly, selected, renaming, entryName, pending, onSelect,
-    onEntryNameChange, onOpenFolder, onBeginRename, onCancelRename, onRename, onDelete,
+    document, readOnly, selected, selectionSize, selectionDownloadCount, renaming, entryName, pending, onSelect,
+    onSelectForActions, onEntryNameChange, onOpenFolder, onBeginRename, onCancelRename,
+    onRename, onDelete, onDownload,
 }: {
     document: DocumentItem;
     readOnly: boolean;
     selected: boolean;
+    selectionSize: number;
+    selectionDownloadCount: number;
     renaming: boolean;
     entryName: string;
     pending: boolean;
-    onSelect: () => void;
+    onSelect: (modifiers: ExplorerSelectionModifiers) => void;
+    onSelectForActions: () => void;
     onEntryNameChange: (value: string) => void;
     onOpenFolder: () => void;
     onBeginRename: () => void;
     onCancelRename: () => void;
     onRename: () => void;
     onDelete: () => void;
+    onDownload: () => void;
 }) {
     const name = document.name;
     const folder = document.entryKind === 'FOLDER';
@@ -472,11 +594,17 @@ function ExplorerRow({
         role="row"
         tabIndex={0}
         aria-selected={selected}
-        className="hover:bg-muted/35 focus-visible:ring-primary/40 aria-selected:bg-primary/[0.08] grid cursor-default items-center gap-3 border-b px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset md:grid-cols-[minmax(16rem,1fr)_11rem_8rem_11rem_6rem]"
-        onClick={onSelect}
-        onContextMenu={onSelect}
+        className="hover:bg-muted/35 focus-visible:ring-primary/40 aria-selected:bg-primary/[0.08] grid cursor-default select-none items-center gap-3 border-b px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset md:grid-cols-[minmax(16rem,1fr)_11rem_8rem_11rem_6rem]"
+        onClick={(event) => onSelect(event)}
+        onContextMenu={onSelectForActions}
         onDoubleClick={() => folder && onOpenFolder()}
-        onKeyDown={(event) => { if (event.key === 'Enter' && folder && !renaming) onOpenFolder(); }}
+        onKeyDown={(event) => {
+            if (event.key === 'Enter' && folder && !renaming) onOpenFolder();
+            if (event.key === ' ' && !renaming) {
+                event.preventDefault();
+                onSelect(event);
+            }
+        }}
     >
         <div className="flex min-w-0 items-center gap-3">
             <HugeiconsIcon icon={folder ? Folder01Icon : File01Icon} strokeWidth={folder ? 1.8 : 2} className={folder ? 'text-primary size-5 shrink-0' : 'text-muted-foreground size-5 shrink-0'} />
@@ -492,39 +620,39 @@ function ExplorerRow({
         <div className="text-muted-foreground flex items-center gap-2 text-sm"><span className="md:hidden">Type:</span>{folder ? 'File folder' : fileTypeLabel(document)}</div>
         <div className="text-muted-foreground text-sm tabular-nums"><span className="md:hidden">Size: </span>{folder ? '—' : formatBytes(document.sizeBytes)}</div>
         <div className="text-muted-foreground text-sm"><span className="md:hidden">Modified: </span>{document.updated}</div>
-        <div className="flex justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+        <div className="flex justify-end gap-1" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
             {renaming ? <>
                 <Button variant="ghost" size="icon-sm" onClick={onCancelRename} aria-label="Cancel rename"><span aria-hidden>×</span></Button>
                 <Button size="icon-sm" disabled={!entryName.trim() || pending} onClick={onRename} aria-label="Save name">{pending ? <Spinner /> : <span aria-hidden>✓</span>}</Button>
             </> : <DropdownMenu>
                 <DropdownMenuTrigger
                     render={
-                        <Button variant="ghost" size="icon-sm" aria-label={`Open actions for ${name}`}>
+                        <Button variant="ghost" size="icon-sm" aria-label={`Open actions for ${name}`} onPointerDown={onSelectForActions}>
                             <HugeiconsIcon icon={MoreVerticalIcon} strokeWidth={2} />
                         </Button>
                     }
                 />
                 <DropdownMenuContent align="end" className="min-w-44 rounded-lg">
-                    {folder ? (
+                    {folder && selectionSize <= 1 ? (
                         <DropdownMenuItem onClick={onOpenFolder}>
                             <HugeiconsIcon icon={Folder01Icon} strokeWidth={2} />
                             Open
                         </DropdownMenuItem>
-                    ) : document.downloadHref ? (
-                        <DropdownMenuItem render={<a href={document.downloadHref} download />}>
+                    ) : selectionDownloadCount > 0 ? (
+                        <DropdownMenuItem onClick={onDownload}>
                             <HugeiconsIcon icon={Download01Icon} strokeWidth={2} />
-                            Download
+                            {selectionDownloadCount > 1 ? `Download ${selectionDownloadCount} files` : 'Download'}
                         </DropdownMenuItem>
                     ) : null}
                     {!readOnly && <>
                         {(folder || document.downloadHref) && <DropdownMenuSeparator />}
-                        <DropdownMenuItem onClick={onBeginRename}>
+                        <DropdownMenuItem disabled={selectionSize > 1} onClick={onBeginRename}>
                             <HugeiconsIcon icon={PencilEdit01Icon} strokeWidth={2} />
-                            Rename
+                            {selectionSize > 1 ? 'Rename one item at a time' : 'Rename'}
                         </DropdownMenuItem>
                         <DropdownMenuItem variant="destructive" onClick={onDelete}>
                             <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
-                            Delete
+                            Delete{selectionSize > 1 ? ` ${selectionSize} items` : ''}
                         </DropdownMenuItem>
                     </>}
                 </DropdownMenuContent>

@@ -12,8 +12,9 @@ import {
 } from '@/lib/auth/http/response';
 import { getCurrentSession } from '@/lib/auth/session/service';
 import { db } from '@/lib/db';
-import { putObject } from '@/lib/storage/objects';
+import { deleteObject, putObject } from '@/lib/storage/objects';
 import { findOwnedWorkspace, isWorkspaceWritable } from '@/lib/workspaces/access';
+import { getDescendantFilesForDocuments } from '@/lib/workspaces/document-tree';
 import { normalizeDocumentName } from '@/lib/workspaces/document-path';
 
 const MAX_DOCUMENT_BYTES = 20 * 1024 * 1024;
@@ -22,6 +23,9 @@ const folderSchema = z.strictObject({
     name: z.string(),
     parentFolderId: z.uuid().nullable().optional(),
     reuseExisting: z.boolean().optional(),
+});
+const deleteManySchema = z.strictObject({
+    documentIds: z.array(z.uuid()).min(1).max(500),
 });
 
 async function parentFolderExists(workspaceId: string, parentFolderId: string | null): Promise<boolean> {
@@ -174,4 +178,50 @@ export async function POST(
         }
         throw error;
     }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: RouteContext<'/api/workspaces/[workspaceId]/documents'>,
+): Promise<NextResponse> {
+    if (!isSameOriginRequest(request)) return invalidOriginResponse();
+    const session = await getCurrentSession();
+    if (!session) return errorResponse(401, 'AUTHENTICATION_REQUIRED', 'Sign in to continue');
+
+    const { workspaceId } = await params;
+    if (!z.uuid().safeParse(workspaceId).success) {
+        return errorResponse(404, 'NOT_FOUND', 'Workspace not found');
+    }
+    const workspace = await findOwnedWorkspace(session.user.id, workspaceId);
+    if (!workspace) return errorResponse(404, 'NOT_FOUND', 'Workspace not found');
+    if (!isWorkspaceWritable(workspace)) {
+        return errorResponse(409, 'RESOURCE_IN_USE', 'A submitted workspace is read-only');
+    }
+
+    const body = await readAuthJson(request);
+    if (!body.ok) return invalidBodyResponse(body.reason);
+    const parsed = deleteManySchema.safeParse(body.value);
+    if (!parsed.success) {
+        return errorResponse(400, 'VALIDATION_ERROR', 'Choose between 1 and 500 valid items');
+    }
+
+    const documentIds = [...new Set(parsed.data.documentIds)];
+    const matchedDocuments = await db.document.count({
+        where: { workspaceId, id: { in: documentIds } },
+    });
+    if (matchedDocuments !== documentIds.length) {
+        return errorResponse(404, 'NOT_FOUND', 'One or more selected items no longer exist');
+    }
+
+    const removedFiles = await getDescendantFilesForDocuments(workspaceId, documentIds);
+    await db.document.deleteMany({ where: { workspaceId, id: { in: documentIds } } });
+    await Promise.allSettled(
+        removedFiles.map((item) => deleteObject({ bucket: 'docs', key: item.id })),
+    );
+
+    return jsonResponse({
+        deleted: true,
+        deletedItems: documentIds.length,
+        deletedFiles: removedFiles.length,
+    });
 }

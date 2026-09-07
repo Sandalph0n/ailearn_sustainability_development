@@ -81,21 +81,34 @@ export async function getWorkspaceFolderView(
 }
 
 export async function getDescendantFiles(workspaceId: string, documentId: string) {
+    return getDescendantFilesForDocuments(workspaceId, [documentId]);
+}
+
+export async function getDescendantFilesForDocuments(
+    workspaceId: string,
+    documentIds: readonly string[],
+) {
+    if (documentIds.length === 0) return [];
+
     return db.$queryRaw<Array<{ id: string }>>`
-        WITH RECURSIVE descendants AS (
+        WITH RECURSIVE requested AS (
+            SELECT value::uuid AS "id"
+            FROM jsonb_array_elements_text(${JSON.stringify(documentIds)}::jsonb)
+        ),
+        descendants AS (
             SELECT document."id", document."entryKind"
             FROM "Document" AS document
+            JOIN requested ON requested."id" = document."id"
             WHERE document."workspaceId" = ${workspaceId}::uuid
-              AND document."id" = ${documentId}::uuid
 
-            UNION ALL
+            UNION
 
             SELECT child."id", child."entryKind"
             FROM "Document" AS child
             JOIN descendants ON child."parentFolderId" = descendants."id"
             WHERE child."workspaceId" = ${workspaceId}::uuid
         )
-        SELECT "id"
+        SELECT DISTINCT "id"
         FROM descendants
         WHERE "entryKind" = 'FILE'
     `;
