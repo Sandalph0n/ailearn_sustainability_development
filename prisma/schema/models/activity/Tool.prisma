@@ -13,9 +13,19 @@ model Tool {
   name        String
   description String?
 
-  /// Nơi chứa mã của công cụ. Chỗ để về sau nạp công cụ không nằm trong bản build.
+  /// Địa chỉ mã nguồn để con người tham khảo. Gói thực thi không nằm ở đây mà thuộc từng
+  /// `ToolVersion` bất biến trong bucket `tools`.
   codeBaseLocation String?
 
-  assessments  AssessmentAllowTool[]
-  workSessions AssignmentWorkSession[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Phiên bản được chọn mặc định cho cấu hình mới. Một assessment/work session đã pin version
+  /// nào thì không tự nhảy theo con trỏ này.
+  activeVersionId String? @unique @db.Uuid
+
+  activeVersion ToolVersion?            @relation("ActiveToolVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      ToolVersion[]           @relation("ToolVersions")
+  assessments   AssessmentAllowTool[]
+  workSessions  AssignmentWorkSession[]
 }

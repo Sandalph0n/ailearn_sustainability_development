@@ -1,0 +1,41 @@
+/// Một deployment bất biến của một Tool.
+///
+/// Upload lại code luôn tạo dòng mới và prefix S3 mới; không có thao tác sửa nội dung version.
+/// Điều này giữ cho một work session cũ có thể chạy lại đúng code đã sinh ra event của nó.
+model ToolVersion {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  toolId      String @db.Uuid
+  createdById String @db.Uuid
+
+  /// Phiên bản do manifest công bố. Chỉ cần duy nhất trong phạm vi một Tool.
+  version         String
+  protocolVersion String
+  /// Chỉ có MỘT entry. Replay là một capability/tab của cùng ứng dụng, không phải entry riêng.
+  entryPath       String
+
+  /// Manifest nguyên bản đã qua strict validation để phục vụ kiểm tra và chẩn đoán về sau.
+  manifest Json
+
+  /// ZIP gốc và prefix chứa các file runtime đã giải nén trong bucket `tools`.
+  archiveKey    String @unique
+  storagePrefix String @unique
+  sha256        String
+
+  compressedSize Int
+  unpackedSize   Int
+  fileCount      Int
+  releaseNotes   String?
+  createdAt      DateTime @default(now())
+
+  tool      Tool @relation("ToolVersions", fields: [toolId], references: [id], onDelete: Restrict)
+  createdBy User @relation("uploadedToolVersions", fields: [createdById], references: [id], onDelete: Restrict)
+
+  /// Mặt ngược của `Tool.activeVersion`. Một version chỉ có thể active cho chính Tool của nó;
+  /// route ghi kiểm thêm điều kiện đó trước khi đổi con trỏ.
+  activeFor Tool? @relation("ActiveToolVersion")
+
+  @@unique([toolId, version])
+  @@index([toolId, createdAt])
+  @@index([createdById])
+}

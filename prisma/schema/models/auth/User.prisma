@@ -56,6 +56,7 @@ model User {
   roleRequests                     RoleRequest[]            @relation("requestedBy")
   processedRequests                RoleRequest[]            @relation("processedBy")
   attempts                         AssessmentAttempt[]
+  uploadedToolVersions             ToolVersion[]            @relation("uploadedToolVersions")
 
   /// Workspace cá nhân thì ngược lại — dữ liệu riêng, không có giá trị đối chứng, xoá theo được.
   personalWorkspaces PersonalWorkspace[]
