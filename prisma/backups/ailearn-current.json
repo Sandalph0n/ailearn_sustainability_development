@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "generatedAt": "2026-09-06T19:49:28.570Z",
+  "generatedAt": "2026-09-07T04:16:54.089Z",
   "database": "ailearn",
   "excludedData": [
     "LoginSession"
@@ -23,9 +23,9 @@
     "RolePermission": 128,
     "RoleRequest": 4,
     "RoleRequestVisibility": 3,
-    "ScopeAssignment": 1,
+    "ScopeAssignment": 2,
     "ScopeAssignmentCode": 0,
-    "ScopeAssignmentRequest": 1,
+    "ScopeAssignmentRequest": 2,
     "StudyTerm": 3,
     "StudyTermPeriod": 0,
     "Subject": 131,

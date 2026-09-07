@@ -35,7 +35,14 @@ function assertUnique(rows, key, label) {
     }
 }
 
-function validateData(institutions, terms, subjects, offerings, assessments) {
+function validateData(
+    institutions,
+    terms,
+    subjects,
+    offerings,
+    assessments,
+    assessmentPublications,
+) {
     if (institutions.length !== 1 || institutions[0].name !== MQ_INSTITUTION_NAME) {
         throw new Error('Expected exactly one Macquarie University row in institutions.csv');
     }
@@ -62,12 +69,34 @@ function validateData(institutions, terms, subjects, offerings, assessments) {
         (row) => `${row.subject_code}:${row.year}:${row.session}:${row.name}`,
         'assessment name within offering',
     );
+    assertUnique(
+        assessmentPublications,
+        (row) => row.subject_code,
+        'assessment publication subject code',
+    );
 
     const subjectCodes = new Set(subjects.map((row) => row.subject_code));
     const offeringKeys = new Set(
         offerings.map((row) => `${row.subject_code}:${row.year}:${row.session}`),
     );
     const weightByOffering = new Map();
+
+    for (const publication of assessmentPublications) {
+        if (!subjectCodes.has(publication.subject_code)) {
+            throw new Error(
+                `Assessment publication references missing subject ${publication.subject_code}`,
+            );
+        }
+        if (
+            !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} Australia\/Sydney$/.test(
+                publication.publish_at,
+            )
+        ) {
+            throw new Error(
+                `Invalid assessment publication timestamp for ${publication.subject_code}`,
+            );
+        }
+    }
 
     for (const offering of offerings) {
         if (!subjectCodes.has(offering.subject_code)) {
@@ -108,16 +137,29 @@ function validateData(institutions, terms, subjects, offerings, assessments) {
 async function main() {
     await mkdir(seedDirectory, { recursive: true });
 
-    const [institutions, terms, subjects, offerings, assessments] = await Promise.all([
-        readCsv(path.join(sourceDirectory, 'institutions.csv')),
-        readCsv(path.join(sourceDirectory, 'terms.csv')),
-        readCsv(path.join(sourceDirectory, 'subjects.csv')),
-        readCsv(path.join(sourceDirectory, 'offerings.csv')),
-        readCsv(path.join(sourceDirectory, 'assessments.csv')),
-    ]);
+    const [institutions, terms, subjects, offerings, assessments, assessmentPublications] =
+        await Promise.all([
+            readCsv(path.join(sourceDirectory, 'institutions.csv')),
+            readCsv(path.join(sourceDirectory, 'terms.csv')),
+            readCsv(path.join(sourceDirectory, 'subjects.csv')),
+            readCsv(path.join(sourceDirectory, 'offerings.csv')),
+            readCsv(path.join(sourceDirectory, 'assessments.csv')),
+            readCsv(path.join(sourceDirectory, 'assessment-publications.csv')),
+        ]);
 
-    validateData(institutions, terms, subjects, offerings, assessments);
+    validateData(
+        institutions,
+        terms,
+        subjects,
+        offerings,
+        assessments,
+        assessmentPublications,
+    );
     console.log('CSV validation complete.');
+
+    const assessmentPublicationBySubject = new Map(
+        assessmentPublications.map((row) => [row.subject_code, row.publish_at]),
+    );
 
     const institutionSql = `${header('institutions', 'source/mq-2026/institutions.csv')}INSERT INTO "Institution" ("id", "name", "website")
 VALUES ${values(institutions, [
@@ -188,7 +230,7 @@ JOIN "StudyTerm" AS term
 ON CONFLICT ("subjectId", "termId") DO NOTHING;
 `;
 
-    const assessmentSql = `${header('assessments', 'source/mq-2026/assessments.csv')}INSERT INTO "Assessment" (
+    const assessmentSql = `${header('assessments', 'source/mq-2026/assessments.csv and source/mq-2026/assessment-publications.csv')}INSERT INTO "Assessment" (
     "id",
     "offeringId",
     "name",
@@ -208,7 +250,7 @@ SELECT
     seed."weight",
     seed."hurdle",
     seed."isGroup",
-    NULL,
+    seed."publishAt",
     seed."dueAt",
     seed."expectedDue"
 FROM (VALUES
@@ -222,6 +264,7 @@ ${values(assessments, [
         (row) => String(Number(row.weight)),
         (row) => sqlBoolean(row.hurdle),
         (row) => sqlBoolean(row.is_group),
+        (row) => sqlTimestamp(assessmentPublicationBySubject.get(row.subject_code)),
         (row) => sqlTimestamp(row.due_at),
         (row) => sqlString(row.expected_due),
     ])}
@@ -235,6 +278,7 @@ ${values(assessments, [
     "weight",
     "hurdle",
     "isGroup",
+    "publishAt",
     "dueAt",
     "expectedDue"
 )
@@ -277,6 +321,7 @@ SET
         subjects: subjects.length,
         offerings: offerings.length,
         assessments: assessments.length,
+        publishedAssessmentSubjects: assessmentPublications.length,
     });
 }
 
