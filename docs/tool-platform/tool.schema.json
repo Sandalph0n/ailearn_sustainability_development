@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "tool.schema.json",
-  "title": "AI-Learn tool package manifest",
+  "title": "Lernumi tool package manifest",
   "description": "Manifest stored as /tool.json at the root of every uploaded tool ZIP.",
   "type": "object",
   "additionalProperties": false,

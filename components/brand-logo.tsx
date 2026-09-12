@@ -1,5 +1,5 @@
 /**
- * Dấu hiệu nhận diện của AI-Learn.
+ * Dấu hiệu nhận diện của Lernumi.
  *
  * Hai ý gộp trong một hình: cung tròn có mũi tên quay lại là **phát lại**, ba cột cao dần là
  * **tiến bộ nhìn thấy được**. Đó đúng là hai thứ nền tảng mà sản phẩm bán.
@@ -18,7 +18,7 @@ export function BrandLogo({
      * `<defs>` dùng id toàn cục cho cả tài liệu. Trang này vẽ logo ở cả đầu trang lẫn chân trang,
      * nên cần id khác nhau — trùng id thì instance sau lấy nhầm gradient của instance trước.
      */
-    gradientId = 'ailearn-mark',
+    gradientId = 'lernumi-mark',
 }: {
     className?: string;
     gradientId?: string;

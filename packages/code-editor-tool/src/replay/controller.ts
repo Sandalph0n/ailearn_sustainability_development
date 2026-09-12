@@ -35,7 +35,7 @@ export class ReplayController {
         private readonly api: ToolApiClient,
         private readonly recorder: EventRecorder,
     ) {
-        vscode.workspace.registerTextDocumentContentProvider('ailearn-replay', {
+        vscode.workspace.registerTextDocumentContentProvider('lernumi-replay', {
             onDidChange: this.contentEmitter.event,
             provideTextDocumentContent: (uri) => this.content.get(uri.toString()) ?? '',
         });
@@ -79,7 +79,7 @@ export class ReplayController {
         if (!file) return;
 
         const uri = vscode.Uri.from({
-            scheme: 'ailearn-replay',
+            scheme: 'lernumi-replay',
             authority: this.state.selectedSessionId ?? 'session',
             path: file.path,
         });

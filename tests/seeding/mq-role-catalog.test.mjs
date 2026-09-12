@@ -132,6 +132,7 @@ describe('Macquarie role catalog seed', () => {
             'assessment.view_published',
             'attempt.view_own',
             'offering.view',
+            'tool.launch',
         ]);
     });
 

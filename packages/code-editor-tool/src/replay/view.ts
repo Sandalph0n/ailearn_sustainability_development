@@ -11,7 +11,7 @@ let renderCurrent: (() => void) | null = null;
 
 export function registerReplayView(): void {
     registerCustomView({
-        id: 'ailearn.replay',
+        id: 'lernumi.replay',
         name: 'Replay',
         order: 20,
         default: false,
@@ -19,7 +19,7 @@ export function registerReplayView(): void {
         icon: new URL('../assets/replay.svg', import.meta.url).toString(),
         actions: [
             {
-                id: 'ailearn.replay.refresh',
+                id: 'lernumi.replay.refresh',
                 title: 'Refresh sessions',
                 tooltip: 'Refresh replay sessions',
                 icon: 'refresh',
@@ -29,7 +29,7 @@ export function registerReplayView(): void {
             },
         ],
         renderBody(container): IDisposable {
-            container.classList.add('ailearn-replay-view');
+            container.classList.add('lernumi-replay-view');
             const render = () => renderReplay(container, controller?.snapshot() ?? emptyState());
             renderCurrent = render;
             const subscription = controller?.onDidChange(render);

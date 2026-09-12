@@ -24,9 +24,13 @@ const files = await collect(distRoot);
 if (!files['tool.json'] || !files['index.html']) {
     throw new Error('Build output must contain tool.json and index.html at its root');
 }
+const manifest = JSON.parse(new TextDecoder().decode(files['tool.json']));
+if (typeof manifest.version !== 'string' || !manifest.version) {
+    throw new Error('tool.json must contain a version');
+}
 
 await mkdir(artifactRoot, { recursive: true });
-const output = path.join(artifactRoot, 'code-editor-0.1.0.zip');
+const output = path.join(artifactRoot, `code-editor-${manifest.version}.zip`);
 const zip = zipSync(files, { level: 9 });
 await writeFile(output, zip);
 

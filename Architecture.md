@@ -1,4 +1,4 @@
-# AI-Learn — Kiến trúc
+# Lernumi — Kiến trúc
 
 Tài liệu này mô tả **nền tảng** và **hợp đồng giữa nền tảng với công cụ**.
 

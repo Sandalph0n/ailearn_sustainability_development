@@ -57,10 +57,10 @@ export class ToolApiClient implements ToolDocumentApi, ToolEventApi {
 
     static fromLaunchLocation(location: Location = window.location): ToolApiClient {
         const fragment = new URLSearchParams(location.hash.slice(1));
-        const token = fragment.get('ailearn_token');
-        const apiVersion = fragment.get('ailearn_api');
+        const token = fragment.get('lernumi_token');
+        const apiVersion = fragment.get('lernumi_api');
         if (!token || apiVersion !== 'v1') {
-            throw new Error('AI-Learn launch credentials are missing. Reopen this tool from the assessment page.');
+            throw new Error('Lernumi launch credentials are missing. Reopen this tool from the assessment page.');
         }
 
         history.replaceState(null, '', `${location.pathname}${location.search}`);
@@ -207,7 +207,7 @@ export class ToolApiClient implements ToolDocumentApi, ToolEventApi {
             this.token = grant.token;
             await this.startTokenRefresh(grant.expiresIn);
         } catch (error) {
-            window.dispatchEvent(new CustomEvent('ailearn:token-expired', { detail: error }));
+            window.dispatchEvent(new CustomEvent('lernumi:token-expired', { detail: error }));
         }
     }
 
@@ -232,7 +232,7 @@ export class ToolApiClient implements ToolDocumentApi, ToolEventApi {
         throw new ToolApiError(
             response.status,
             body?.error?.code ?? 'HTTP_ERROR',
-            body?.error?.message ?? `AI-Learn API returned ${response.status}`,
+            body?.error?.message ?? `Lernumi API returned ${response.status}`,
             body?.error?.details,
         );
     }

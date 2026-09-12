@@ -93,12 +93,7 @@ async function issue(runtime: AuthorizedRuntime): Promise<ToolSessionResponse> {
         token,
         tokenType: 'Bearer',
         expiresIn: TOOL_TOKEN_TTL_SECONDS,
-        runtimeUrl: buildToolRuntimeUrl(
-            runtime.toolCode,
-            runtime.tokenContext.toolVersionId,
-            runtime.entryPath,
-            token,
-        ),
+        runtimeUrl: buildToolRuntimeUrl(token),
         session: {
             id: runtime.tokenContext.workSessionId,
             mode: runtime.tokenContext.mode,

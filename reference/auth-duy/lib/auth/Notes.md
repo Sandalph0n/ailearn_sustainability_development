@@ -109,7 +109,7 @@ Email không tồn tại và password không đúng cùng trả một lỗi `INV
 Entry point mẫu: `app/api/auth/session/route.ts`.
 
 ```text
-Cookie ailearn_session
+Cookie lernumi_session
         │
         ├── đọc token gốc
         ├── SHA-256 token
@@ -151,7 +151,7 @@ const userId = currentSession.user.id;
 
 ## Cookie
 
-Cookie hiện tại có tên `ailearn_session` và được đặt với:
+Cookie hiện tại có tên `lernumi_session` và được đặt với:
 
 - `HttpOnly`: JavaScript phía client không đọc được token;
 - `Secure`: bật trong production;

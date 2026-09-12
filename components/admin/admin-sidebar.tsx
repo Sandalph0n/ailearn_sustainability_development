@@ -62,7 +62,7 @@ export function AdminSidebar() {
                                 />
                             </div>
                             <div className="grid flex-1 text-left leading-tight">
-                                <span className="font-heading truncate font-medium">AI-Learn</span>
+                                <span className="font-heading truncate font-medium">Lernumi</span>
                                 <span className="text-muted-foreground truncate text-xs">
                                     Administration
                                 </span>

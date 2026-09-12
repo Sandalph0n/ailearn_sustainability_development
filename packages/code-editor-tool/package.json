@@ -1,6 +1,6 @@
 {
-  "name": "@ailearn/code-editor-tool",
-  "version": "0.1.0",
+  "name": "@lernumi/code-editor-tool",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {

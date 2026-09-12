@@ -13,6 +13,11 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
 
+    // Generated tool bundles are uploaded artifacts, not source code.
+    "packages/*/dist/**",
+    "packages/*/artifacts/**",
+    ".tmp/**",
+
     // Code tham khảo, không phải của ứng dụng — không lint, không typecheck.
     "reference/**",
     "base44reference/**",

@@ -1,1 +1,1 @@
-export const SESSION_COOKIE_NAME = "ailearn_session"
+export const SESSION_COOKIE_NAME = "lernumi_session"

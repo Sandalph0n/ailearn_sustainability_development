@@ -1,4 +1,4 @@
-# AI-Learn — Kế hoạch dự án
+# Lernumi — Kế hoạch dự án
 
 Bắt đầu 21/08/2026 · Hạn 21/09/2026 · 2 người · Sản phẩm demo · The 17 Goals, Goal 4
 

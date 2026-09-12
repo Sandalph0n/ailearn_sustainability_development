@@ -1,4 +1,4 @@
-# AI-Learn
+# Lernumi
 
 Nền tảng học tập đa cơ sở giáo dục. Xem [Project Plan.md](./Project%20Plan.md) để biết phạm vi và kiến trúc.
 

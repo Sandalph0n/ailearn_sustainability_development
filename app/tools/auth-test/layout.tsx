@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-    title: 'Auth Test | AI-Learn',
+    title: 'Auth Test | Lernumi',
     description: 'Temporary page for manually testing authentication APIs.',
 };
 
@@ -14,7 +14,7 @@ export default function AuthTestLayout({ children }: LayoutProps<'/tools/auth-te
                 <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-400">
-                            AI-Learn
+                            Lernumi
                         </p>
                         <h1 className="mt-1 text-lg font-semibold">Authentication test bench</h1>
                     </div>

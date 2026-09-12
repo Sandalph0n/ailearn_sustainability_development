@@ -9,14 +9,14 @@ import {
     type FolderHistoryState,
 } from '@/lib/workspaces/folder-history';
 
-const HISTORY_EVENT = 'ailearn:workspace-folder-history';
+const HISTORY_EVENT = 'lernumi:workspace-folder-history';
 
 function serverSnapshot() {
     return '';
 }
 
 function storageKey(workspaceId: string) {
-    return `ailearn:workspace-folder-history:${workspaceId}`;
+    return `lernumi:workspace-folder-history:${workspaceId}`;
 }
 
 function readHistory(key: string): FolderHistoryState {

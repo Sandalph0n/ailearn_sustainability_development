@@ -1,7 +1,7 @@
 // File này đọc cấu hình thời hạn session và định nghĩa thuộc tính bảo mật của cookie.
 import 'server-only';
 
-export const SESSION_COOKIE_NAME = 'ailearn_session';
+export const SESSION_COOKIE_NAME = 'lernumi_session';
 
 const DEFAULT_SESSION_TTL_DAYS = 7;
 const MIN_SESSION_TTL_DAYS = 1;

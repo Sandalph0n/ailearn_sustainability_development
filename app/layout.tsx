@@ -10,10 +10,8 @@
  *                       một sidebar chung, đặt ở layout của nhóm. Đặt trong ngoặc để trang chủ
  *                       vẫn là `/` chứ không phải `/navigation`.
  *
- *   app/tools/          nơi làm việc thật: trình soạn mã, trình vẽ sơ đồ. Là đường dẫn THẬT chứ
- *                       không phải nhóm — khi công cụ do bên thứ ba viết, ranh giới nên nhìn
- *                       thấy được trong URL: `/tools/<mã-công-cụ>/…`. Cố ý không có layout, mỗi
- *                       công cụ tự dựng lấy giao diện của mình.
+ *   app/tools/          route handler phục vụ gói công cụ trên origin riêng `tools.*`. Tool chạy
+ *                       toàn trang, không dùng layout React hay cookie phiên của Lernumi.
  *
  *   app/auth/           đăng nhập và đăng ký. Nằm ngoài `(navigation)` vì nhóm đó được proxy
  *                       bảo vệ — để ở trong thì người chưa đăng nhập bị đá về chính nó.
@@ -50,7 +48,7 @@ const fontMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-    title: 'AI-Learn',
+    title: 'Lernumi',
     description: 'A learning platform whose tools record how the work happened.',
 };
 

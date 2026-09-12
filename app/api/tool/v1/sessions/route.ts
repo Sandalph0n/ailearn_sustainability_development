@@ -10,7 +10,6 @@ import {
 import { getCurrentSession } from '@/lib/auth/session/service';
 import { ToolSessionRequestSchema } from '@/lib/tools/api-contract';
 import { readToolJson } from '@/lib/tools/api-request';
-import { toolRuntimeCookieName, toolRuntimeCookieOptions } from '@/lib/tools/runtime-cookie';
 import {
     startToolReplaySession,
     startToolWorkSession,
@@ -35,13 +34,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const grant = parsed.data.mode === 'WORK'
             ? await startToolWorkSession({ userId: session.user.id, loginSessionId: session.session.id, ...parsed.data })
             : await startToolReplaySession({ userId: session.user.id, loginSessionId: session.session.id, ...parsed.data });
-        const response = jsonResponse(grant.response, { status: parsed.data.mode === 'WORK' ? 201 : 200 });
-        response.cookies.set(
-            toolRuntimeCookieName(grant.toolVersionId),
-            grant.response.token,
-            toolRuntimeCookieOptions(grant.toolCode, grant.toolVersionId),
-        );
-        return response;
+        // The platform host cannot set a host-only cookie for the isolated tool origin. The
+        // bootstrap page exchanges the fragment JWT for that cookie after navigation instead.
+        return jsonResponse(grant.response, { status: parsed.data.mode === 'WORK' ? 201 : 200 });
     } catch (error) {
         if (error instanceof ToolSessionError) {
             return errorResponse(error.status, error.code, error.message);

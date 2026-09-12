@@ -85,9 +85,9 @@ export default function LandingPage() {
             <header className="bg-background/80 border-border/60 fixed inset-x-0 top-0 z-50 border-b backdrop-blur">
                 <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8">
                     <Link href="/" className="flex items-center gap-3">
-                        <BrandLogo className="size-10" gradientId="ailearn-mark-header" />
+                        <BrandLogo className="size-10" gradientId="lernumi-mark-header" />
                         <span className="font-heading text-xl font-semibold tracking-tight">
-                            AI-<span className="text-brand-teal">Learn</span>
+                            Lern<span className="text-brand-teal">umi</span>
                         </span>
                     </Link>
 
@@ -406,8 +406,8 @@ export default function LandingPage() {
             </section>
 
             <footer className="border-border text-muted-foreground flex flex-col items-center gap-3 border-t py-8 text-sm">
-                <BrandLogo className="size-7" gradientId="ailearn-mark-footer" />
-                <p>AI-Learn — make learning visible.</p>
+                <BrandLogo className="size-7" gradientId="lernumi-mark-footer" />
+                <p>Lernumi — make learning visible.</p>
             </footer>
         </div>
     );

@@ -227,7 +227,7 @@ export function RoleRequestForm({
                         </ComboboxContent>
                     </Combobox>
                     <p className="text-muted-foreground text-xs">
-                        All institutions registered with AI-Learn are searchable here.
+                        All institutions registered with Lernumi are searchable here.
                     </p>
                 </div>
 

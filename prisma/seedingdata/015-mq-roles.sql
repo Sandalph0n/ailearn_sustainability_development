@@ -71,6 +71,7 @@ VALUES
   ('c14226dd-1cd5-42de-8832-93169e7f40be', 'assessment.view_published'),
   ('c14226dd-1cd5-42de-8832-93169e7f40be', 'assessment.attempt'),
   ('c14226dd-1cd5-42de-8832-93169e7f40be', 'attempt.view_own'),
+  ('c14226dd-1cd5-42de-8832-93169e7f40be', 'tool.launch'),
 
   -- Institution catalog access without administrative mutation.
   ('9029e84d-bb51-5ba8-8a54-f6c282e9d7bf', 'institution.settings.view'),

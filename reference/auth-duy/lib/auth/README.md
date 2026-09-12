@@ -53,7 +53,7 @@ Session còn hạn → lấy User qua Session.user
 
 Database là nguồn sự thật. Cookie còn tồn tại nhưng dòng `Session` đã bị xóa hoặc hết hạn thì user vẫn bị xem là chưa đăng nhập.
 
-Cookie hiện có tên `ailearn_session`, dùng `HttpOnly`, `SameSite=Lax`, `Path=/` và `Secure` trong production. Thời hạn mặc định là 7 ngày, cấu hình bằng:
+Cookie hiện có tên `lernumi_session`, dùng `HttpOnly`, `SameSite=Lax`, `Path=/` và `Secure` trong production. Thời hạn mặc định là 7 ngày, cấu hình bằng:
 
 ```dotenv
 AUTH_SESSION_TTL_DAYS="7"

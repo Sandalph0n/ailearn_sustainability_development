@@ -8,24 +8,22 @@ import {
     FileSystemProviderErrorCode,
     FileType,
     type IFileChange,
-    type IFileDeleteOptions,
     type IFileOverwriteOptions,
     type IFileSystemProviderWithFileReadWriteCapability,
     type IFileWriteOptions,
     type IStat,
-    type IWatchOptions,
 } from '@codingame/monaco-vscode-files-service-override';
 
 import type { ToolDocumentApi } from './client';
 import type { ToolDocument, ToolEvent } from './types';
 import { normalizePath, splitPath } from './path';
 
-export const WORKSPACE_SCHEME = 'ailearn';
+export const WORKSPACE_SCHEME = 'lernumi';
 export const WORKSPACE_ROOT = URI.from({ scheme: WORKSPACE_SCHEME, authority: 'workspace', path: '/' });
 
 type Recorder = (event: ToolEvent) => void;
 
-export class AiLearnFileSystemProvider implements IFileSystemProviderWithFileReadWriteCapability {
+export class LernumiFileSystemProvider implements IFileSystemProviderWithFileReadWriteCapability {
     readonly capabilities: FileSystemProviderCapabilities;
     readonly onDidChangeCapabilities = Event.None;
     private readonly changeEmitter = new Emitter<readonly IFileChange[]>();
@@ -47,7 +45,7 @@ export class AiLearnFileSystemProvider implements IFileSystemProviderWithFileRea
             (readOnly ? FileSystemProviderCapabilities.Readonly : 0);
     }
 
-    watch(_resource: URI, _options: IWatchOptions): IDisposable {
+    watch(): IDisposable {
         return { dispose() {} };
     }
 
@@ -160,7 +158,7 @@ export class AiLearnFileSystemProvider implements IFileSystemProviderWithFileRea
         this.fire(FileChangeType.ADDED, resource);
     }
 
-    async delete(resource: URI, _options: IFileDeleteOptions): Promise<void> {
+    async delete(resource: URI): Promise<void> {
         this.assertWritable();
         const path = normalizePath(resource.path);
         if (path === '/') throw fsError(FileSystemProviderErrorCode.NoPermissions, path);

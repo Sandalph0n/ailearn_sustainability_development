@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 
 import type { EventRecorder } from './platform/event-recorder';
 import { editorEvent } from './platform/event-recorder';
-import type { AiLearnFileSystemProvider } from './platform/file-system';
+import type { LernumiFileSystemProvider } from './platform/file-system';
 import { WORKSPACE_SCHEME } from './platform/file-system';
 
 export function connectEditorEvents(
-    provider: AiLearnFileSystemProvider,
+    provider: LernumiFileSystemProvider,
     recorder: EventRecorder,
 ): vscode.Disposable {
     const subscriptions: vscode.Disposable[] = [];

@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: AI-Learn Tool Runtime API
+  title: Lernumi Tool Runtime API
   version: 1.0.0
   license:
     name: Proprietary
@@ -10,7 +10,7 @@ info:
     assignment, immutable tool version, work session, and assignment workspace.
 servers:
   - url: /api/tool/v1
-    description: Current AI-Learn deployment
+    description: Current Lernumi deployment
 tags:
   - name: Session
     description: Launch, refresh, and close version-pinned tool sessions.
@@ -467,8 +467,8 @@ components:
     platformSession:
       type: apiKey
       in: cookie
-      name: ailearn_session
-      description: Trusted AI-Learn browser session; exact cookie name is an implementation detail.
+      name: lernumi_session
+      description: Trusted Lernumi browser session; exact cookie name is an implementation detail.
     toolBearer:
       type: http
       scheme: bearer

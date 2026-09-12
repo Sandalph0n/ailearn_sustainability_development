@@ -113,7 +113,7 @@ function run(cmd, args, { quiet = false } = {}) {
     return false;
 }
 
-console.log('\n\x1b[1mAI-Learn — khởi tạo môi trường dev\x1b[0m\n');
+console.log('\n\x1b[1mLernumi — khởi tạo môi trường dev\x1b[0m\n');
 
 // ─── 1. Phụ thuộc ────────────────────────────────────────────────────────────
 //

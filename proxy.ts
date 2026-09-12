@@ -2,62 +2,69 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session/cookie';
 
-/**
- * Proxy — chạy trước mọi request tới trang. Từ Next.js 16, Middleware đổi tên thành Proxy.
- *
- * ─── ĐÂY LÀ PHÉP KIỂM LẠC QUAN, KHÔNG PHẢI PHÂN QUYỀN ────────────────────────
- *
- * Proxy chạy trên MỌI request, kể cả những request Next tự nạp trước khi người dùng bấm. Đụng
- * database ở đây là mỗi lần rê chuột qua một liên kết lại một truy vấn.
- *
- * Nên nó chỉ trả lời được: "có cookie phiên không?" — KHÔNG trả lời được "cookie đó còn hiệu lực
- * không". Cookie giả, cookie hết hạn, cookie của phiên đã thu hồi đều lọt qua đây.
- *
- * Phép kiểm THẬT vẫn phải nằm ở layout, page và route handler, bằng `getCurrentSession()` — nơi
- * có thể băm token rồi tra bảng `LoginSession`.
- *
- * Proxy chỉ là lớp lọc thô: nó tiết kiệm một lần dựng trang cho người rõ ràng chưa đăng nhập.
- */
-
-/** Đường dẫn ai cũng vào được. So khớp CHÍNH XÁC, không theo tiền tố. */
+const TOOL_RUNTIME_ORIGIN = process.env.TOOL_RUNTIME_ORIGIN || 'http://127.0.0.1:3000';
+const TOOL_RUNTIME_HOST = new URL(TOOL_RUNTIME_ORIGIN).host.toLowerCase();
+const RUNTIME_ASSET_PATH = /^\/tools\/[a-z0-9-]{2,40}\/[0-9a-f-]{36}\/.+/;
 const PUBLIC_PATHS = new Set(['/', '/auth']);
 
-export default function proxy(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+function notFound(): NextResponse {
+    return new NextResponse('Not found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+}
+
+/**
+ * Keep the platform and uploaded runtimes on separate browser origins, then perform the existing
+ * optimistic login-cookie redirect for normal platform pages. Authorization remains in routes.
+ */
+export default function proxy(request: NextRequest): NextResponse {
+    const host = (request.headers.get('host') || '').toLowerCase();
+    const path = request.nextUrl.pathname;
+    const isToolHost = host === TOOL_RUNTIME_HOST;
+
+    if (isToolHost) {
+        const allowed =
+            path === '/tool-runtime/bootstrap' ||
+            RUNTIME_ASSET_PATH.test(path) ||
+            path.startsWith('/api/tool/v1/') ||
+            path.startsWith('/_next/');
+        return allowed ? NextResponse.next() : notFound();
+    }
+
+    if (
+        path === '/tool-runtime/bootstrap' ||
+        path === '/api/tool/v1/runtime-auth' ||
+        RUNTIME_ASSET_PATH.test(path)
+    ) {
+        return notFound();
+    }
+
+    // API handlers authenticate themselves. Static assets must never be redirected to HTML.
+    if (
+        path.startsWith('/api/') ||
+        path.startsWith('/_next/') ||
+        /\.(?:png|jpg|jpeg|svg|ico)$/.test(path)
+    ) {
+        return NextResponse.next();
+    }
+
     const hasSessionCookie = request.cookies.has(SESSION_COOKIE_NAME);
-    // Đã đăng nhập mà còn vào trang đăng nhập thì đưa thẳng vào ứng dụng.
-    if (hasSessionCookie && pathname === '/auth') {
+    if (hasSessionCookie && path === '/auth') {
         return NextResponse.redirect(new URL('/navigation/dashboard', request.nextUrl));
     }
 
-    if (!hasSessionCookie && !PUBLIC_PATHS.has(pathname)) {
-        // `clone()` giữ nguyên giao thức, tên máy và cổng — thứ duy nhất cần lấy lại từ request,
-        // vì địa chỉ đó khác nhau giữa máy dev, cổng dự phòng và tên miền thật.
-        //
-        // `search = ''` xoá query của trang cũ. Không có dòng này thì tham số của trang bị chặn
-        // bám theo sang trang đăng nhập, lọt vào lịch sử trình duyệt và log máy chủ.
-        //
-        // `next` nhớ chỗ họ định tới, để đăng nhập xong quay lại đúng đó.
-        const newTarget = request.nextUrl.clone();
-        newTarget.pathname = '/auth';
-        newTarget.search = '';
-        newTarget.searchParams.set('next', pathname);
-
-        return NextResponse.redirect(newTarget);
+    if (!hasSessionCookie && !PUBLIC_PATHS.has(path)) {
+        const target = request.nextUrl.clone();
+        target.pathname = '/auth';
+        target.search = '';
+        target.searchParams.set('next', path);
+        return NextResponse.redirect(target);
     }
 
     return NextResponse.next();
 }
 
 export const config = {
-    /**
-     * Bỏ qua API và tài nguyên tĩnh.
-     *
-     * Thiếu dòng này thì proxy chuyển hướng cả tệp `.js` sang trang HTML, và trình duyệt báo
-     * `Unexpected token '<'` cho mọi chunk.
-     *
-     * Phải là hằng số viết thẳng — Next đọc nó lúc build, ghép chuỗi hay dùng biến thì nó không
-     * đọc được.
-     */
-    matcher: ['/((?!api|_next/static|_next/image|.*\\.(?:png|jpg|svg|ico)$).*)'],
+    matcher: '/:path*',
 };

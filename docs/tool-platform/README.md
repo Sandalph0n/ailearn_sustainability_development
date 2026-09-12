@@ -1,10 +1,10 @@
-# AI-Learn Tool Platform Contract
+# Lernumi Tool Platform Contract
 
 Status: **v1 implemented**
 
 Runtime API base path: **`/api/tool/v1`**
 
-This contract lets an independently built browser application run as an AI-Learn tool. The
+This contract lets an independently built browser application run as a Lernumi tool. The
 platform authenticates the launch, pins the exact uploaded version, owns workspace persistence,
 stores opaque event batches, and decides whether replay is available. The tool owns its editor,
 event format, and replay renderer.
@@ -50,20 +50,25 @@ contains `replay:read`, and it reconstructs its UI from event batches returned b
 
 ## 2. Trust boundary
 
-A contributed package is untrusted code. The platform launcher must render it in an iframe with at
-least:
+A contributed package is untrusted code. Lernumi serves tools as full-page applications from a
+dedicated origin, for example `https://tools.lernumi.com`, while the platform lives at
+`https://app.lernumi.com`. Both hostnames may point to the same Next.js deployment; browser origin
+isolation—not a separate server—is the security boundary.
 
-```html
-<iframe sandbox="allow-scripts allow-downloads"></iframe>
-```
+The tool origin never receives the platform login cookie. Platform cookies must remain host-only
+and must not use `Domain=.lernumi.com`. The runtime receives only a short-lived capability JWT and
+can access only `/api/tool/v1/*`. Host routing rejects platform pages and unrelated APIs on the
+tool origin. Runtime responses also apply CSP, `nosniff`, referrer, and browser feature policies.
 
-Do not add `allow-same-origin` while tools are served from the platform origin. Without that flag,
-the tool receives an opaque browser origin and cannot read platform cookies, local storage, DOM,
-or JavaScript. The `/api/tool/v1/*` CORS policy accepts that opaque origin, but every useful route
-still requires the scoped Bearer token.
+Tools are opened by full-page navigation, so they can use module scripts, workers, downloads, and
+the browser history normally. An iframe sandbox is only needed if a future UI embeds a tool inside
+the platform page.
 
-The runtime response also applies CSP, `nosniff`, referrer, and browser feature restrictions.
-Those headers are defence in depth; iframe sandboxing is the primary isolation boundary.
+For local development, open the platform through `http://localhost:3000` and use
+`TOOL_RUNTIME_ORIGIN=http://127.0.0.1:3000`. Both addresses reach the same Next.js process but are
+different browser origins. Production should use sibling hosts such as `app.lernumi.com` and
+`tools.lernumi.com`. The edge proxy must overwrite, rather than append or trust, incoming `Host`
+and `X-Forwarded-Host` headers before forwarding requests to Next.js.
 
 ## 3. Launch and token lifecycle
 
@@ -73,18 +78,20 @@ assignment under which the user acts. A replay launch supplies the recorded work
 assignment. The server independently derives the workspace, institution, offering, tool version,
 and capabilities; callers cannot widen scope by sending those IDs.
 
-The response contains a five-minute HS256 JWT and a `runtimeUrl`. The token is also encoded in the
-URL fragment because fragments are available to the loaded app but are never sent in HTTP requests,
-server logs, or referrer headers. Consume and erase it immediately:
+The response contains a five-minute HS256 JWT and a `runtimeUrl` on the isolated tool origin. The
+token is encoded in the URL fragment because fragments are available to browser JavaScript but are
+never sent in HTTP requests, server logs, or referrer headers. A trusted bootstrap page exchanges
+it for a host-only runtime cookie before loading protected package assets. The tool entry receives
+the same fragment and must consume and erase it immediately:
 
 ```ts
 const launch = new URLSearchParams(location.hash.slice(1));
-let token = launch.get('ailearn_token');
-const apiVersion = launch.get('ailearn_api');
+let token = launch.get('lernumi_token');
+const apiVersion = launch.get('lernumi_api');
 history.replaceState(null, '', location.pathname + location.search);
 
 if (!token || apiVersion !== 'v1') {
-  throw new Error('AI-Learn launch credentials are missing');
+  throw new Error('Lernumi launch credentials are missing');
 }
 ```
 
@@ -109,6 +116,10 @@ and never persist it in local storage, IndexedDB, files, events, logs, or URLs. 
 platform login session, role assignment, offering scope, permissions, assessment/tool association,
 submission state, and pinned version. Revoked access therefore survives for at most one token TTL.
 Once a token has expired, the normal platform launcher must create or reopen the session.
+
+Because the launch token deliberately exists only in memory, a hard reload after the fragment has
+been erased cannot restore it. Version 1 sends the user back through the Lernumi launcher instead
+of persisting a bearer credential in browser storage shared by third-party tools.
 
 Capabilities are intentionally coarse transport rights:
 

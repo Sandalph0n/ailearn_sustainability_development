@@ -10,11 +10,9 @@ import {
     Home01Icon,
     Settings01Icon,
     Shield01Icon,
-    SourceCodeIcon,
     UniversityIcon,
     UserMultipleIcon,
     UserSharingIcon,
-    WorkflowSquare01Icon,
     ViewIcon,
 } from '@hugeicons/core-free-icons';
 
@@ -36,7 +34,7 @@ import {
     CONTEXT_PARAM,
     type AuthorizedContextOption,
 } from '@/lib/context/context-params';
-import { hasAnyPermission, hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
+import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
 
 /**
  * Mục điều hướng, để thành DỮ LIỆU — thêm một mục là thêm một dòng.
@@ -159,11 +157,6 @@ const OFFERING_WORKSPACE_ACTIONS = [
     PERMISSION_CODE.ASSESSMENT_DELETE,
 ] as const;
 
-const TOOL_ITEMS = [
-    { href: '/tools/code', label: 'Code', icon: SourceCodeIcon },
-    { href: '/tools/diagram', label: 'Diagram', icon: WorkflowSquare01Icon },
-] as const;
-
 export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -194,10 +187,6 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
             !('permissions' in item) ||
             (activeContext && hasAnyPermission(activeContext.permissions, item.permissions)),
     );
-    const toolItems =
-        activeContext && hasPermission(activeContext.permissions, PERMISSION_CODE.TOOL_LAUNCH)
-            ? TOOL_ITEMS
-            : [];
 
     /**
      * Mọi liên kết điều hướng mang theo ngữ cảnh đang hoạt động.
@@ -229,10 +218,10 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" render={<Link href="/" />}>
-                            <BrandLogo className="size-8 shrink-0" gradientId="ailearn-mark-nav" />
+                            <BrandLogo className="size-8 shrink-0" gradientId="lernumi-mark-nav" />
                             <div className="grid flex-1 text-left leading-tight">
                                 <span className="font-heading truncate font-semibold">
-                                    AI-Learn
+                                    Lernumi
                                 </span>
                                 <span className="text-muted-foreground truncate text-xs">
                                     Learning platform
@@ -306,27 +295,6 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                     </SidebarGroup>
                 )}
 
-                {toolItems.length > 0 && (
-                    <SidebarGroup>
-                        <SidebarGroupLabel>Tools</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {toolItems.map((item) => (
-                                <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton
-                                        isActive={pathname.startsWith(item.href)}
-                                        tooltip={item.label}
-                                        render={<Link href={withContext(item.href)} />}
-                                    >
-                                        <HugeiconsIcon icon={item.icon} strokeWidth={2} />
-                                        <span>{item.label}</span>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                ))}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                )}
             </SidebarContent>
 
             <SidebarFooter>

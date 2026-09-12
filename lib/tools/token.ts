@@ -5,8 +5,8 @@ import { z } from 'zod';
 
 import { ToolCapabilitySchema, type ToolCapability } from './api-contract';
 
-export const TOOL_TOKEN_ISSUER = 'ailearn';
-export const TOOL_TOKEN_AUDIENCE = 'ailearn-tool-api';
+export const TOOL_TOKEN_ISSUER = 'lernumi';
+export const TOOL_TOKEN_AUDIENCE = 'lernumi-tool-api';
 export const TOOL_TOKEN_TTL_SECONDS = 5 * 60;
 
 export { ToolCapabilitySchema, type ToolCapability } from './api-contract';

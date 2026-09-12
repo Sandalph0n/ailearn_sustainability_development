@@ -10,7 +10,6 @@ import '@codingame/monaco-vscode-typescript-basics-default-extension';
 import '@codingame/monaco-vscode-typescript-language-features-default-extension';
 import 'vscode/localExtensionHost';
 
-import { Event } from '@codingame/monaco-vscode-api/vscode/vs/base/common/event';
 import { URI } from '@codingame/monaco-vscode-api/vscode/vs/base/common/uri';
 import type { IStorageDatabase } from '@codingame/monaco-vscode-api/vscode/vs/base/parts/storage/common/storage';
 import {
@@ -57,7 +56,7 @@ import { MemoryStorageDatabase } from './memory-storage';
 import { ToolApiClient } from './platform/client';
 import { EventRecorder } from './platform/event-recorder';
 import {
-    AiLearnFileSystemProvider,
+    LernumiFileSystemProvider,
     WORKSPACE_ROOT,
     WORKSPACE_SCHEME,
 } from './platform/file-system';
@@ -86,7 +85,7 @@ export async function startCodeEditor(
     const recorder = new EventRecorder(api, canRecord, (status, pending) => {
         if (!syncStatus) return;
         syncStatus.text = status === 'idle'
-            ? '$(cloud) Saved to AI-Learn'
+            ? '$(cloud) Saved to Lernumi'
             : status === 'syncing'
               ? `$(sync~spin) Recording ${pending}`
               : status === 'recording'
@@ -97,7 +96,7 @@ export async function startCodeEditor(
     });
     await recorder.initialize(context);
 
-    const provider = new AiLearnFileSystemProvider(
+    const provider = new LernumiFileSystemProvider(
         api,
         context.session.readOnly || !context.session.capabilities.includes('files:write'),
         (event) => recorder.add(event),
@@ -159,8 +158,8 @@ export async function startCodeEditor(
         developmentOptions: { logLevel: LogLevel.Warning },
         configurationDefaults: defaultConfiguration(context.session.readOnly),
         productConfiguration: {
-            nameShort: 'AI-Learn Code',
-            nameLong: 'AI-Learn Code Editor',
+            nameShort: 'Lernumi Code',
+            nameLong: 'Lernumi Code Editor',
         },
         windowIndicator: {
             label: `${context.offering.subject.code} · ${context.assessment.name}`,
@@ -177,8 +176,8 @@ export async function startCodeEditor(
     await initialize(services, container, options, { userHome: URI.from({ scheme: 'tmp', path: '/' }) });
 
     syncStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    syncStatus.name = 'AI-Learn recording';
-    syncStatus.text = canRecord ? '$(cloud) Saved to AI-Learn' : '$(lock) Read-only';
+    syncStatus.name = 'Lernumi recording';
+    syncStatus.text = canRecord ? '$(cloud) Saved to Lernumi' : '$(lock) Read-only';
     syncStatus.show();
 
     const eventBridge = connectEditorEvents(provider, recorder);
@@ -186,20 +185,20 @@ export async function startCodeEditor(
         attachReplayController(new ReplayController(api, recorder));
     }
 
-    const output = vscode.window.createOutputChannel('AI-Learn');
+    const output = vscode.window.createOutputChannel('Lernumi');
     output.appendLine(`Workspace: ${context.workspace.name}`);
     output.appendLine(`Assessment: ${context.offering.subject.code} · ${context.assessment.name}`);
     output.appendLine(`Role: ${context.role.roleName}`);
     output.appendLine(`Mode: ${context.session.mode}${context.session.readOnly ? ' (read-only)' : ''}`);
 
-    window.addEventListener('ailearn:token-expired', () => {
-        void vscode.window.showErrorMessage('Your AI-Learn session expired. Reopen the tool from the assessment page.');
+    window.addEventListener('lernumi:token-expired', () => {
+        void vscode.window.showErrorMessage('Your Lernumi session expired. Reopen the tool from the assessment page.');
     });
     window.addEventListener('pagehide', () => {
         eventBridge.dispose();
         void recorder.flush();
     });
-    document.title = `${context.offering.subject.code} · ${context.assessment.name} — AI-Learn Code`;
+    document.title = `${context.offering.subject.code} · ${context.assessment.name} — Lernumi Code`;
 }
 
 function configureWorkers(): void {

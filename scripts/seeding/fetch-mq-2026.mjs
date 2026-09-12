@@ -48,7 +48,7 @@ const SOURCES = [
 ];
 
 const REQUEST_HEADERS = {
-    'user-agent': 'AI-Learn curriculum seed importer/1.0',
+    'user-agent': 'Lernumi curriculum seed importer/1.0',
     accept: 'text/html,application/xhtml+xml',
 };
 

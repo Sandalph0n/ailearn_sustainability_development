@@ -68,17 +68,17 @@ export async function GET(
         'Referrer-Policy': 'no-referrer',
         'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
         'Content-Security-Policy': [
-            "default-src 'self'",
+            "default-src 'none'",
             "base-uri 'none'",
             "object-src 'none'",
             "form-action 'none'",
-            "frame-ancestors 'self'",
-            "script-src 'self' 'unsafe-eval'",
+            "frame-ancestors 'none'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob:",
             "font-src 'self' data:",
             "connect-src 'self'",
-            "worker-src 'self' blob:",
+            "worker-src 'self' data: blob:",
         ].join('; '),
     });
     if (object.contentLength !== undefined) headers.set('Content-Length', String(object.contentLength));
