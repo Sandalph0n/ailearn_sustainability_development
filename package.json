@@ -26,7 +26,11 @@
     "db:restore": "node scripts/database/restore.mjs",
     "seed:mq:fetch": "node scripts/seeding/fetch-mq-2026.mjs",
     "seed:mq:generate": "node scripts/seeding/generate-mq-2026-sql.mjs",
-    "storage:console": "node -e \"console.log(String.raw`Trinh duyet tep MinIO: http://localhost:9001  (ailearn / ailearn-dev-secret)`)\""
+    "storage:console": "node -e \"console.log(String.raw`Trinh duyet tep MinIO: http://localhost:9001  (ailearn / ailearn-dev-secret)`)\"",
+    "tool:code-editor:dev": "pnpm --dir packages/code-editor-tool dev",
+    "tool:code-editor:check": "pnpm --dir packages/code-editor-tool check",
+    "tool:code-editor:build": "pnpm --dir packages/code-editor-tool build",
+    "tool:code-editor:package": "pnpm --dir packages/code-editor-tool package"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1117.0",

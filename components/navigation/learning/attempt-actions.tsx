@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
+import { Cancel01Icon, CheckmarkCircle02Icon, SourceCodeIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { toast } from 'sonner';
 
@@ -119,5 +119,71 @@ export function SubmitAttemptButton({ endpoint }: { endpoint: string }) {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+    );
+}
+
+export function LaunchToolButton({
+    attemptId,
+    tool,
+    roleAssignmentId,
+}: {
+    attemptId: string;
+    tool: { id: string; name: string };
+    roleAssignmentId: string;
+}) {
+    const [launching, setLaunching] = useState(false);
+    const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null);
+
+    async function launch() {
+        setLaunching(true);
+        try {
+            const response = await fetch('/api/tool/v1/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: 'WORK',
+                    attemptId,
+                    toolId: tool.id,
+                    roleAssignmentId,
+                }),
+            });
+            if (!response.ok) throw new Error(await responseMessage(response, `Could not open ${tool.name}`));
+            const payload = (await response.json()) as { runtimeUrl: string };
+            setRuntimeUrl(payload.runtimeUrl);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : `Could not open ${tool.name}`);
+        } finally {
+            setLaunching(false);
+        }
+    }
+
+    return (
+        <>
+            <Button className="w-full justify-start" disabled={launching} onClick={() => void launch()}>
+                {launching ? <Spinner /> : <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} />}
+                Open {tool.name}
+            </Button>
+            {runtimeUrl && (
+                <div className="fixed inset-0 z-[100] bg-[#181818]" role="dialog" aria-label={tool.name}>
+                    <iframe
+                        className="size-full border-0"
+                        src={runtimeUrl}
+                        title={tool.name}
+                        sandbox="allow-downloads allow-scripts"
+                    />
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon-sm"
+                        className="absolute top-1.5 right-2 z-10 border border-white/15 bg-[#2b2b2b] text-white shadow-md hover:bg-[#3a3a3a]"
+                        aria-label={`Close ${tool.name}`}
+                        title={`Close ${tool.name}`}
+                        onClick={() => setRuntimeUrl(null)}
+                    >
+                        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+                    </Button>
+                </div>
+            )}
+        </>
     );
 }

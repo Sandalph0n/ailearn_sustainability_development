@@ -64,5 +64,11 @@ next-env.d.ts
 # Screenshot do AI model tự chụp và test
 /.screenshots/
 
+# Independently built browser tools. Source is tracked; generated packages are reproducible.
+/.tmp/
+/packages/*/node_modules/
+/packages/*/dist/
+/packages/*/artifacts/
+
 # HTML cache for the reproducible public-data import. Normalised CSV files remain tracked.
 /prisma/seedingdata/source/**/cache/

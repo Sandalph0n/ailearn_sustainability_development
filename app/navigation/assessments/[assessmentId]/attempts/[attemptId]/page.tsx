@@ -3,7 +3,10 @@ import { notFound } from 'next/navigation';
 import { CheckmarkCircle02Icon, Clock01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 
-import { SubmitAttemptButton } from '@/components/navigation/learning/attempt-actions';
+import {
+    LaunchToolButton,
+    SubmitAttemptButton,
+} from '@/components/navigation/learning/attempt-actions';
 import { dueLabel, formatDateTime } from '@/components/navigation/learning/format';
 import { LearningPageHeader } from '@/components/navigation/learning/page-header';
 import { canStartAttempts } from '@/components/navigation/learning/policy';
@@ -81,12 +84,14 @@ export default async function AttemptPage({
                     <div className="border-border/70 mt-6 flex flex-1 items-center justify-center rounded-lg border border-dashed px-6 py-12 text-center">
                         <div className="max-w-md">
                             <p className="text-sm font-medium">
-                                {submitted ? 'This workspace is read-only' : 'Workspace editor is separate from this learning flow'}
+                                {submitted ? 'This workspace is read-only' : 'Your workspace is ready'}
                             </p>
                             <p className="text-muted-foreground mt-1 text-sm leading-6">
                                 {submitted
                                     ? 'You can review this attempt, but its contents can no longer be changed.'
-                                    : 'You can safely return to this attempt. Document editing and learning tools will connect here in their own implementation.'}
+                                    : assessment.tools.length > 0
+                                      ? 'Open an allowed learning tool or manage the underlying files directly.'
+                                      : 'No learning tool has been enabled for this assessment yet. You can still manage the underlying files.'}
                             </p>
                             <Link
                                 href={`/navigation/workspaces/${attempt.workspace.id}`}
@@ -99,6 +104,25 @@ export default async function AttemptPage({
                 </section>
 
                 <aside className="space-y-5">
+                    {assessment.tools.length > 0 && (
+                        <section className="rounded-xl border bg-card p-5">
+                            <h2 className="font-heading text-base font-semibold">Learning tools</h2>
+                            <p className="text-muted-foreground mt-1 mb-4 text-sm leading-6">
+                                Tools open in a protected full-screen workspace and save into this attempt.
+                            </p>
+                            <div className="space-y-2">
+                                {assessment.tools.map((tool) => (
+                                    <LaunchToolButton
+                                        key={tool.id}
+                                        attemptId={attempt.id}
+                                        tool={tool}
+                                        roleAssignmentId={access.assignmentId}
+                                    />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
                     <section className="rounded-xl border bg-card p-5">
                         <h2 className="font-heading text-base font-semibold">Attempt details</h2>
                         <dl className="mt-4 space-y-3 text-sm">

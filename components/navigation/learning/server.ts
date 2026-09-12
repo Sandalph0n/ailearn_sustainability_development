@@ -396,7 +396,9 @@ export async function getOwnAttempt(
     now: Date,
 ): Promise<{
     attempt: LearningAttemptSummary;
-    assessment: LearningAssessmentDetail;
+    assessment: LearningAssessmentDetail & {
+        tools: Array<{ id: string; code: string; name: string; description: string | null }>;
+    };
 } | null> {
     if (!canViewOwnAttempts(access)) return null;
     const row = await db.assessmentAttempt.findFirst({
@@ -429,6 +431,20 @@ export async function getOwnAttempt(
                     dueAt: true,
                     expectedDue: true,
                     offering: { select: offeringSelect },
+                    allowedTools: {
+                        where: { tool: { activeVersionId: { not: null } } },
+                        orderBy: { tool: { name: 'asc' } },
+                        select: {
+                            tool: {
+                                select: {
+                                    id: true,
+                                    code: true,
+                                    name: true,
+                                    description: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -448,6 +464,7 @@ export async function getOwnAttempt(
         assessment: {
             ...serializeAssessment(row.assessment, null),
             offering: serializeOffering(row.assessment.offering, null),
+            tools: row.assessment.allowedTools.map((edge) => edge.tool),
         },
     };
 }
