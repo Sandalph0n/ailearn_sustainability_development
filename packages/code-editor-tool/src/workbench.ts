@@ -5,8 +5,8 @@ import '@codingame/monaco-vscode-javascript-default-extension';
 import '@codingame/monaco-vscode-json-default-extension';
 import '@codingame/monaco-vscode-markdown-basics-default-extension';
 import '@codingame/monaco-vscode-search-result-default-extension';
-import '@codingame/monaco-vscode-theme-defaults-default-extension';
-import '@codingame/monaco-vscode-theme-seti-default-extension';
+import { whenReady as whenDefaultThemesReady } from '@codingame/monaco-vscode-theme-defaults-default-extension';
+import { whenReady as whenSetiThemeReady } from '@codingame/monaco-vscode-theme-seti-default-extension';
 import '@codingame/monaco-vscode-typescript-basics-default-extension';
 import '@codingame/monaco-vscode-typescript-language-features-default-extension';
 import 'vscode/localExtensionHost';
@@ -16,9 +16,11 @@ import type { IStorageDatabase } from '@codingame/monaco-vscode-api/vscode/vs/ba
 import {
     initialize,
     LogLevel,
+    StandaloneServices,
     type IEditorOverrideServices,
     type IWorkbenchConstructionOptions,
 } from '@codingame/monaco-vscode-api';
+import { IWorkbenchThemeService } from '@codingame/monaco-vscode-api/vscode/vs/workbench/services/themes/common/workbenchThemeService.service';
 import getAccessibilityServiceOverride from '@codingame/monaco-vscode-accessibility-service-override';
 import getConfigurationServiceOverride, {
     initUserConfiguration,
@@ -26,7 +28,8 @@ import getConfigurationServiceOverride, {
 import getDialogsServiceOverride from '@codingame/monaco-vscode-dialogs-service-override';
 import getEnvironmentServiceOverride from '@codingame/monaco-vscode-environment-service-override';
 import getExplorerServiceOverride from '@codingame/monaco-vscode-explorer-service-override';
-import {
+import getExtensionsServiceOverride from '@codingame/monaco-vscode-extensions-service-override';
+import getFilesServiceOverride, {
     registerCustomProvider,
 } from '@codingame/monaco-vscode-files-service-override';
 import getKeybindingsServiceOverride, {
@@ -63,6 +66,12 @@ import {
 } from './platform/file-system';
 import { ReplayController } from './replay/controller';
 import { attachReplayController, registerReplayView } from './replay/view';
+import {
+    DEFAULT_THEME_PREFERENCES,
+    loadThemePreferences,
+    saveThemePreferences,
+    type ThemePreferences,
+} from './theme-preferences';
 
 declare global {
     interface Window {
@@ -117,8 +126,13 @@ export async function startCodeEditor(
     configureWorkers();
 
     progress('Preparing workspace…');
+    const themePreferences = loadThemePreferences();
     await Promise.all([
-        initUserConfiguration(JSON.stringify(defaultConfiguration(context.session.readOnly), null, 2)),
+        initUserConfiguration(JSON.stringify(
+            defaultConfiguration(context.session.readOnly, themePreferences),
+            null,
+            2,
+        )),
         initUserKeybindings('[]'),
     ]);
 
@@ -129,6 +143,8 @@ export async function startCodeEditor(
         ...getNotificationsServiceOverride(),
         ...getDialogsServiceOverride(),
         ...getConfigurationServiceOverride(),
+        ...getExtensionsServiceOverride(),
+        ...getFilesServiceOverride(),
         ...getKeybindingsServiceOverride({ shouldUseGlobalKeybindings: () => true }),
         ...getTextmateServiceOverride(),
         ...getThemeServiceOverride(),
@@ -166,7 +182,7 @@ export async function startCodeEditor(
             },
         },
         developmentOptions: { logLevel: LogLevel.Warning },
-        configurationDefaults: defaultConfiguration(context.session.readOnly),
+        configurationDefaults: defaultConfiguration(context.session.readOnly, themePreferences),
         productConfiguration: {
             nameShort: 'Lernumi Code',
             nameLong: 'Lernumi Code Editor',
@@ -184,6 +200,37 @@ export async function startCodeEditor(
 
     progress('Starting VS Code workbench…');
     await initialize(services, container, options, { userHome: URI.from({ scheme: 'tmp', path: '/' }) });
+    await Promise.all([whenDefaultThemesReady(), whenSetiThemeReady()]);
+
+    // The theme extensions finish registering after the initial configuration is read.
+    // Apply the durable preference through VS Code's own service once their assets exist.
+    const themeService = StandaloneServices.get(IWorkbenchThemeService);
+    const colorTheme = (await themeService.getColorThemes())
+        .find((theme) => theme.settingsId === themePreferences.colorTheme);
+    if (!colorTheme) throw new Error(`VS Code color theme is unavailable: ${themePreferences.colorTheme}`);
+    await themeService.setColorTheme(colorTheme, 'auto');
+
+    const fileIconTheme = themePreferences.fileIconTheme === null
+        ? undefined
+        : (await themeService.getFileIconThemes())
+            .find((theme) => theme.settingsId === themePreferences.fileIconTheme);
+    if (themePreferences.fileIconTheme !== null && !fileIconTheme) {
+        throw new Error(`VS Code file icon theme is unavailable: ${themePreferences.fileIconTheme}`);
+    }
+    await themeService.setFileIconTheme(fileIconTheme, 'auto');
+
+    vscode.workspace.onDidChangeConfiguration((event) => {
+        if (
+            !event.affectsConfiguration('workbench.colorTheme') &&
+            !event.affectsConfiguration('workbench.iconTheme')
+        ) return;
+
+        const workbench = vscode.workspace.getConfiguration('workbench');
+        saveThemePreferences({
+            colorTheme: workbench.get('colorTheme'),
+            fileIconTheme: workbench.get('iconTheme'),
+        });
+    });
 
     syncStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     syncStatus.name = 'Lernumi recording';
@@ -232,11 +279,14 @@ function configureWorkers(): void {
     };
 }
 
-function defaultConfiguration(readOnly: boolean): Record<string, unknown> {
+function defaultConfiguration(
+    readOnly: boolean,
+    themes: ThemePreferences = DEFAULT_THEME_PREFERENCES,
+): Record<string, unknown> {
     return {
         'workbench.startupEditor': 'none',
-        'workbench.colorTheme': 'Default Dark Modern',
-        'workbench.iconTheme': 'vs-seti',
+        'workbench.colorTheme': themes.colorTheme,
+        'workbench.iconTheme': themes.fileIconTheme,
         'workbench.activity.showAccounts': false,
         'workbench.layoutControl.enabled': false,
         'window.commandCenter': true,

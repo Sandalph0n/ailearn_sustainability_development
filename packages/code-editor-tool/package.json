@@ -1,6 +1,6 @@
 {
   "name": "@lernumi/code-editor-tool",
-  "version": "0.2.2",
+  "version": "0.2.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,6 @@
     "package": "pnpm check && pnpm build && node scripts/package.mjs"
   },
   "dependencies": {
-    "@lernumi/replay-core": "workspace:*",
     "@codingame/monaco-vscode-accessibility-service-override": "36.2.7",
     "@codingame/monaco-vscode-api": "36.2.7",
     "@codingame/monaco-vscode-configuration-editing-default-extension": "36.2.7",
@@ -21,6 +20,7 @@
     "@codingame/monaco-vscode-dialogs-service-override": "36.2.7",
     "@codingame/monaco-vscode-environment-service-override": "36.2.7",
     "@codingame/monaco-vscode-explorer-service-override": "36.2.7",
+    "@codingame/monaco-vscode-extensions-service-override": "36.2.7",
     "@codingame/monaco-vscode-files-service-override": "36.2.7",
     "@codingame/monaco-vscode-html-default-extension": "36.2.7",
     "@codingame/monaco-vscode-javascript-default-extension": "36.2.7",
@@ -46,6 +46,7 @@
     "@codingame/monaco-vscode-typescript-language-features-default-extension": "36.2.7",
     "@codingame/monaco-vscode-workbench-service-override": "36.2.7",
     "@codingame/monaco-vscode-working-copy-service-override": "36.2.7",
+    "@lernumi/replay-core": "workspace:*",
     "monaco-editor": "npm:@codingame/monaco-vscode-editor-api@36.2.7",
     "vscode": "npm:@codingame/monaco-vscode-extension-api@36.2.7"
   },
