@@ -229,7 +229,7 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" render={<Link href="/" />}>
-                            <BrandLogo className="size-8 shrink-0" gradientId="ailearn-mark-nav" />
+                            <BrandLogo className="size-8 shrink-0" />
                             <div className="grid flex-1 text-left leading-tight">
                                 <span className="font-heading truncate font-semibold">
                                     AI-Learn

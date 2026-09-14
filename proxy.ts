@@ -20,7 +20,7 @@ import { SESSION_COOKIE_NAME } from '@/lib/auth/session/cookie';
  */
 
 /** Đường dẫn ai cũng vào được. So khớp CHÍNH XÁC, không theo tiền tố. */
-const PUBLIC_PATHS = new Set(['/', '/auth']);
+const PUBLIC_PATHS = new Set(['/', '/auth', '/about', '/privacy', '/terms']);
 
 export default function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
