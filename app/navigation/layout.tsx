@@ -16,6 +16,7 @@ import { redirect } from 'next/navigation';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
 import { HeaderAccount } from '@/components/navigation/header-account';
 import { HeaderContext } from '@/components/navigation/header-context';
+import { ThemeMenu } from '@/components/theme-menu';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { listAuthorizedContextOptions } from '@/lib/auth/authorization-service';
@@ -64,6 +65,12 @@ export default async function NavigationLayout({
                     */}
                     <HeaderContext options={contexts} />
                     <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
+                    {/*
+                        Nút đổi giao diện đứng giữa vạch ngăn và tài khoản — cùng chỗ với trang
+                        giới thiệu và About, để người dùng không phải tìm nó ở một góc khác khi
+                        bước vào ứng dụng.
+                    */}
+                    <ThemeMenu />
                     <HeaderAccount />
                 </header>
 
