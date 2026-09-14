@@ -119,7 +119,9 @@ export default function AuthPage() {
                                     className="size-5"
                                 />
                             </div>
-                            <span className="font-heading text-lg font-medium">AI-Learn</span>
+                            <span className="font-heading text-lg font-medium">
+                                Lern<span className="text-brand-teal">umi</span>
+                            </span>
                         </div>
 
                         <div className="relative flex flex-col gap-7 py-10">
@@ -166,7 +168,9 @@ export default function AuthPage() {
                                     className="size-5"
                                 />
                             </div>
-                            <span className="font-heading text-lg font-medium">AI-Learn</span>
+                            <span className="font-heading text-lg font-medium">
+                                Lern<span className="text-brand-teal">umi</span>
+                            </span>
                         </div>
 
                         <div className="flex flex-col gap-1.5">
