@@ -21,8 +21,8 @@ export class EventRecorder {
         private readonly onStatus: (status: RecorderStatus, pending: number) => void = () => undefined,
     ) {}
 
-    async initialize(context: RuntimeContext): Promise<void> {
-        if (!this.enabled) return;
+    async initialize(context: RuntimeContext): Promise<{ shouldCaptureBaseline: boolean }> {
+        if (!this.enabled) return { shouldCaptureBaseline: false };
         const checkpoint = await this.api.eventCheckpoint();
         if (checkpoint.closed) throw new Error('This work session is already closed');
         this.nextSeq = checkpoint.nextSeq;
@@ -39,6 +39,7 @@ export class EventRecorder {
             },
             editorEventSchema: 1,
         });
+        return { shouldCaptureBaseline: checkpoint.nextSeq === 0 };
     }
 
     add(event: ToolEvent): void {

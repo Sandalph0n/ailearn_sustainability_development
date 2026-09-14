@@ -38,6 +38,7 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
         private readonly readOnly: boolean,
         private readonly record: Recorder = () => undefined,
         private readonly rootCreatedAt = Date.now(),
+        private readonly snapshotFilesOnFirstRead = true,
     ) {
         this.capabilities =
             FileSystemProviderCapabilities.FileReadWrite |
@@ -86,7 +87,7 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
 
         const result = await this.api.readDocument(document.id);
         if (result.etag) this.byPath.set(path, { ...document, contentHash: result.etag });
-        if (!this.snapshotted.has(document.id)) {
+        if (this.snapshotFilesOnFirstRead && !this.snapshotted.has(document.id)) {
             this.snapshotted.add(document.id);
             this.recordSnapshot(document, path, result.bytes);
         }
@@ -99,6 +100,7 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
         if (path === '/') throw fsError(FileSystemProviderErrorCode.FileIsADirectory, path);
 
         let document: ToolDocument | null = null;
+        let created = false;
         try {
             document = await this.resolve(path);
         } catch (error) {
@@ -118,6 +120,7 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
                 name,
                 parentFolderId: parent?.id ?? null,
             });
+            created = true;
             this.cache(path, document);
             this.record(event('file.created', { documentId: document.id, path }));
             this.fire(FileChangeType.ADDED, resource);
@@ -145,6 +148,10 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
                 contentHash: updated.contentHash,
                 sizeBytes: updated.sizeBytes,
             }));
+            if (created && !this.snapshotted.has(updated.id)) {
+                this.snapshotted.add(updated.id);
+                this.recordSnapshot(updated, path, content);
+            }
             this.fire(FileChangeType.UPDATED, resource);
         } catch (error) {
             if (isApiStatus(error, 412)) {

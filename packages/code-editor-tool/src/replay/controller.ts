@@ -12,6 +12,7 @@ import {
 import type { ToolApiClient } from '../platform/client';
 import type { EventRecorder } from '../platform/event-recorder';
 import type { ReplaySession } from '../platform/types';
+import { buildReplayTimeline, replayCutoff, type ReplayTimeline } from './timeline';
 
 export type ReplayViewState = {
     sessions: ReplaySession[];
@@ -81,7 +82,7 @@ export class ReplayController {
     readonly onDidChange = this.emitter.event;
     private readonly playheadEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangePlayhead = this.playheadEmitter.event;
-    private readonly eventsBySession = new Map<string, SequencedReplayEvent[]>();
+    private readonly timelinesBySession = new Map<string, ReplayTimeline>();
     private playhead = 0;
     private state: ReplayViewState = {
         sessions: [],
@@ -127,12 +128,13 @@ export class ReplayController {
 
     async select(sessionId: string): Promise<void> {
         this.setPlayhead(0);
+        this.timelinesBySession.delete(sessionId);
         this.patch({ selectedSessionId: sessionId, events: [], loading: true, integrity: null, message: null });
         try {
             const batches = await this.api.replayEvents(sessionId);
             const integrity = await verifyReplayRecording(sessionId, batches);
             const events = flattenReplayBatches(batches);
-            this.eventsBySession.set(sessionId, events);
+            this.timelinesBySession.set(sessionId, buildReplayTimeline(events));
             this.patch({ events, loading: false, integrity });
         } catch (error) {
             this.patch({ loading: false, message: errorMessage(error) });
@@ -140,7 +142,7 @@ export class ReplayController {
     }
 
     outline(): ReplayOutlineItem[] {
-        return this.state.events.map((item) => ({
+        return this.timeline().events.map((item) => ({
             at: timestamp(item),
             notable: isNotable(item),
             type: item.event.type,
@@ -148,9 +150,10 @@ export class ReplayController {
     }
 
     frame(position: number, pinnedFile: string | null = null): ReplayFrame {
-        const index = Math.max(0, Math.min(position, this.state.events.length));
-        const state = replayStateAt(this.state.events, index - 1);
-        const current = index > 0 ? this.state.events[index - 1] : undefined;
+        const timeline = this.timeline();
+        const index = Math.max(0, Math.min(position, timeline.events.length));
+        const state = replayStateAt(this.state.events, replayCutoff(timeline, index));
+        const current = index > 0 ? timeline.events[index - 1] : undefined;
         const eventPath = current ? eventFile(current) : null;
         const file = pinnedFile
             ?? eventPath
@@ -164,7 +167,7 @@ export class ReplayController {
 
         return {
             index,
-            total: this.state.events.length,
+            total: timeline.events.length,
             at: current ? timestamp(current) : (this.outline()[0]?.at ?? 0),
             file,
             files: [...state.files.values()].map((item) => item.path).sort(),
@@ -177,30 +180,31 @@ export class ReplayController {
     }
 
     seek(position: number): void {
-        this.setPlayhead(Math.max(0, Math.min(position, this.state.events.length)));
+        this.setPlayhead(Math.max(0, Math.min(position, this.timeline().events.length)));
     }
 
     history(): ReplayHistoryState {
-        const current = this.playhead > 0 ? this.state.events[this.playhead - 1] : undefined;
+        const timeline = this.timeline();
+        const current = this.playhead > 0 ? timeline.events[this.playhead - 1] : undefined;
         return {
             sessionId: this.state.selectedSessionId,
             position: this.playhead,
-            total: this.state.events.length,
+            total: timeline.events.length,
             at: current ? timestamp(current) : 0,
             touchedPath: current ? eventFile(current) : null,
-            workspace: replayStateAt(this.state.events, this.playhead - 1),
+            workspace: replayStateAt(this.state.events, replayCutoff(timeline, this.playhead)),
         };
     }
 
     workspaceAt(sessionId: string, position: number): ReplayState | null {
-        const events = this.eventsBySession.get(sessionId);
-        if (!events) return null;
-        const bounded = Math.max(0, Math.min(position, events.length));
-        return replayStateAt(events, bounded - 1);
+        const timeline = this.timelinesBySession.get(sessionId);
+        if (!timeline) return null;
+        return replayStateAt(timeline.allEvents, replayCutoff(timeline, position));
     }
 
     dashboard(): ReplayDashboardState {
-        const flags = this.state.events
+        const timeline = this.timeline();
+        const flags = timeline.events
             .map((item, index) => ({ item, index }))
             .filter(({ item }) => isNotable(item))
             .map(({ item, index }): ReplayFlag => ({
@@ -220,11 +224,11 @@ export class ReplayController {
             selectedSessionId: this.state.selectedSessionId,
             integrity: this.state.integrity,
             sessions: [...this.state.sessions],
-            events: this.state.events.length,
+            events: timeline.events.length,
             batches: session?.eventBatchCount ?? 0,
             checkpoints: this.state.integrity?.checkedCheckpoints ?? 0,
-            externalPastes: this.state.events.filter((item) => item.event.type === 'editor.paste').length,
-            focusReturns: this.state.events.filter((item) => item.event.type === 'window.focus-restored').length,
+            externalPastes: timeline.events.filter((item) => item.event.type === 'editor.paste').length,
+            focusReturns: timeline.events.filter((item) => item.event.type === 'window.focus-restored').length,
             flags,
         };
     }
@@ -238,6 +242,12 @@ export class ReplayController {
         if (this.playhead === position) return;
         this.playhead = position;
         this.playheadEmitter.fire();
+    }
+
+    private timeline(): ReplayTimeline {
+        return this.state.selectedSessionId
+            ? (this.timelinesBySession.get(this.state.selectedSessionId) ?? buildReplayTimeline([]))
+            : buildReplayTimeline([]);
     }
 }
 

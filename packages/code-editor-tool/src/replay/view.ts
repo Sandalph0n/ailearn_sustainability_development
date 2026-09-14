@@ -124,7 +124,7 @@ function renderNav(container: HTMLElement): void {
         }),
         navigationRow('play-circle', 'Replay', 'Watch the code being written', () => {
             if (controller) ReplayPanel.show(controller);
-        }, !state?.selectedSessionId || state.events.length === 0),
+        }, !state?.selectedSessionId),
     );
     container.append(rows);
 
@@ -132,7 +132,10 @@ function renderNav(container: HTMLElement): void {
     status.className = 'inspector-nav-status';
     if (!state || state.loading) status.textContent = 'Loading activity log…';
     else if (state.message) status.textContent = state.message;
-    else if (state.selectedSessionId) status.textContent = `${state.events.length} events in selected session`;
+    else if (state.selectedSessionId) {
+        const count = controller?.history().total ?? 0;
+        status.textContent = `${count} activity ${count === 1 ? 'event' : 'events'} in selected session`;
+    }
     else status.textContent = 'No recorded session';
     container.append(status);
 }
@@ -183,16 +186,16 @@ function renderHistoryTree(container: HTMLElement): void {
     }
 
     const history = model.history();
+    const rootEntries = historyChildren(history.workspace);
     const meta = document.createElement('div');
     meta.className = 'history-meta';
     meta.textContent = history.total === 0
-        ? 'No recorded events'
+        ? (rootEntries.length > 0 ? 'Initial workspace' : 'No recorded activity')
         : history.position === 0
-          ? `0/${history.total} · start`
+          ? `0/${history.total} · initial workspace`
           : `${history.position}/${history.total} · ${new Date(history.at).toLocaleTimeString()}`;
     container.append(meta);
 
-    const rootEntries = historyChildren(history.workspace);
     if (!history.sessionId || rootEntries.length === 0) {
         container.append(historyMessage(
             history.total === 0

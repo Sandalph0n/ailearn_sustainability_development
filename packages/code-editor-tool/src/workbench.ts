@@ -105,17 +105,18 @@ export async function startCodeEditor(
         syncStatus.tooltip = 'Code Editor event recording status';
         syncStatus.show();
     });
-    await recorder.initialize(context);
+    const recording = await recorder.initialize(context);
 
     const provider = new LernumiFileSystemProvider(
         api,
         context.session.readOnly || !context.session.capabilities.includes('files:write'),
         (event) => recorder.add(event),
         Date.parse(context.workspace.createdAt),
+        recording.shouldCaptureBaseline,
     );
     registerCustomProvider(WORKSPACE_SCHEME, provider);
 
-    if (canRecord) {
+    if (canRecord && recording.shouldCaptureBaseline) {
         progress('Capturing workspace baseline…');
         await provider.recordInitialSnapshot();
         await recorder.flush();
