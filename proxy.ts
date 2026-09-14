@@ -2,10 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session/cookie';
 
+/**
+ * Proxy performs origin isolation and an optimistic session-cookie check. It deliberately avoids
+ * database access: layouts, pages, and route handlers remain responsible for real authorization.
+ */
 const TOOL_RUNTIME_ORIGIN = process.env.TOOL_RUNTIME_ORIGIN || 'http://127.0.0.1:3000';
 const TOOL_RUNTIME_HOST = new URL(TOOL_RUNTIME_ORIGIN).host.toLowerCase();
 const RUNTIME_ASSET_PATH = /^\/tools\/[a-z0-9-]{2,40}\/[0-9a-f-]{36}\/.+/;
-const PUBLIC_PATHS = new Set(['/', '/auth']);
+/** Đường dẫn ai cũng vào được. So khớp CHÍNH XÁC, không theo tiền tố. */
+const PUBLIC_PATHS = new Set(['/', '/auth', '/about', '/privacy', '/terms']);
 
 function notFound(): NextResponse {
     return new NextResponse('Not found', {

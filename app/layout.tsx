@@ -30,6 +30,7 @@ import type { Metadata } from 'next';
 import { Figtree, IBM_Plex_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 
+import { ThemeProvider, THEME_INIT_SCRIPT } from '@/components/theme-provider';
 import { cn } from '@/lib/utils';
 import './globals.css';
 
@@ -57,10 +58,20 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <html
             lang="en"
             className={cn('h-full antialiased', fontSans.variable, fontMono.variable)}
+            // Script dưới đây sửa `class` và `style` của chính thẻ này trước khi React ngậm nước.
+            // Không có cờ này thì React coi đó là lệch trạng thái và dựng lại từ đầu, xoá mất việc
+            // script vừa làm — tức là lại nháy sáng.
+            suppressHydrationWarning
         >
+            <head>
+                {/* Phải nằm trong `<head>` và chạy đồng bộ, trước khung hình đầu tiên. */}
+                <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+            </head>
             <body className="min-h-full bg-background text-foreground">
-                {children}
-                <Toaster />
+                <ThemeProvider>
+                    {children}
+                    <Toaster />
+                </ThemeProvider>
             </body>
         </html>
     );

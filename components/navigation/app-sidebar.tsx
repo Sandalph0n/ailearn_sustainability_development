@@ -218,10 +218,10 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" render={<Link href="/" />}>
-                            <BrandLogo className="size-8 shrink-0" gradientId="lernumi-mark-nav" />
+                            <BrandLogo className="size-8 shrink-0" eager />
                             <div className="grid flex-1 text-left leading-tight">
                                 <span className="font-heading truncate font-semibold">
-                                    Lernumi
+                                    Lern<span className="text-brand-teal">umi</span>
                                 </span>
                                 <span className="text-muted-foreground truncate text-xs">
                                     Learning platform

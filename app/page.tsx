@@ -9,7 +9,9 @@ import {
 } from '@hugeicons/core-free-icons';
 
 import { BrandLogo } from '@/components/brand-logo';
+import { SiteFooter } from '@/components/home/site-footer';
 import { Reveal } from '@/components/reveal';
+import { ThemeMenu } from '@/components/theme-menu';
 import { buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -30,10 +32,11 @@ import Link from 'next/link';
  * mới thấy biểu mẫu đăng ký, người cũ đi thẳng vào ứng dụng — mà trang giới thiệu vẫn tĩnh hoàn
  * toàn, không đọc cookie, không truy vấn gì.
  *
- * ─── Vì sao không có nút đổi giao diện sáng/tối ──────────────────────────────
+ * ─── Nút đổi giao diện sáng/tối ──────────────────────────────────────────────
  *
- * Bản base44 có, nhưng nó cần một provider giữ lựa chọn của người dùng — thứ dự án chưa dựng.
- * Hiện trang đi theo cài đặt của hệ điều hành.
+ * Trước đây trang bỏ qua nút này vì chưa có provider giữ lựa chọn. Nay đã có
+ * `components/theme-provider.tsx`, nên `<ThemeMenu />` đứng ngay cạnh nút đăng nhập, đúng chỗ
+ * bản base44 đặt nó.
  */
 
 const FEATURES = [
@@ -85,7 +88,7 @@ export default function LandingPage() {
             <header className="bg-background/80 border-border/60 fixed inset-x-0 top-0 z-50 border-b backdrop-blur">
                 <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8">
                     <Link href="/" className="flex items-center gap-3">
-                        <BrandLogo className="size-10" gradientId="lernumi-mark-header" />
+                        <BrandLogo className="size-10" eager />
                         <span className="font-heading text-xl font-semibold tracking-tight">
                             Lern<span className="text-brand-teal">umi</span>
                         </span>
@@ -104,18 +107,15 @@ export default function LandingPage() {
                     </nav>
 
                     <div className="flex items-center gap-2">
-                        {/* <Link
-                            href="/auth"
-                            className={buttonVariants({
-                                variant: 'ghost',
-                                size: 'lg',
-                                className: 'hidden sm:inline-flex',
-                            })}
-                        >
-                            Sign in
-                        </Link> */}
+                        <ThemeMenu />
+                        {/*
+                            Chỉ một nút, nhãn "Sign in" — theo commit 427ec69 bên base44. Trước đó
+                            đầu trang có cả "Sign in" lẫn "Start learning" đứng cạnh nhau, hai nút
+                            cùng dẫn tới một chỗ thì chỉ làm loãng lựa chọn. Lời mời "Start
+                            learning" vẫn còn nguyên ở hero và ở khối cuối trang.
+                        */}
                         <Link href="/auth" className={buttonVariants({ size: 'lg' })}>
-                            Start learning
+                            Sign in
                         </Link>
                     </div>
                 </div>
@@ -405,10 +405,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <footer className="border-border text-muted-foreground flex flex-col items-center gap-3 border-t py-8 text-sm">
-                <BrandLogo className="size-7" gradientId="lernumi-mark-footer" />
-                <p>Lernumi — make learning visible.</p>
-            </footer>
+            <SiteFooter />
         </div>
     );
 }
