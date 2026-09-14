@@ -1,11 +1,20 @@
 import type { IDisposable } from 'monaco-editor';
+import { StandaloneServices } from '@codingame/monaco-vscode-api';
+import { URI } from '@codingame/monaco-vscode-api/vscode/vs/base/common/uri';
+import { ILanguageService } from '@codingame/monaco-vscode-api/vscode/vs/editor/common/languages/language.service';
+import { getIconClasses } from '@codingame/monaco-vscode-api/vscode/vs/editor/common/services/getIconClasses';
+import { IModelService } from '@codingame/monaco-vscode-api/vscode/vs/editor/common/services/model.service';
+import { FileKind } from '@codingame/monaco-vscode-api/vscode/vs/platform/files/common/files';
 import {
     registerCustomView,
+    viewContainerRegistry,
     ViewContainerLocation,
 } from '@codingame/monaco-vscode-workbench-service-override';
 import * as vscode from 'vscode';
 
 import type { ReplayController } from './controller';
+import { HISTORY_SCHEME, HistoryFileSystemProvider, historyUri } from './history-file-system';
+import { historyChildren } from './history-tree';
 import dashboardCss from './webview/dashboard.css?raw';
 import dashboardScript from './webview/dashboard.js?raw';
 import replayCss from './webview/replay.css?raw';
@@ -13,6 +22,9 @@ import replayScript from './webview/replay.js?raw';
 
 let controller: ReplayController | null = null;
 let renderNavigation: (() => void) | null = null;
+let renderHistory: (() => void) | null = null;
+let historyPlayheadThrottle: ReturnType<typeof setTimeout> | null = null;
+const expandedHistoryFolders = new Set<string>();
 
 /**
  * Activity Bar container matching MQ Smart Learning: the sidebar is navigation only. The actual
@@ -45,12 +57,59 @@ export function registerReplayView(options: { openByDefault: boolean }): void {
             };
         },
     });
+
+    const viewContainer = viewContainerRegistry.get('lernumi.logInspector');
+    if (!viewContainer) throw new Error('Log Inspector view container was not registered');
+    registerCustomView({
+        id: 'lernumi.logInspector.history',
+        name: 'History Explorer',
+        order: 2,
+        location: ViewContainerLocation.Sidebar,
+        viewContainer,
+        actions: [{
+            id: 'lernumi.logInspector.history.collapseAll',
+            title: 'Collapse folders in history',
+            tooltip: 'Collapse folders in history',
+            icon: 'collapseAll',
+            async run() {
+                expandedHistoryFolders.clear();
+                renderHistory?.();
+            },
+        }],
+        renderBody(container): IDisposable {
+            container.classList.add('lernumi-history-explorer', 'show-file-icons', 'file-icon-themable-tree');
+            const render = () => renderHistoryTree(container);
+            renderHistory = render;
+            render();
+            return {
+                dispose() {
+                    if (renderHistory === render) renderHistory = null;
+                },
+            };
+        },
+    });
 }
 
 export function attachReplayController(value: ReplayController): void {
     controller = value;
-    value.onDidChange(() => renderNavigation?.());
+    vscode.workspace.registerFileSystemProvider(
+        HISTORY_SCHEME,
+        new HistoryFileSystemProvider(value),
+        { isCaseSensitive: true, isReadonly: true },
+    );
+    value.onDidChange(() => {
+        renderNavigation?.();
+        renderHistory?.();
+    });
+    value.onDidChangePlayhead(() => {
+        if (historyPlayheadThrottle) return;
+        historyPlayheadThrottle = setTimeout(() => {
+            historyPlayheadThrottle = null;
+            renderHistory?.();
+        }, 250);
+    });
     renderNavigation?.();
+    renderHistory?.();
     void value.refresh();
 }
 
@@ -103,6 +162,148 @@ function navigationRow(
     button.append(iconElement, copy);
     button.addEventListener('click', run);
     return button;
+}
+
+function renderHistoryTree(container: HTMLElement): void {
+    container.replaceChildren();
+    const model = controller;
+    if (!model) {
+        container.append(historyMessage('Loading history…'));
+        return;
+    }
+
+    const state = model.snapshot();
+    if (state.loading && state.events.length === 0) {
+        container.append(historyMessage('Loading history…'));
+        return;
+    }
+    if (state.message) {
+        container.append(historyMessage(state.message, 'warning'));
+        return;
+    }
+
+    const history = model.history();
+    const meta = document.createElement('div');
+    meta.className = 'history-meta';
+    meta.textContent = history.total === 0
+        ? 'No recorded events'
+        : history.position === 0
+          ? `0/${history.total} · start`
+          : `${history.position}/${history.total} · ${new Date(history.at).toLocaleTimeString()}`;
+    container.append(meta);
+
+    const rootEntries = historyChildren(history.workspace);
+    if (!history.sessionId || rootEntries.length === 0) {
+        container.append(historyMessage(
+            history.total === 0
+                ? 'No files were recorded in this session.'
+                : 'No files at this point. Move the replay playhead forward.',
+        ));
+        return;
+    }
+
+    const tree = document.createElement('div');
+    tree.className = 'history-tree';
+    tree.setAttribute('role', 'tree');
+    appendHistoryLevel(tree, history, '/', 0);
+    tree.addEventListener('keydown', navigateHistoryTree);
+    container.append(tree);
+}
+
+function appendHistoryLevel(
+    tree: HTMLElement,
+    history: ReturnType<ReplayController['history']>,
+    parentPath: string,
+    depth: number,
+): void {
+    for (const entry of historyChildren(history.workspace, parentPath)) {
+        const isFolder = entry.kind === 'folder';
+        const expanded = isFolder && expandedHistoryFolders.has(entry.path);
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'history-row';
+        row.style.setProperty('--history-depth', String(depth));
+        row.setAttribute('role', 'treeitem');
+        row.dataset.path = entry.path;
+        if (isFolder) row.setAttribute('aria-expanded', String(expanded));
+        if (entry.path === history.workspace.activePath) row.dataset.active = 'true';
+
+        const twistie = document.createElement('span');
+        twistie.className = `history-twistie codicon codicon-${isFolder ? (expanded ? 'chevron-down' : 'chevron-right') : 'blank'}`;
+        const resourceIcon = document.createElement('span');
+        resourceIcon.className = 'history-resource-icon';
+        const resource = URI.parse(historyUri(history.sessionId!, entry.path, history.position).toString());
+        resourceIcon.classList.add(...resourceIconClasses(resource, isFolder));
+
+        const label = document.createElement('span');
+        label.className = 'history-label';
+        label.textContent = entry.name;
+        const description = document.createElement('span');
+        description.className = 'history-description';
+        if (!isFolder) {
+            description.textContent = `${entry.lines ?? 0} ${entry.lines === 1 ? 'line' : 'lines'}${entry.path === history.touchedPath ? '  ●' : ''}`;
+        }
+
+        row.append(twistie, resourceIcon, label, description);
+        row.title = isFolder
+            ? entry.path.replace(/^\//, '')
+            : `${entry.path.replace(/^\//, '')} at event ${history.position}`;
+        row.addEventListener('click', () => {
+            if (isFolder) {
+                if (expanded) expandedHistoryFolders.delete(entry.path);
+                else expandedHistoryFolders.add(entry.path);
+                renderHistory?.();
+                return;
+            }
+            void vscode.commands.executeCommand(
+                'vscode.open',
+                historyUri(history.sessionId!, entry.path, history.position),
+                { preview: true },
+            );
+        });
+        tree.append(row);
+        if (expanded) appendHistoryLevel(tree, history, entry.path, depth + 1);
+    }
+}
+
+function resourceIconClasses(resource: URI, folder: boolean): string[] {
+    try {
+        return getIconClasses(
+            StandaloneServices.get(IModelService),
+            StandaloneServices.get(ILanguageService),
+            resource,
+            folder ? FileKind.FOLDER : FileKind.FILE,
+        );
+    } catch {
+        return ['codicon', folder ? 'codicon-folder' : 'codicon-file-code'];
+    }
+}
+
+function historyMessage(text: string, icon = 'info'): HTMLElement {
+    const message = document.createElement('div');
+    message.className = 'history-message';
+    const glyph = document.createElement('span');
+    glyph.className = `codicon codicon-${icon}`;
+    const copy = document.createElement('span');
+    copy.textContent = text;
+    message.append(glyph, copy);
+    return message;
+}
+
+function navigateHistoryTree(event: KeyboardEvent): void {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const rows = [...(event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('.history-row')];
+    if (rows.length === 0) return;
+    const current = rows.indexOf(document.activeElement as HTMLButtonElement);
+    const next = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? rows.length - 1
+          : event.key === 'ArrowDown'
+            ? Math.min(rows.length - 1, current + 1)
+            : Math.max(0, current - 1);
+    event.preventDefault();
+    rows[next]?.focus();
 }
 
 class DashboardPanel {
@@ -211,6 +412,7 @@ class ReplayPanel {
     }
 
     private postFrame(index: number, file: string | null): void {
+        this.model.seek(index);
         void this.panel.webview.postMessage({ type: 'frame', frame: this.model.frame(index, file) });
     }
 

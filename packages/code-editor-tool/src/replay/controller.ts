@@ -5,6 +5,7 @@ import {
     verifyReplayRecording,
     type ReplayIntegrity,
     type ReplaySelection,
+    type ReplayState,
     type SequencedReplayEvent,
 } from '@lernumi/replay-core';
 
@@ -60,6 +61,15 @@ export type ReplayDashboardState = {
     flags: ReplayFlag[];
 };
 
+export type ReplayHistoryState = {
+    sessionId: string | null;
+    position: number;
+    total: number;
+    at: number;
+    touchedPath: string | null;
+    workspace: ReplayState;
+};
+
 /**
  * Shared replay model for every inspector surface.
  *
@@ -69,6 +79,10 @@ export type ReplayDashboardState = {
 export class ReplayController {
     private readonly emitter = new vscode.EventEmitter<void>();
     readonly onDidChange = this.emitter.event;
+    private readonly playheadEmitter = new vscode.EventEmitter<void>();
+    readonly onDidChangePlayhead = this.playheadEmitter.event;
+    private readonly eventsBySession = new Map<string, SequencedReplayEvent[]>();
+    private playhead = 0;
     private state: ReplayViewState = {
         sessions: [],
         selectedSessionId: null,
@@ -112,11 +126,14 @@ export class ReplayController {
     }
 
     async select(sessionId: string): Promise<void> {
+        this.setPlayhead(0);
         this.patch({ selectedSessionId: sessionId, events: [], loading: true, integrity: null, message: null });
         try {
             const batches = await this.api.replayEvents(sessionId);
             const integrity = await verifyReplayRecording(sessionId, batches);
-            this.patch({ events: flattenReplayBatches(batches), loading: false, integrity });
+            const events = flattenReplayBatches(batches);
+            this.eventsBySession.set(sessionId, events);
+            this.patch({ events, loading: false, integrity });
         } catch (error) {
             this.patch({ loading: false, message: errorMessage(error) });
         }
@@ -159,6 +176,29 @@ export class ReplayController {
         };
     }
 
+    seek(position: number): void {
+        this.setPlayhead(Math.max(0, Math.min(position, this.state.events.length)));
+    }
+
+    history(): ReplayHistoryState {
+        const current = this.playhead > 0 ? this.state.events[this.playhead - 1] : undefined;
+        return {
+            sessionId: this.state.selectedSessionId,
+            position: this.playhead,
+            total: this.state.events.length,
+            at: current ? timestamp(current) : 0,
+            touchedPath: current ? eventFile(current) : null,
+            workspace: replayStateAt(this.state.events, this.playhead - 1),
+        };
+    }
+
+    workspaceAt(sessionId: string, position: number): ReplayState | null {
+        const events = this.eventsBySession.get(sessionId);
+        if (!events) return null;
+        const bounded = Math.max(0, Math.min(position, events.length));
+        return replayStateAt(events, bounded - 1);
+    }
+
     dashboard(): ReplayDashboardState {
         const flags = this.state.events
             .map((item, index) => ({ item, index }))
@@ -192,6 +232,12 @@ export class ReplayController {
     private patch(next: Partial<ReplayViewState>): void {
         this.state = { ...this.state, ...next };
         this.emitter.fire();
+    }
+
+    private setPlayhead(position: number): void {
+        if (this.playhead === position) return;
+        this.playhead = position;
+        this.playheadEmitter.fire();
     }
 }
 
