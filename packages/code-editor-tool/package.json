@@ -1,6 +1,6 @@
 {
   "name": "@lernumi/code-editor-tool",
-  "version": "0.1.2",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "package": "pnpm check && pnpm build && node scripts/package.mjs"
   },
   "dependencies": {
+    "@lernumi/replay-core": "workspace:*",
     "@codingame/monaco-vscode-accessibility-service-override": "36.2.7",
     "@codingame/monaco-vscode-api": "36.2.7",
     "@codingame/monaco-vscode-configuration-editing-default-extension": "36.2.7",

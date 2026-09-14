@@ -61,7 +61,9 @@ export class EventRecorder {
     }
 
     async stop(): Promise<void> {
+        if (this.stopped) return;
         window.clearTimeout(this.timer);
+        this.add(editorEvent('session.ended'));
         await this.flush();
         this.stopped = true;
     }
@@ -83,6 +85,14 @@ export class EventRecorder {
                 this.queue.splice(0, batch.events.length);
                 this.pendingBatch = null;
             } catch (error) {
+                if (error instanceof ToolApiError && (error.status === 401 || error.status === 403)) {
+                    // A rejected token cannot recover by retrying the same request every second.
+                    // Stop this recorder and let the token-expired UI direct the user back to Lernumi.
+                    this.stopped = true;
+                    window.clearTimeout(this.timer);
+                    this.onStatus('error', this.queue.length);
+                    return;
+                }
                 if (
                     error instanceof ToolApiError &&
                     error.code === 'EVENT_SEQUENCE_CONFLICT' &&

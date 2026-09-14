@@ -81,6 +81,9 @@ export type StoredEventBatch = {
     clientAt: string;
     receivedAt: string;
     events: unknown[];
+    payloadHash: string | null;
+    previousChainHash: string | null;
+    chainHash: string | null;
 };
 
 export type ToolEvent = {

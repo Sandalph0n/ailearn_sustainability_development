@@ -1,4 +1,5 @@
 import '@codingame/monaco-vscode-css-default-extension';
+import '@codingame/monaco-vscode-configuration-editing-default-extension';
 import '@codingame/monaco-vscode-html-default-extension';
 import '@codingame/monaco-vscode-javascript-default-extension';
 import '@codingame/monaco-vscode-json-default-extension';
@@ -52,7 +53,7 @@ import OutputWorker from '@codingame/monaco-vscode-output-service-override/worke
 import * as vscode from 'vscode';
 
 import { connectEditorEvents } from './editor-events';
-import { MemoryStorageDatabase } from './memory-storage';
+import { BrowserStorageDatabase } from './browser-storage';
 import { ToolApiClient } from './platform/client';
 import { EventRecorder } from './platform/event-recorder';
 import {
@@ -76,7 +77,7 @@ export async function startCodeEditor(
     progress: (message: string) => void,
 ): Promise<void> {
     progress('Reading launch context…');
-    const api = ToolApiClient.fromLaunchLocation();
+    const api = await ToolApiClient.fromLaunchLocation();
     const context = await api.context();
     await api.startTokenRefresh();
 
@@ -104,7 +105,15 @@ export async function startCodeEditor(
     );
     registerCustomProvider(WORKSPACE_SCHEME, provider);
 
-    if (context.session.capabilities.includes('replay:read')) registerReplayView();
+    if (canRecord) {
+        progress('Capturing workspace baseline…');
+        await provider.recordInitialSnapshot();
+        await recorder.flush();
+    }
+
+    if (context.session.capabilities.includes('replay:read')) {
+        registerReplayView({ openByDefault: context.session.mode === 'REVIEWER' });
+    }
     configureWorkers();
 
     progress('Preparing workspace…');
@@ -113,7 +122,8 @@ export async function startCodeEditor(
         initUserKeybindings('[]'),
     ]);
 
-    const storageFactory = (): IStorageDatabase => new MemoryStorageDatabase();
+    const storageFactory = (scope: string): (() => IStorageDatabase) =>
+        () => new BrowserStorageDatabase(`lernumi.code.storage.${scope}`);
     const services: IEditorOverrideServices = {
         ...getModelServiceOverride(),
         ...getNotificationsServiceOverride(),
@@ -135,9 +145,9 @@ export async function startCodeEditor(
                 'workbench.activityBar.location': 'default',
             },
             databaseFactories: {
-                [StorageScope.APPLICATION]: storageFactory,
-                [StorageScope.PROFILE]: storageFactory,
-                [StorageScope.WORKSPACE]: storageFactory,
+                [StorageScope.APPLICATION]: storageFactory('application'),
+                [StorageScope.PROFILE]: storageFactory('profile'),
+                [StorageScope.WORKSPACE]: storageFactory(`workspace.${context.workspace.id}`),
             },
         }),
         ...getLifecycleServiceOverride(),
@@ -182,7 +192,11 @@ export async function startCodeEditor(
 
     const eventBridge = connectEditorEvents(provider, recorder);
     if (context.session.capabilities.includes('replay:read')) {
-        attachReplayController(new ReplayController(api, recorder));
+        attachReplayController(new ReplayController(
+            api,
+            recorder,
+            context.session.id,
+        ));
     }
 
     const output = vscode.window.createOutputChannel('Lernumi');
@@ -194,8 +208,14 @@ export async function startCodeEditor(
     window.addEventListener('lernumi:token-expired', () => {
         void vscode.window.showErrorMessage('Your Lernumi session expired. Reopen the tool from the assessment page.');
     });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') void recorder.flush();
+    });
     window.addEventListener('pagehide', () => {
         eventBridge.dispose();
+        // pagehide also fires for a normal refresh. Closing here made the HttpOnly-cookie resume
+        // credential point at an already-ended work session. Submission closes every open work
+        // session for the attempt; pagehide only performs the recorder's keepalive flush.
         void recorder.flush();
     });
     document.title = `${context.offering.subject.code} · ${context.assessment.name} — Lernumi Code`;

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         response.cookies.set(
             toolRuntimeCookieName(grant.toolVersionId),
             grant.response.token,
-            toolRuntimeCookieOptions(),
+            toolRuntimeCookieOptions(grant.toolCode, grant.toolVersionId),
         );
         return response;
     } catch (error) {

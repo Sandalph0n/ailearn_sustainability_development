@@ -37,6 +37,15 @@ model EventBatch {
   /// Mảng sự kiện thô. Nền tảng lưu mù, không diễn giải.
   events Json
 
+  /// SHA-256 canonical của session id, metadata lô và events. Server tự tính; tool không được
+  /// gửi giá trị này để tự tuyên bố dữ liệu của mình hợp lệ.
+  payloadHash String? @db.VarChar(64)
+  /// Hash mắt xích ngay trước. `null` ở genesis hoặc khi nối tiếp dữ liệu legacy chưa có hash.
+  previousChainHash String? @db.VarChar(64)
+  /// SHA-256 của `{ previousChainHash, payloadHash }`. Ba cột nullable để các phiên cũ vẫn đọc
+  /// được, nhưng inspector phải ghi rõ chúng không thể được xác minh mật mã.
+  chainHash String? @db.VarChar(64)
+
   workSession AssignmentWorkSession @relation(fields: [assignmentWorkSessionId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentWorkSessionId, clientBatchId])

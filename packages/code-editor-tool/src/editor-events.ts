@@ -12,6 +12,25 @@ export function connectEditorEvents(
     const subscriptions: vscode.Disposable[] = [];
     let selectionTimer: number | undefined;
     let pendingSelection: vscode.TextEditor | null = null;
+    let visibleRangeTimer: number | undefined;
+    let pendingVisibleEditor: vscode.TextEditor | null = null;
+    const highlighted = new Set<string>();
+    let blurredAt: string | null = null;
+
+    const recordForEditor = async (
+        editor: vscode.TextEditor,
+        type: string,
+        details: Record<string, unknown>,
+    ) => {
+        if (editor.document.uri.scheme !== WORKSPACE_SCHEME) return;
+        const documentId = await provider.documentIdForPath(editor.document.uri.path);
+        if (!documentId) return;
+        recorder.add(editorEvent(type, {
+            documentId,
+            path: editor.document.uri.path,
+            ...details,
+        }));
+    };
 
     subscriptions.push(
         vscode.workspace.onDidChangeTextDocument((change) => {
@@ -32,28 +51,75 @@ export function connectEditorEvents(
         }),
         vscode.window.onDidChangeActiveTextEditor((editor) => {
             if (editor?.document.uri.scheme !== WORKSPACE_SCHEME) return;
-            recorder.add(editorEvent('editor.active', { path: editor.document.uri.path }));
+            void recordForEditor(editor, 'editor.active', {});
         }),
         vscode.window.onDidChangeTextEditorSelection(({ textEditor }) => {
             if (textEditor.document.uri.scheme !== WORKSPACE_SCHEME) return;
+            const path = textEditor.document.uri.path;
+            const hasHighlight = textEditor.selections.some((selection) => !selection.isEmpty);
+            if (!hasHighlight && !highlighted.has(path)) return;
+            if (hasHighlight) highlighted.add(path);
+            else highlighted.delete(path);
             pendingSelection = textEditor;
             window.clearTimeout(selectionTimer);
             selectionTimer = window.setTimeout(() => {
                 const current = pendingSelection;
                 if (!current) return;
-                recorder.add(editorEvent('editor.selection', {
-                    path: current.document.uri.path,
+                void recordForEditor(current, 'editor.selection', {
                     selections: current.selections.map((selection) => ({
                         anchor: { line: selection.anchor.line, character: selection.anchor.character },
                         active: { line: selection.active.line, character: selection.active.character },
                     })),
-                }));
-            }, 180);
+                });
+            }, hasHighlight ? 250 : 0);
+        }),
+        vscode.window.onDidChangeTextEditorVisibleRanges(({ textEditor, visibleRanges }) => {
+            if (textEditor.document.uri.scheme !== WORKSPACE_SCHEME || visibleRanges.length === 0) return;
+            pendingVisibleEditor = textEditor;
+            window.clearTimeout(visibleRangeTimer);
+            visibleRangeTimer = window.setTimeout(() => {
+                const current = pendingVisibleEditor;
+                if (!current || current.visibleRanges.length === 0) return;
+                void recordForEditor(current, 'editor.visible-range', {
+                    top: current.visibleRanges[0]!.start.line,
+                    bottom: current.visibleRanges.at(-1)!.end.line,
+                });
+            }, 500);
         }),
     );
 
+    const onPaste = (event: ClipboardEvent) => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.uri.scheme !== WORKSPACE_SCHEME) return;
+        const text = event.clipboardData?.getData('text/plain') ?? '';
+        void recordForEditor(editor, 'editor.paste', {
+            length: text.length,
+            lineCount: text ? text.split(/\r?\n/).length : 0,
+            text,
+        });
+    };
+    const onBlur = () => {
+        blurredAt = new Date().toISOString();
+    };
+    const onFocus = () => {
+        if (!blurredAt) return;
+        const awayFrom = blurredAt;
+        blurredAt = null;
+        recorder.add(editorEvent('window.focus-restored', {
+            awayFrom,
+            durationMs: Date.now() - Date.parse(awayFrom),
+        }));
+    };
+    document.addEventListener('paste', onPaste, true);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+
     return new vscode.Disposable(() => {
         window.clearTimeout(selectionTimer);
+        window.clearTimeout(visibleRangeTimer);
+        document.removeEventListener('paste', onPaste, true);
+        window.removeEventListener('blur', onBlur);
+        window.removeEventListener('focus', onFocus);
         for (const subscription of subscriptions) subscription.dispose();
     });
 }

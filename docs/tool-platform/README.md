@@ -188,6 +188,14 @@ Within one work session:
 Do not use wall-clock time to order replay. `clientAt` is diagnostic; the sequence range is the
 ordering authority.
 
+For every newly accepted batch, the server canonicalizes `{ sessionId, clientBatchId, seqStart,
+seqEnd, clientAt, events }`, stores its SHA-256 as `payloadHash`, and links it to the preceding
+server-produced `chainHash`. Tools do not submit these hashes. A replay client should verify all
+three integrity fields and the contiguous sequence before presenting a recording as verified.
+It should also rebuild files at each `file.saved` event and compare the reconstructed UTF-8 bytes
+with that event's document `contentHash`. Existing batches created before integrity fields were
+introduced remain readable but must be labelled legacy/unverifiable.
+
 ## 7. Replay
 
 Replay data is available only when the launch token grants `replay:read`. Owners require
@@ -199,6 +207,14 @@ The platform returns stored batches but does not interpret them. A replay must r
 session, the API returns `409 TOOL_VERSION_MISMATCH` and the required version ID. The platform
 launcher should start replay from the selected work session so this mismatch does not normally
 occur.
+
+The reference Code Editor records a complete opening snapshot (including unopened files and empty
+folders), text edits, saves, paste metadata, active editors, meaningful selections, visible line
+ranges, file-tree mutations, focus-away intervals, and session boundaries. These names are part of
+that tool's event schema, not a mandatory vocabulary for every Lernumi tool. Generic batching,
+canonical hashing, chain verification, flattening, and replay-state primitives live in
+`packages/replay-core` so another tool can share the transport and integrity engine while supplying
+its own reducer and renderer.
 
 ## 8. Errors, pagination, and caching
 
@@ -232,6 +248,7 @@ Document and replay-session collections use opaque UUID cursors. Follow `nextCur
 | Tool API routes | `app/api/tool/v1/**/route.ts` |
 | Versioned runtime assets | `app/tools/[toolCode]/[toolVersionId]/[...assetPath]/route.ts` |
 | Database history | `ToolVersion`, `AssignmentWorkSession`, `EventBatch` Prisma models |
+| Reusable replay primitives | `packages/replay-core` |
 
 The OpenAPI document is the endpoint-level source of truth. When changing a route, update its Zod
 schema, tests, OpenAPI operation, and this lifecycle guide in the same commit.

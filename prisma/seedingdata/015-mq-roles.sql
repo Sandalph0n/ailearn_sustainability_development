@@ -72,6 +72,7 @@ VALUES
   ('c14226dd-1cd5-42de-8832-93169e7f40be', 'assessment.attempt'),
   ('c14226dd-1cd5-42de-8832-93169e7f40be', 'attempt.view_own'),
   ('c14226dd-1cd5-42de-8832-93169e7f40be', 'tool.launch'),
+  ('c14226dd-1cd5-42de-8832-93169e7f40be', 'tool_session.replay_own'),
 
   -- Institution catalog access without administrative mutation.
   ('9029e84d-bb51-5ba8-8a54-f6c282e9d7bf', 'institution.settings.view'),
@@ -82,10 +83,12 @@ VALUES
   ('d25951cc-f23a-5c4d-8bcc-98ae881fba46', 'offering.view'),
   ('d25951cc-f23a-5c4d-8bcc-98ae881fba46', 'assessment.view'),
   ('d25951cc-f23a-5c4d-8bcc-98ae881fba46', 'attempt.view_all'),
+  ('d25951cc-f23a-5c4d-8bcc-98ae881fba46', 'tool_session.replay_all'),
   ('d25951cc-f23a-5c4d-8bcc-98ae881fba46', 'member.view'),
 
   ('54cddb9b-273a-4952-87c9-6c1deeee5b45', 'assessment.manage'),
   ('54cddb9b-273a-4952-87c9-6c1deeee5b45', 'attempt.view_all'),
+  ('54cddb9b-273a-4952-87c9-6c1deeee5b45', 'tool_session.replay_all'),
   ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.view'),
   ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.update'),
   ('c64a0c58-eeb6-44ff-966f-29c531ec0317', 'offering.delete'),
@@ -99,6 +102,7 @@ VALUES
   ('1e2b9a93-123b-4b55-bbeb-65384e647240', 'term.manage'),
   ('00371033-7e5d-4052-8a97-e522a19d2013', 'assessment.manage'),
   ('00371033-7e5d-4052-8a97-e522a19d2013', 'attempt.view_all'),
+  ('00371033-7e5d-4052-8a97-e522a19d2013', 'tool_session.replay_all'),
   ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10', 'offering.create'),
   ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10', 'offering.manage'),
   ('537ca3f2-5bea-41ae-b420-b6a7a6d2dd10', 'member.view'),

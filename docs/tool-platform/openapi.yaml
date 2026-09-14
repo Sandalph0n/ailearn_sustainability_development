@@ -536,6 +536,10 @@ components:
       type: string
       format: uuid
 
+    Sha256:
+      type: string
+      pattern: '^[0-9a-f]{64}$'
+
     Capability:
       type: string
       enum: [files:read, files:write, events:append, replay:read]
@@ -754,12 +758,24 @@ components:
         checkpoint: { type: integer, minimum: 0 }
         batch:
           type: object
-          required: [id, seqStart, seqEnd, receivedAt]
+          required: [id, seqStart, seqEnd, receivedAt, payloadHash, previousChainHash, chainHash]
           properties:
             id: { $ref: '#/components/schemas/Uuid' }
             seqStart: { type: integer, minimum: 0 }
             seqEnd: { type: integer, minimum: 0 }
             receivedAt: { type: string, format: date-time }
+            payloadHash:
+              oneOf:
+                - { $ref: '#/components/schemas/Sha256' }
+                - { type: 'null' }
+            previousChainHash:
+              oneOf:
+                - { $ref: '#/components/schemas/Sha256' }
+                - { type: 'null' }
+            chainHash:
+              oneOf:
+                - { $ref: '#/components/schemas/Sha256' }
+                - { type: 'null' }
 
     ReplaySession:
       type: object
@@ -784,7 +800,8 @@ components:
 
     StoredEventBatch:
       type: object
-      required: [id, clientBatchId, seqStart, seqEnd, clientAt, receivedAt, events]
+      required:
+        [id, clientBatchId, seqStart, seqEnd, clientAt, receivedAt, events, payloadHash, previousChainHash, chainHash]
       properties:
         id: { $ref: '#/components/schemas/Uuid' }
         clientBatchId: { $ref: '#/components/schemas/Uuid' }
@@ -795,6 +812,18 @@ components:
         events:
           type: array
           items: {}
+        payloadHash:
+          oneOf:
+            - { $ref: '#/components/schemas/Sha256' }
+            - { type: 'null' }
+        previousChainHash:
+          oneOf:
+            - { $ref: '#/components/schemas/Sha256' }
+            - { type: 'null' }
+        chainHash:
+          oneOf:
+            - { $ref: '#/components/schemas/Sha256' }
+            - { type: 'null' }
 
     ErrorEnvelope:
       type: object

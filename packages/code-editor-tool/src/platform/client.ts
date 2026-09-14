@@ -55,15 +55,25 @@ export class ToolApiClient implements ToolDocumentApi, ToolEventApi {
         private readonly apiBase: URL,
     ) {}
 
-    static fromLaunchLocation(location: Location = window.location): ToolApiClient {
+    static async fromLaunchLocation(location: Location = window.location): Promise<ToolApiClient> {
         const fragment = new URLSearchParams(location.hash.slice(1));
-        const token = fragment.get('lernumi_token');
+        let token = fragment.get('lernumi_token');
         const apiVersion = fragment.get('lernumi_api');
-        if (!token || apiVersion !== 'v1') {
-            throw new Error('Lernumi launch credentials are missing. Reopen this tool from the assessment page.');
+        if (token && apiVersion === 'v1') {
+            history.replaceState(null, '', `${location.pathname}${location.search}`);
+        } else {
+            const response = await fetch('__lernumi/token', {
+                method: 'POST',
+                credentials: 'include',
+                cache: 'no-store',
+            });
+            const grant = response.ok ? await response.json() as TokenGrant : null;
+            token = grant?.token ?? null;
+            if (!token) {
+                throw new Error('Lernumi launch credentials are missing. Reopen this tool from the assessment page.');
+            }
         }
 
-        history.replaceState(null, '', `${location.pathname}${location.search}`);
         return new ToolApiClient(token, new URL('/api/tool/v1/', location.href));
     }
 
@@ -169,6 +179,10 @@ export class ToolApiClient implements ToolDocumentApi, ToolEventApi {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(input),
         });
+    }
+
+    async closeSession(): Promise<void> {
+        await this.json('session', { method: 'PATCH', keepalive: true });
     }
 
     async listReplaySessions(): Promise<ReplaySession[]> {

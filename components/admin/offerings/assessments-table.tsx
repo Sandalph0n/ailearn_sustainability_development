@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -7,6 +8,7 @@ import {
     Delete02Icon,
     Edit02Icon,
     MoreVerticalIcon,
+    SourceCodeIcon,
 } from '@hugeicons/core-free-icons';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
@@ -72,6 +74,7 @@ export function AssessmentsTable({
     contextQuery,
     capabilities = FULL_CRUD_CAPABILITIES,
     emptyMessage,
+    canReviewAttempts = false,
 }: {
     assessments: AssessmentListItem[];
     offeringId: string;
@@ -81,6 +84,7 @@ export function AssessmentsTable({
     contextQuery?: string;
     capabilities?: CrudCapabilities;
     emptyMessage?: string;
+    canReviewAttempts?: boolean;
 }) {
     const complete = Math.abs(totalWeight - 100) < 1e-9;
     const [editing, setEditing] = useState<AssessmentListItem | 'create' | null>(null);
@@ -164,12 +168,17 @@ export function AssessmentsTable({
                             endpoint={endpoint}
                             contextQuery={contextQuery}
                             capabilities={capabilities}
+                            reviewHref={
+                                canReviewAttempts && info.row.original.attempts > 0
+                                    ? `/navigation/institution/offerings/${offeringId}/assessments/${info.row.original.id}/attempts${contextQuery ? `?${contextQuery}` : ''}`
+                                    : undefined
+                            }
                             onEdit={() => setEditing(info.row.original)}
                         />
                     ),
                 }),
             ] as Array<AdminColumnDef<AssessmentListItem>>,
-        [capabilities, contextQuery, endpoint],
+        [canReviewAttempts, capabilities, contextQuery, endpoint, offeringId],
     );
 
     if (editing) {
@@ -398,14 +407,16 @@ function AssessmentActions({
     contextQuery,
     capabilities,
     onEdit,
+    reviewHref,
 }: {
     assessment: AssessmentListItem;
     endpoint: string;
     contextQuery?: string;
     capabilities: CrudCapabilities;
     onEdit: () => void;
+    reviewHref?: string;
 }) {
-    if (!capabilities.update && !capabilities.delete) return null;
+    if (!capabilities.update && !capabilities.delete && !reviewHref) return null;
 
     return (
         <div className="flex justify-end">
@@ -418,6 +429,15 @@ function AssessmentActions({
                     }
                 />
                 <DropdownMenuContent align="end">
+                    {reviewHref && (
+                        <DropdownMenuItem render={<Link href={reviewHref} />}>
+                            <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} />
+                            Review attempts
+                        </DropdownMenuItem>
+                    )}
+                    {reviewHref && (capabilities.update || capabilities.delete) && (
+                        <DropdownMenuSeparator />
+                    )}
                     {capabilities.update && (
                         <DropdownMenuItem onClick={onEdit}>
                             <HugeiconsIcon icon={Edit02Icon} strokeWidth={2} />

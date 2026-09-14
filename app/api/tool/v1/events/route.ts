@@ -1,5 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 
+import { replayChainHash, replayPayloadHash } from '@lernumi/replay-core';
+
 import { NextRequest, NextResponse } from 'next/server';
 
 import { Prisma } from '@/app/generated/prisma/client';
@@ -55,6 +57,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 clientAt: true,
                 receivedAt: true,
                 events: true,
+                payloadHash: true,
+                previousChainHash: true,
+                chainHash: true,
             },
         });
         if (duplicate) {
@@ -68,14 +73,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 : { kind: 'idempotency' as const };
         }
 
-        const checkpoint = await tx.eventBatch.aggregate({
+        const previous = await tx.eventBatch.findFirst({
             where: { assignmentWorkSessionId: session.id },
-            _max: { seqEnd: true },
+            orderBy: { seqEnd: 'desc' },
+            select: { seqEnd: true, chainHash: true },
         });
-        const expectedSeqStart = (checkpoint._max.seqEnd ?? -1) + 1;
+        const expectedSeqStart = (previous?.seqEnd ?? -1) + 1;
         if (parsed.data.seqStart !== expectedSeqStart) {
             return { kind: 'sequence' as const, expectedSeqStart };
         }
+
+        const previousChainHash = previous?.chainHash ?? null;
+        const payloadHash = await replayPayloadHash({
+            sessionId: session.id,
+            clientBatchId: parsed.data.batchId,
+            seqStart: parsed.data.seqStart,
+            seqEnd: parsed.data.seqEnd,
+            clientAt: parsed.data.clientAt,
+            events: parsed.data.events,
+        });
+        const chainHash = await replayChainHash(previousChainHash, payloadHash);
 
         const batch = await tx.eventBatch.create({
             data: {
@@ -85,8 +102,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 seqEnd: parsed.data.seqEnd,
                 clientAt: new Date(parsed.data.clientAt),
                 events: parsed.data.events as Prisma.InputJsonValue,
+                payloadHash,
+                previousChainHash,
+                chainHash,
             },
-            select: { id: true, seqStart: true, seqEnd: true, receivedAt: true },
+            select: {
+                id: true,
+                seqStart: true,
+                seqEnd: true,
+                receivedAt: true,
+                payloadHash: true,
+                previousChainHash: true,
+                chainHash: true,
+            },
         });
         return { kind: 'created' as const, batch };
     });
@@ -121,6 +149,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 seqStart: result.batch.seqStart,
                 seqEnd: result.batch.seqEnd,
                 receivedAt: result.batch.receivedAt.toISOString(),
+                payloadHash: result.batch.payloadHash,
+                previousChainHash: result.batch.previousChainHash,
+                chainHash: result.batch.chainHash,
             },
         },
         { status: result.kind === 'created' ? 201 : 200 },

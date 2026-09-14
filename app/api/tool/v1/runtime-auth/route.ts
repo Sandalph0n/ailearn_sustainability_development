@@ -36,7 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     response.cookies.set(
         toolRuntimeCookieName(version.id),
         request.headers.get('authorization')!.slice('Bearer '.length).trim(),
-        toolRuntimeCookieOptions(),
+        toolRuntimeCookieOptions(version.tool.code, version.id),
     );
     return response;
 }

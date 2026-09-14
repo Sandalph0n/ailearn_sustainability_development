@@ -23,6 +23,9 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.10
         version: 1.1.10(react@19.2.8)
+      '@lernumi/replay-core':
+        specifier: workspace:*
+        version: link:packages/replay-core
       '@prisma/adapter-pg':
         specifier: ^7.9.1
         version: 7.9.1
@@ -258,6 +261,9 @@ importers:
       '@codingame/monaco-vscode-working-copy-service-override':
         specifier: 36.2.7
         version: 36.2.7
+      '@lernumi/replay-core':
+        specifier: workspace:*
+        version: link:../replay-core
       monaco-editor:
         specifier: npm:@codingame/monaco-vscode-editor-api@36.2.7
         version: '@codingame/monaco-vscode-editor-api@36.2.7'
@@ -277,6 +283,15 @@ importers:
       vite:
         specifier: 8.3.0
         version: 8.3.0(@types/node@24.13.4)(jiti@2.7.0)
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(jiti@2.7.0))
+
+  packages/replay-core:
+    devDependencies:
+      typescript:
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: 4.1.11
         version: 4.1.11(@types/node@24.13.4)(vite@8.3.0(@types/node@24.13.4)(jiti@2.7.0))
@@ -8049,6 +8064,10 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fdir@6.5.0(picomatch@4.0.7):
+    optionalDependencies:
+      picomatch: 4.0.7
+
   fflate@0.8.3: {}
 
   figures@6.1.0:
@@ -9691,8 +9710,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tinyrainbow@3.1.1: {}
 

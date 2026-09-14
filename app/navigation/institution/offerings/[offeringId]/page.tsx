@@ -81,6 +81,9 @@ export default async function InstitutionOfferingAssessmentsPage({
         delete: hasPermission(active.permissions, PERMISSION_CODE.ASSESSMENT_DELETE),
     };
     const canConfigureTools = capabilities.create || capabilities.update;
+    const canReviewAttempts =
+        hasPermission(active.permissions, PERMISSION_CODE.ATTEMPT_VIEW_ALL) &&
+        hasPermission(active.permissions, PERMISSION_CODE.TOOL_SESSION_REPLAY_ALL);
 
     const [offering, assessmentRows, tools, aggregate] = await Promise.all([
         db.offering.findUnique({
@@ -189,6 +192,7 @@ export default async function InstitutionOfferingAssessmentsPage({
                 endpoint={`/api/institutions/${institutionId}/offerings/${offering.id}/assessments`}
                 contextQuery={contextQuery}
                 capabilities={capabilities}
+                canReviewAttempts={canReviewAttempts}
                 emptyMessage={
                     capabilities.view
                         ? undefined

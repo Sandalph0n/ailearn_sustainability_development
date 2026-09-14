@@ -35,9 +35,18 @@ export async function POST(
     }
 
     const submitAt = new Date();
-    const updated = await db.assessmentAttempt.updateMany({
-        where: { id: attemptId, userId: guard.session.user.id, submitAt: null },
-        data: { submitAt },
+    const updated = await db.$transaction(async (tx) => {
+        const attempt = await tx.assessmentAttempt.updateMany({
+            where: { id: attemptId, userId: guard.session.user.id, submitAt: null },
+            data: { submitAt },
+        });
+        if (attempt.count === 1) {
+            await tx.assignmentWorkSession.updateMany({
+                where: { workspace: { attemptId }, endAt: null },
+                data: { endAt: submitAt },
+            });
+        }
+        return attempt;
     });
     if (updated.count !== 1) {
         return errorResponse(409, 'RESOURCE_IN_USE', 'This attempt has already been submitted');

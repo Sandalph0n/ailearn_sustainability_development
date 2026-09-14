@@ -1,5 +1,5 @@
 :root {
-    color-scheme: dark;
+    color-scheme: dark light;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", sans-serif;
     background: #181818;
 }
@@ -15,6 +15,7 @@ body,
 
 #workbench {
     position: relative;
+    background: #181818;
 }
 
 #boot {
@@ -34,7 +35,7 @@ body,
     width: 18px;
     height: 18px;
     border: 2px solid #3c3c3c;
-    border-top-color: #3794ff;
+    border-top-color: #007acc;
     border-radius: 50%;
     animation: spin 700ms linear infinite;
 }
@@ -45,104 +46,93 @@ body,
     white-space: pre-wrap;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.lernumi-replay-view {
+.lernumi-inspector-nav {
     box-sizing: border-box;
+    display: flex;
+    min-height: 0;
     height: 100%;
-    padding: 10px 12px 16px;
+    flex-direction: column;
     color: var(--vscode-foreground);
     font-family: var(--vscode-font-family);
     font-size: var(--vscode-font-size);
 }
 
-.replay-intro,
-.replay-message {
-    margin: 0 0 10px;
-    color: var(--vscode-descriptionForeground);
-    line-height: 1.45;
-}
-
-.replay-error {
-    color: var(--vscode-errorForeground);
-}
-
-.replay-sessions {
+.inspector-nav-rows {
     display: grid;
-    gap: 3px;
+    padding: 3px 0;
 }
 
-.replay-session {
+.inspector-nav-row {
     display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    align-items: center;
     gap: 2px;
     width: 100%;
-    padding: 7px 8px;
+    min-height: 44px;
+    padding: 4px 12px 4px 8px;
     border: 0;
-    color: inherit;
+    color: var(--vscode-sideBar-foreground);
     background: transparent;
+    font: inherit;
     text-align: left;
     cursor: pointer;
 }
 
-.replay-session:hover {
+.inspector-nav-row:hover:not(:disabled) {
     background: var(--vscode-list-hoverBackground);
 }
 
-.replay-session[data-active="true"] {
-    color: var(--vscode-list-activeSelectionForeground);
-    background: var(--vscode-list-activeSelectionBackground);
+.inspector-nav-row:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
 }
 
-.replay-session:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.inspector-nav-row:disabled {
+    color: var(--vscode-disabledForeground);
+    cursor: default;
 }
 
-.replay-session-title {
+.inspector-nav-icon {
+    overflow: hidden;
+    color: var(--vscode-icon-foreground);
+    font-family: var(--vscode-font-family);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.inspector-nav-copy {
+    display: grid;
+    min-width: 0;
+}
+
+.inspector-nav-title,
+.inspector-nav-description {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.replay-session-meta,
-.replay-position {
+.inspector-nav-title {
+    line-height: 20px;
+}
+
+.inspector-nav-description,
+.inspector-nav-status {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
 }
 
-.replay-controls {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid var(--vscode-sideBarSectionHeader-border);
+.inspector-nav-status {
+    margin-top: auto;
+    padding: 8px 12px;
+    border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+    line-height: 1.4;
 }
 
-.replay-control {
-    height: 26px;
-    padding: 0 10px;
-    border: 1px solid var(--vscode-button-border, transparent);
-    color: var(--vscode-button-foreground);
-    background: var(--vscode-button-background);
-    cursor: pointer;
+@media (prefers-reduced-motion: reduce) {
+    .boot-spinner { animation: none; }
 }
 
-.replay-control:hover {
-    background: var(--vscode-button-hoverBackground);
-}
-
-.replay-range {
-    min-width: 0;
-    accent-color: var(--vscode-progressBar-background);
-}
-
-.replay-position {
-    grid-column: 1 / -1;
-    text-align: right;
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

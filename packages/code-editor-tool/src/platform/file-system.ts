@@ -62,6 +62,11 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
         return (await this.tryResolve(normalizePath(value)))?.id ?? null;
     }
 
+    /** Capture a complete baseline before edits begin, including unopened and empty folders. */
+    async recordInitialSnapshot(): Promise<void> {
+        await this.snapshotChildren(null, '/');
+    }
+
     async readdir(resource: URI): Promise<[string, FileType][]> {
         const path = normalizePath(resource.path);
         const parent = path === '/' ? null : await this.resolve(path);
@@ -120,12 +125,23 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
 
         const etag = document.contentHash;
         if (!etag) throw fsError(FileSystemProviderErrorCode.Unavailable, path);
+        const saveRequestId = crypto.randomUUID();
+        // Record the causal point before the HTTP write starts. A newer edit may arrive while the
+        // save request is in flight, so replay integrity must compare the response checkpoint with
+        // the content at this event rather than with whichever edit happens to precede file.saved.
+        this.record(event('file.save-requested', {
+            documentId: document.id,
+            path,
+            saveRequestId,
+            sizeBytes: content.byteLength,
+        }));
         try {
             const updated = await this.api.writeDocument(document.id, content, etag, mimeTypeFor(path));
             this.cache(path, updated);
             this.record(event('file.saved', {
                 documentId: updated.id,
                 path,
+                saveRequestId,
                 contentHash: updated.contentHash,
                 sizeBytes: updated.sizeBytes,
             }));
@@ -243,6 +259,26 @@ export class LernumiFileSystemProvider implements IFileSystemProviderWithFileRea
             .filter(([, document]) => document.parentFolderId === parentFolderId)
             .map(([, document]) => document)
             .sort((a, b) => Number(b.entryKind === 'FOLDER') - Number(a.entryKind === 'FOLDER') || a.name.localeCompare(b.name));
+    }
+
+    private async snapshotChildren(parentFolderId: string | null, parentPath: string): Promise<void> {
+        const children = await this.api.listDocuments(parentFolderId);
+        for (const document of children) {
+            const path = joinPath(parentPath, document.name);
+            this.cache(path, document);
+            if (document.entryKind === 'FOLDER') {
+                this.record(event('folder.snapshot', { documentId: document.id, path }));
+                await this.snapshotChildren(document.id, path);
+                continue;
+            }
+
+            if (this.snapshotted.has(document.id)) continue;
+            this.snapshotted.add(document.id);
+            const result = await this.api.readDocument(document.id);
+            if (result.etag) this.byPath.set(path, { ...document, contentHash: result.etag });
+            this.recordSnapshot(document, path, result.bytes);
+        }
+        this.childrenLoaded.add(parentFolderId ?? 'root');
     }
 
     private cache(path: string, document: ToolDocument): void {

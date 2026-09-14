@@ -1,45 +1,88 @@
 import * as vscode from 'vscode';
+import {
+    flattenReplayBatches,
+    replayStateAt,
+    verifyReplayRecording,
+    type ReplayIntegrity,
+    type ReplaySelection,
+    type SequencedReplayEvent,
+} from '@lernumi/replay-core';
 
 import type { ToolApiClient } from '../platform/client';
 import type { EventRecorder } from '../platform/event-recorder';
-import type { ReplaySession, ToolEvent } from '../platform/types';
-import { replayStateAt } from './state';
+import type { ReplaySession } from '../platform/types';
 
 export type ReplayViewState = {
     sessions: ReplaySession[];
     selectedSessionId: string | null;
-    events: ToolEvent[];
-    step: number;
-    playing: boolean;
+    events: SequencedReplayEvent[];
     loading: boolean;
+    integrity: ReplayIntegrity | null;
     message: string | null;
 };
 
+export type ReplayOutlineItem = { at: number; notable: boolean; type: string };
+
+export type ReplayFrame = {
+    index: number;
+    total: number;
+    at: number;
+    file: string | null;
+    files: string[];
+    label: string;
+    notable: boolean;
+    content: string;
+    change: { offset: number; length: number } | null;
+    selection: [number, number][];
+};
+
+export type ReplayFlag = {
+    index: number;
+    at: number;
+    type: string;
+    file: string | null;
+    size: number | null;
+    lines: number | null;
+};
+
+export type ReplayDashboardState = {
+    found: boolean;
+    loading: boolean;
+    message: string | null;
+    selectedSessionId: string | null;
+    integrity: ReplayIntegrity | null;
+    sessions: ReplaySession[];
+    events: number;
+    batches: number;
+    checkpoints: number;
+    externalPastes: number;
+    focusReturns: number;
+    flags: ReplayFlag[];
+};
+
+/**
+ * Shared replay model for every inspector surface.
+ *
+ * Network loading and deterministic reconstruction stay here. Webviews only render a frame and
+ * send navigation intents, matching the boundary used by MQ Smart Learning's Log Inspector.
+ */
 export class ReplayController {
     private readonly emitter = new vscode.EventEmitter<void>();
     readonly onDidChange = this.emitter.event;
-    private readonly contentEmitter = new vscode.EventEmitter<vscode.Uri>();
-    private readonly content = new Map<string, string>();
-    private timer: number | undefined;
     private state: ReplayViewState = {
         sessions: [],
         selectedSessionId: null,
         events: [],
-        step: -1,
-        playing: false,
         loading: false,
+        integrity: null,
         message: null,
     };
 
     constructor(
         private readonly api: ToolApiClient,
         private readonly recorder: EventRecorder,
-    ) {
-        vscode.workspace.registerTextDocumentContentProvider('lernumi-replay', {
-            onDidChange: this.contentEmitter.event,
-            provideTextDocumentContent: (uri) => this.content.get(uri.toString()) ?? '',
-        });
-    }
+        private readonly preferredSessionId: string | null = null,
+    ) {}
 
     snapshot(): ReplayViewState {
         return { ...this.state, sessions: [...this.state.sessions], events: [...this.state.events] };
@@ -49,62 +92,101 @@ export class ReplayController {
         this.patch({ loading: true, message: null });
         try {
             await this.recorder.flush();
-            this.patch({ sessions: await this.api.listReplaySessions(), loading: false });
+            const sessions = await this.api.listReplaySessions();
+            this.patch({ sessions, loading: false });
+            const selected =
+                (this.state.selectedSessionId && sessions.some((item) => item.id === this.state.selectedSessionId)
+                    ? this.state.selectedSessionId
+                    : null)
+                ?? (this.preferredSessionId && sessions.some((item) => item.id === this.preferredSessionId)
+                    ? this.preferredSessionId
+                    : null)
+                ?? sessions[0]?.id
+                ?? null;
+
+            if (selected) await this.select(selected);
+            else this.patch({ selectedSessionId: null, events: [], integrity: null });
         } catch (error) {
-            this.patch({ loading: false, message: message(error) });
+            this.patch({ loading: false, message: errorMessage(error) });
         }
     }
 
     async select(sessionId: string): Promise<void> {
-        this.pause();
-        this.patch({ selectedSessionId: sessionId, events: [], step: -1, loading: true, message: null });
+        this.patch({ selectedSessionId: sessionId, events: [], loading: true, integrity: null, message: null });
         try {
             const batches = await this.api.replayEvents(sessionId);
-            const events = batches.flatMap((batch) => batch.events).filter(isToolEvent);
-            this.patch({ events, step: events.length ? 0 : -1, loading: false });
-            if (events.length) await this.showStep(0);
+            const integrity = await verifyReplayRecording(sessionId, batches);
+            this.patch({ events: flattenReplayBatches(batches), loading: false, integrity });
         } catch (error) {
-            this.patch({ loading: false, message: message(error) });
+            this.patch({ loading: false, message: errorMessage(error) });
         }
     }
 
-    async showStep(step: number): Promise<void> {
-        if (this.state.events.length === 0) return;
-        const safeStep = Math.min(Math.max(step, 0), this.state.events.length - 1);
-        this.patch({ step: safeStep });
-        const state = replayStateAt(this.state.events, safeStep);
-        const path = state.activePath ?? [...state.files.values()].at(-1)?.path ?? null;
-        if (!path) return;
-        const file = [...state.files.values()].find((candidate) => candidate.path === path);
-        if (!file) return;
-
-        const uri = vscode.Uri.from({
-            scheme: 'lernumi-replay',
-            authority: this.state.selectedSessionId ?? 'session',
-            path: file.path,
-        });
-        this.content.set(uri.toString(), file.content);
-        this.contentEmitter.fire(uri);
-        const document = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(document, { preview: false, preserveFocus: false });
+    outline(): ReplayOutlineItem[] {
+        return this.state.events.map((item) => ({
+            at: timestamp(item),
+            notable: isNotable(item),
+            type: item.event.type,
+        }));
     }
 
-    play(): void {
-        if (this.state.playing || this.state.events.length === 0) return;
-        this.patch({ playing: true });
-        this.timer = window.setInterval(() => {
-            const next = this.state.step + 1;
-            if (next >= this.state.events.length) {
-                this.pause();
-                return;
-            }
-            void this.showStep(next);
-        }, 350);
+    frame(position: number, pinnedFile: string | null = null): ReplayFrame {
+        const index = Math.max(0, Math.min(position, this.state.events.length));
+        const state = replayStateAt(this.state.events, index - 1);
+        const current = index > 0 ? this.state.events[index - 1] : undefined;
+        const eventPath = current ? eventFile(current) : null;
+        const file = pinnedFile
+            ?? eventPath
+            ?? state.activePath
+            ?? [...state.files.values()].at(-1)?.path
+            ?? null;
+        const replayFile = file
+            ? [...state.files.values()].find((candidate) => candidate.path === file)
+            : undefined;
+        const content = replayFile?.content ?? '';
+
+        return {
+            index,
+            total: this.state.events.length,
+            at: current ? timestamp(current) : (this.outline()[0]?.at ?? 0),
+            file,
+            files: [...state.files.values()].map((item) => item.path).sort(),
+            label: current ? describe(current) : 'Start',
+            notable: current ? isNotable(current) : false,
+            content,
+            change: current ? changedRange(current) : null,
+            selection: file && state.activePath === file ? selectionOffsets(content, state.selections) : [],
+        };
     }
 
-    pause(): void {
-        window.clearInterval(this.timer);
-        if (this.state.playing) this.patch({ playing: false });
+    dashboard(): ReplayDashboardState {
+        const flags = this.state.events
+            .map((item, index) => ({ item, index }))
+            .filter(({ item }) => isNotable(item))
+            .map(({ item, index }): ReplayFlag => ({
+                index,
+                at: timestamp(item),
+                type: item.event.type,
+                file: eventFile(item),
+                size: finiteNumber(item.event.length),
+                lines: finiteNumber(item.event.lineCount),
+            }));
+        const session = this.state.sessions.find((item) => item.id === this.state.selectedSessionId);
+
+        return {
+            found: this.state.sessions.length > 0,
+            loading: this.state.loading,
+            message: this.state.message,
+            selectedSessionId: this.state.selectedSessionId,
+            integrity: this.state.integrity,
+            sessions: [...this.state.sessions],
+            events: this.state.events.length,
+            batches: session?.eventBatchCount ?? 0,
+            checkpoints: this.state.integrity?.checkedCheckpoints ?? 0,
+            externalPastes: this.state.events.filter((item) => item.event.type === 'editor.paste').length,
+            focusReturns: this.state.events.filter((item) => item.event.type === 'window.focus-restored').length,
+            flags,
+        };
     }
 
     private patch(next: Partial<ReplayViewState>): void {
@@ -113,15 +195,77 @@ export class ReplayController {
     }
 }
 
-function isToolEvent(value: unknown): value is ToolEvent {
-    return Boolean(
-        value &&
-        typeof value === 'object' &&
-        (value as Record<string, unknown>).schema === 1 &&
-        typeof (value as Record<string, unknown>).type === 'string',
+function changedRange(item: SequencedReplayEvent): { offset: number; length: number } | null {
+    if (item.event.type !== 'text.changed' || !Array.isArray(item.event.changes)) return null;
+    const changes = item.event.changes.filter((change): change is Record<string, unknown> =>
+        Boolean(change && typeof change === 'object'),
     );
+    if (changes.length === 0) return null;
+    const first = changes[0]!;
+    const offset = finiteNumber(first.rangeOffset);
+    const text = typeof first.text === 'string' ? first.text : '';
+    return offset === null ? null : { offset, length: text.length };
 }
 
-function message(error: unknown): string {
+function selectionOffsets(content: string, selections: ReplaySelection[]): [number, number][] {
+    const lineOffsets = [0];
+    for (let index = 0; index < content.length; index += 1) {
+        if (content[index] === '\n') lineOffsets.push(index + 1);
+    }
+    const offset = (position: { line: number; character: number }) =>
+        Math.min(content.length, (lineOffsets[position.line] ?? content.length) + position.character);
+    return selections.map((selection) => [offset(selection.anchor), offset(selection.active)]);
+}
+
+function isNotable(item: SequencedReplayEvent): boolean {
+    return item.event.type === 'editor.paste' || item.event.type === 'window.focus-restored';
+}
+
+function eventFile(item: SequencedReplayEvent): string | null {
+    const value = item.event.path ?? item.event.toPath ?? item.event.fromPath;
+    return typeof value === 'string' ? value : null;
+}
+
+function describe(item: SequencedReplayEvent): string {
+    const path = eventFile(item)?.replace(/^\//, '') ?? '';
+    switch (item.event.type) {
+        case 'file.snapshot': return `Opened initial snapshot${path ? ` — ${path}` : ''}`;
+        case 'folder.snapshot': return `Found folder${path ? ` — ${path}` : ''}`;
+        case 'file.created': return `Created file${path ? ` — ${path}` : ''}`;
+        case 'folder.created': return `Created folder${path ? ` — ${path}` : ''}`;
+        case 'file.deleted': return `Deleted file${path ? ` — ${path}` : ''}`;
+        case 'folder.deleted': return `Deleted folder${path ? ` — ${path}` : ''}`;
+        case 'file.renamed': return `Renamed file — ${String(item.event.fromPath ?? '')} → ${String(item.event.toPath ?? '')}`;
+        case 'folder.renamed': return `Renamed folder — ${String(item.event.fromPath ?? '')} → ${String(item.event.toPath ?? '')}`;
+        case 'file.save-requested': return `Saving${path ? ` — ${path}` : ''}`;
+        case 'file.saved': return `Saved${path ? ` — ${path}` : ''}`;
+        case 'text.changed': return `Edited${path ? ` — ${path}` : ''}`;
+        case 'editor.active': return `Focused${path ? ` — ${path}` : ''}`;
+        case 'editor.selection': return `Changed selection${path ? ` — ${path}` : ''}`;
+        case 'editor.visible-range': return `Scrolled${path ? ` — ${path}` : ''}`;
+        case 'editor.paste': return `Paste from outside — ${finiteNumber(item.event.length) ?? 0} characters${path ? ` — ${path}` : ''}`;
+        case 'window.focus-restored': return `Returned to the editor after ${formatDuration(finiteNumber(item.event.durationMs) ?? 0)}`;
+        case 'session.started': return 'Recording started';
+        case 'session.ended': return 'Recording ended';
+        default: return item.event.type;
+    }
+}
+
+function timestamp(item: SequencedReplayEvent): number {
+    const eventTime = Date.parse(item.event.at);
+    return Number.isFinite(eventTime) ? eventTime : Date.parse(item.receivedAt);
+}
+
+function finiteNumber(value: unknown): number | null {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function formatDuration(milliseconds: number): string {
+    if (milliseconds < 1_000) return `${Math.round(milliseconds)} ms`;
+    if (milliseconds < 60_000) return `${Math.round(milliseconds / 1_000)} seconds`;
+    return `${Math.round(milliseconds / 60_000)} minutes`;
+}
+
+function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Replay data could not be loaded';
 }

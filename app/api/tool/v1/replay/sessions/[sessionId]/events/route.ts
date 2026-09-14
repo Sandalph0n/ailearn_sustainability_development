@@ -56,6 +56,9 @@ export async function GET(
             clientAt: true,
             receivedAt: true,
             events: true,
+            payloadHash: true,
+            previousChainHash: true,
+            chainHash: true,
         },
     });
     const hasMore = rows.length > limit;

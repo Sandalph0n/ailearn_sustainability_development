@@ -133,6 +133,7 @@ describe('Macquarie role catalog seed', () => {
             'attempt.view_own',
             'offering.view',
             'tool.launch',
+            'tool_session.replay_own',
         ]);
     });
 
