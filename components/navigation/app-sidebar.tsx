@@ -232,7 +232,7 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                             <BrandLogo className="size-8 shrink-0" />
                             <div className="grid flex-1 text-left leading-tight">
                                 <span className="font-heading truncate font-semibold">
-                                    AI-Learn
+                                    Lern<span className="text-brand-teal">umi</span>
                                 </span>
                                 <span className="text-muted-foreground truncate text-xs">
                                     Learning platform
