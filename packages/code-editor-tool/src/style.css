@@ -18,6 +18,11 @@ body,
     background: #181818;
 }
 
+/* VS Code owns the title bar. Only replace its product mark with Lernumi's app icon. */
+#workbench .window-appicon:not(.codicon) {
+    background-size: 28px;
+}
+
 #boot {
     position: fixed;
     inset: 0;

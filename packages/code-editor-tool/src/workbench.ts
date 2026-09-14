@@ -55,6 +55,7 @@ import TextMateWorker from '@codingame/monaco-vscode-textmate-service-override/w
 import OutputWorker from '@codingame/monaco-vscode-output-service-override/worker?worker&inline';
 import * as vscode from 'vscode';
 
+import lernumiLogoUrl from '../../../public/brand/logo.png?url';
 import { connectEditorEvents } from './editor-events';
 import { BrowserStorageDatabase } from './browser-storage';
 import { ToolApiClient } from './platform/client';
@@ -199,8 +200,17 @@ export async function startCodeEditor(
     };
 
     progress('Starting VS Code workbench…');
+    container.style.setProperty('--product-icon', `url("${lernumiLogoUrl}")`);
     await initialize(services, container, options, { userHome: URI.from({ scheme: 'tmp', path: '/' }) });
     await Promise.all([whenDefaultThemesReady(), whenSetiThemeReady()]);
+
+    const appIcon = container.querySelector<HTMLAnchorElement>('.window-appicon');
+    if (appIcon) {
+        appIcon.href = context.platform.dashboardUrl;
+        appIcon.target = '_self';
+        appIcon.title = 'Back to Lernumi dashboard';
+        appIcon.setAttribute('aria-label', 'Back to Lernumi dashboard');
+    }
 
     // The theme extensions finish registering after the initial configuration is read.
     // Apply the durable preference through VS Code's own service once their assets exist.
@@ -288,9 +298,10 @@ function defaultConfiguration(
         'workbench.colorTheme': themes.colorTheme,
         'workbench.iconTheme': themes.fileIconTheme,
         'workbench.activity.showAccounts': false,
-        'workbench.layoutControl.enabled': false,
+        'workbench.layoutControl.enabled': true,
+        'workbench.layoutControl.type': 'both',
         'window.commandCenter': true,
-        'window.menuBarVisibility': 'compact',
+        'window.menuBarVisibility': 'visible',
         'editor.fontFamily': "'Cascadia Code', 'SFMono-Regular', Consolas, monospace",
         'editor.fontLigatures': true,
         'editor.minimap.enabled': true,

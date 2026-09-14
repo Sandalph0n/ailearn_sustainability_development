@@ -65,10 +65,11 @@ the browser history normally. An iframe sandbox is only needed if a future UI em
 the platform page.
 
 For local development, open the platform through `http://localhost:3000` and use
-`TOOL_RUNTIME_ORIGIN=http://127.0.0.1:3000`. Both addresses reach the same Next.js process but are
-different browser origins. Production should use sibling hosts such as `app.lernumi.com` and
-`tools.lernumi.com`. The edge proxy must overwrite, rather than append or trust, incoming `Host`
-and `X-Forwarded-Host` headers before forwarding requests to Next.js.
+`PLATFORM_ORIGIN=http://localhost:3000` with `TOOL_RUNTIME_ORIGIN=http://127.0.0.1:3000`. Both
+addresses reach the same Next.js process but are different browser origins. Production should use
+sibling hosts such as `PLATFORM_ORIGIN=https://app.lernumi.com` and
+`TOOL_RUNTIME_ORIGIN=https://tools.lernumi.com`. The edge proxy must overwrite, rather than append
+or trust, incoming `Host` and `X-Forwarded-Host` headers before forwarding requests to Next.js.
 
 ## 3. Launch and token lifecycle
 

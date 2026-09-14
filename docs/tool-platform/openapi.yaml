@@ -589,9 +589,17 @@ components:
 
     RuntimeContext:
       type: object
-      required: [apiVersion, user, role, tool, session, workspace, attempt, assessment, offering]
+      required: [apiVersion, platform, user, role, tool, session, workspace, attempt, assessment, offering]
       properties:
         apiVersion: { type: string, const: v1 }
+        platform:
+          type: object
+          required: [dashboardUrl]
+          properties:
+            dashboardUrl:
+              type: string
+              format: uri
+              description: Absolute URL of the authenticated Lernumi dashboard on the platform origin.
         user: { $ref: '#/components/schemas/Person' }
         role:
           type: object

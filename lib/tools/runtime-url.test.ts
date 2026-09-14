@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { platformOrigin } from './platform-origin';
 import { isToolRuntimeRequest } from './runtime-origin';
 import { buildToolRuntimeUrl } from './runtime-url';
 
@@ -15,6 +16,12 @@ describe('tool runtime launch URL', () => {
             'signed.token/value',
         );
         expect(new URLSearchParams(url.hash.slice(1)).get('lernumi_api')).toBe('v1');
+    });
+});
+
+describe('platform origin', () => {
+    it('defaults to the authenticated local application host', () => {
+        expect(platformOrigin()).toBe('http://localhost:3000');
     });
 });
 

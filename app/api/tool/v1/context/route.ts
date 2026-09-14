@@ -4,6 +4,7 @@ import { pictureUrl } from '@/components/media/picture-url';
 import { errorResponse, jsonResponse } from '@/lib/auth/http/response';
 import { db } from '@/lib/db';
 import { guardToolApi } from '@/lib/tools/api-auth';
+import { platformOrigin } from '@/lib/tools/platform-origin';
 
 export const runtime = 'nodejs';
 
@@ -91,6 +92,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const offering = assessment.offering;
     return jsonResponse({
         apiVersion: 'v1',
+        platform: {
+            dashboardUrl: new URL('/navigation/dashboard', platformOrigin()).toString(),
+        },
         user: {
             id: viewer.id,
             displayName: `${viewer.firstName} ${viewer.lastName}`.trim(),
