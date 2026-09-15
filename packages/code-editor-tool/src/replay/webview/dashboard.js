@@ -14,7 +14,6 @@ function verdictOf(integrity) {
 
 const LABEL = {
     'editor.paste': 'Paste from outside',
-    'window.focus-restored': 'Returned from another window',
 };
 
 function render(state) {
@@ -53,7 +52,6 @@ function render(state) {
                 <dl>
                     <dt>Replay checkpoints</dt><dd>${state.checkpoints}</dd>
                     <dt>Pastes from outside</dt><dd class="${state.externalPastes ? 'flag' : ''}">${state.externalPastes}</dd>
-                    <dt>Window returns</dt><dd class="${state.focusReturns ? 'flag' : ''}">${state.focusReturns}</dd>
                 </dl>
             </div>
         </div>
@@ -75,7 +73,7 @@ function render(state) {
         <div class="card wide">
             <h2>Worth a look — ${state.flags.length}</h2>
             ${state.flags.length === 0
-                ? '<p class="note" style="margin-left:0">Nothing flagged. No outside paste or return from another window was recorded.</p>'
+                ? '<p class="note" style="margin-left:0">Nothing flagged. No outside paste was recorded.</p>'
                 : `<table>
                     <tr><th>When</th><th>What</th><th>File</th><th class="num">Size</th></tr>
                     ${state.flags.map((flag) => `<tr class="clickable" data-index="${flag.index}">

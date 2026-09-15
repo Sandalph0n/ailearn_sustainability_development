@@ -32,7 +32,7 @@ paths:
       description: >-
         Called by the trusted platform shell. The server derives every scope from the authenticated
         user and verifies the supplied role assignment. A WORK launch creates a work session; a
-        REPLAY launch reuses the target session and its pinned tool version.
+        REPLAY launch reuses the target session with the tool's current replay runtime.
       security:
         - platformSession: []
       requestBody:
@@ -456,11 +456,6 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409':
-          description: Target was recorded by another immutable tool version.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
 
 components:
   securitySchemes:

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!guard.ok) return guard.response;
     const claims = guard.claims;
 
-    const [viewer, roleAssignment, workSession] = await Promise.all([
+    const [viewer, roleAssignment, workSession, runtimeVersion] = await Promise.all([
         db.user.findUnique({
             where: { id: claims.sub },
             select: { id: true, firstName: true, lastName: true, avatarKey: true },
@@ -30,14 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 id: claims.workSessionId,
                 assignmentWorkspaceId: claims.assignmentWorkspaceId,
                 toolId: claims.toolId,
-                toolVersionId: claims.toolVersionId,
             },
             select: {
                 id: true,
                 startAt: true,
                 endAt: true,
                 tool: { select: { id: true, code: true, name: true, description: true } },
-                toolVersion: { select: { id: true, version: true, entryPath: true } },
                 workspace: {
                     select: {
                         workspace: { select: { id: true, name: true, createdAt: true, lastOpenedAt: true } },
@@ -81,9 +79,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 },
             },
         }),
+        db.toolVersion.findFirst({
+            where: { id: claims.toolVersionId, toolId: claims.toolId },
+            select: { id: true, version: true, entryPath: true },
+        }),
     ]);
 
-    if (!viewer || !roleAssignment || !workSession?.toolVersion) {
+    if (!viewer || !roleAssignment || !workSession || !runtimeVersion) {
         return errorResponse(404, 'NOT_FOUND', 'Tool session context no longer exists');
     }
 
@@ -104,9 +106,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         tool: {
             ...workSession.tool,
             version: {
-                id: workSession.toolVersion.id,
-                version: workSession.toolVersion.version,
-                entry: workSession.toolVersion.entryPath,
+                id: runtimeVersion.id,
+                version: runtimeVersion.version,
+                entry: runtimeVersion.entryPath,
             },
         },
         session: {

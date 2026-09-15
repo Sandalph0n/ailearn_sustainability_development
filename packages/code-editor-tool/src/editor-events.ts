@@ -15,7 +15,6 @@ export function connectEditorEvents(
     let visibleRangeTimer: number | undefined;
     let pendingVisibleEditor: vscode.TextEditor | null = null;
     const highlighted = new Set<string>();
-    let blurredAt: string | null = null;
 
     const recordForEditor = async (
         editor: vscode.TextEditor,
@@ -98,28 +97,12 @@ export function connectEditorEvents(
             text,
         });
     };
-    const onBlur = () => {
-        blurredAt = new Date().toISOString();
-    };
-    const onFocus = () => {
-        if (!blurredAt) return;
-        const awayFrom = blurredAt;
-        blurredAt = null;
-        recorder.add(editorEvent('window.focus-restored', {
-            awayFrom,
-            durationMs: Date.now() - Date.parse(awayFrom),
-        }));
-    };
     document.addEventListener('paste', onPaste, true);
-    window.addEventListener('blur', onBlur);
-    window.addEventListener('focus', onFocus);
 
     return new vscode.Disposable(() => {
         window.clearTimeout(selectionTimer);
         window.clearTimeout(visibleRangeTimer);
         document.removeEventListener('paste', onPaste, true);
-        window.removeEventListener('blur', onBlur);
-        window.removeEventListener('focus', onFocus);
         for (const subscription of subscriptions) subscription.dispose();
     });
 }

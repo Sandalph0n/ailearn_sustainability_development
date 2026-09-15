@@ -25,18 +25,9 @@ export async function GET(
             assignmentWorkspaceId: guard.claims.assignmentWorkspaceId,
             toolId: guard.claims.toolId,
         },
-        select: { toolVersionId: true },
+        select: { id: true },
     });
     if (!target) return errorResponse(404, 'NOT_FOUND', 'Replay session not found');
-    if (target.toolVersionId !== guard.claims.toolVersionId) {
-        return errorResponse(
-            409,
-            'TOOL_VERSION_MISMATCH',
-            'Replay must run with the tool version that recorded the session',
-            undefined,
-            { requiredToolVersionId: target.toolVersionId },
-        );
-    }
 
     const rawAfterSeq = Number(request.nextUrl.searchParams.get('afterSeq') ?? -1);
     const afterSeq = Number.isInteger(rawAfterSeq) && rawAfterSeq >= -1 ? rawAfterSeq : -1;

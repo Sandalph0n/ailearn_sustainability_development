@@ -203,11 +203,12 @@ Replay data is available only when the launch token grants `replay:read`. Owners
 `tool_session.replay_own`; viewing another member also requires both `attempt.view_all` and
 `tool_session.replay_all` in a role whose scope covers that offering.
 
-The platform returns stored batches but does not interpret them. A replay must run under the exact
-`ToolVersion` that recorded the target session. If a caller asks an incompatible runtime for a
-session, the API returns `409 TOOL_VERSION_MISMATCH` and the required version ID. The platform
-launcher should start replay from the selected work session so this mismatch does not normally
-occur.
+The platform returns stored batches but does not interpret them. Replay launches use the tool's
+current active version, while every session still reports the immutable version that recorded it.
+The tool owns its event schema and must either decode compatible historical events or present a
+clear unsupported-schema message. This lets a newer replay engine repair rendering and filtering
+bugs in old recordings without rewriting the evidence. The JWT still binds every read to one tool
+and assignment workspace, and token refresh keeps the already-loaded immutable runtime version.
 
 The reference Code Editor records a complete opening snapshot (including unopened files and empty
 folders), text edits, saves, paste metadata, active editors, meaningful selections, visible line

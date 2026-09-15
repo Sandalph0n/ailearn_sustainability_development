@@ -12,10 +12,16 @@ import {
 import type { ToolApiClient } from '../platform/client';
 import type { EventRecorder } from '../platform/event-recorder';
 import type { ReplaySession } from '../platform/types';
-import { buildReplayTimeline, replayCutoff, type ReplayTimeline } from './timeline';
+import {
+    buildCombinedReplayTimeline,
+    buildReplayTimeline,
+    replayCutoff,
+    type ReplayTimeline,
+} from './timeline';
 
 export type ReplayViewState = {
     sessions: ReplaySession[];
+    scope: 'all' | 'session';
     selectedSessionId: string | null;
     events: SequencedReplayEvent[];
     loading: boolean;
@@ -23,7 +29,12 @@ export type ReplayViewState = {
     message: string | null;
 };
 
-export type ReplayOutlineItem = { at: number; notable: boolean; type: string };
+export type ReplayOutlineItem = {
+    at: number;
+    notable: boolean;
+    type: string;
+    sessionId: string;
+};
 
 export type ReplayFrame = {
     index: number;
@@ -58,7 +69,6 @@ export type ReplayDashboardState = {
     batches: number;
     checkpoints: number;
     externalPastes: number;
-    focusReturns: number;
     flags: ReplayFlag[];
 };
 
@@ -83,9 +93,11 @@ export class ReplayController {
     private readonly playheadEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangePlayhead = this.playheadEmitter.event;
     private readonly timelinesBySession = new Map<string, ReplayTimeline>();
+    private allTimeline: ReplayTimeline = buildReplayTimeline([]);
     private playhead = 0;
     private state: ReplayViewState = {
         sessions: [],
+        scope: 'all',
         selectedSessionId: null,
         events: [],
         loading: false,
@@ -109,18 +121,25 @@ export class ReplayController {
             await this.recorder.flush();
             const sessions = await this.api.listReplaySessions();
             this.patch({ sessions, loading: false });
-            const selected =
-                (this.state.selectedSessionId && sessions.some((item) => item.id === this.state.selectedSessionId)
-                    ? this.state.selectedSessionId
-                    : null)
-                ?? (this.preferredSessionId && sessions.some((item) => item.id === this.preferredSessionId)
-                    ? this.preferredSessionId
-                    : null)
-                ?? sessions[0]?.id
-                ?? null;
+            if (sessions.length === 0) {
+                this.allTimeline = buildReplayTimeline([]);
+                this.patch({ scope: 'all', selectedSessionId: null, events: [], integrity: null });
+                return;
+            }
 
-            if (selected) await this.select(selected);
-            else this.patch({ selectedSessionId: null, events: [], integrity: null });
+            if (this.state.scope === 'session') {
+                const selected =
+                    (this.state.selectedSessionId && sessions.some((item) => item.id === this.state.selectedSessionId)
+                        ? this.state.selectedSessionId
+                        : null)
+                    ?? (this.preferredSessionId && sessions.some((item) => item.id === this.preferredSessionId)
+                        ? this.preferredSessionId
+                        : null)
+                    ?? sessions[0]!.id;
+                await this.select(selected);
+            } else {
+                await this.selectAll();
+            }
         } catch (error) {
             this.patch({ loading: false, message: errorMessage(error) });
         }
@@ -128,31 +147,61 @@ export class ReplayController {
 
     async select(sessionId: string): Promise<void> {
         this.setPlayhead(0);
-        this.timelinesBySession.delete(sessionId);
-        this.patch({ selectedSessionId: sessionId, events: [], loading: true, integrity: null, message: null });
+        this.patch({ scope: 'session', selectedSessionId: sessionId, events: [], loading: true, integrity: null, message: null });
         try {
             const batches = await this.api.replayEvents(sessionId);
             const integrity = await verifyReplayRecording(sessionId, batches);
             const events = flattenReplayBatches(batches);
-            this.timelinesBySession.set(sessionId, buildReplayTimeline(events));
+            this.timelinesBySession.set(sessionId, buildReplayTimeline(events, sessionId));
             this.patch({ events, loading: false, integrity });
         } catch (error) {
             this.patch({ loading: false, message: errorMessage(error) });
         }
     }
 
+    async selectAll(): Promise<void> {
+        this.setPlayhead(0);
+        this.patch({ scope: 'all', selectedSessionId: null, events: [], loading: true, integrity: null, message: null });
+        try {
+            const ordered = [...this.state.sessions].sort((left, right) =>
+                Date.parse(left.startedAt) - Date.parse(right.startedAt) || left.id.localeCompare(right.id),
+            );
+            const loaded = await mapWithConcurrency(ordered, 4, async (session) => {
+                const batches = await this.api.replayEvents(session.id);
+                const integrity = await verifyReplayRecording(session.id, batches);
+                const events = flattenReplayBatches(batches);
+                const timeline = buildReplayTimeline(events, session.id);
+                this.timelinesBySession.set(session.id, timeline);
+                return { session, events, integrity };
+            });
+            this.allTimeline = buildCombinedReplayTimeline(loaded.map(({ session, events }) => ({
+                sessionId: session.id,
+                events,
+            })));
+            this.patch({
+                events: [...this.allTimeline.allEvents],
+                loading: false,
+                integrity: combinedIntegrity(loaded.map((item) => item.integrity)),
+            });
+        } catch (error) {
+            this.patch({ loading: false, message: errorMessage(error) });
+        }
+    }
+
     outline(): ReplayOutlineItem[] {
-        return this.timeline().events.map((item) => ({
+        const timeline = this.timeline();
+        return timeline.events.map((item, index) => ({
             at: timestamp(item),
             notable: isNotable(item),
             type: item.event.type,
+            sessionId: timeline.eventSessionIds[index]!,
         }));
     }
 
     frame(position: number, pinnedFile: string | null = null): ReplayFrame {
         const timeline = this.timeline();
         const index = Math.max(0, Math.min(position, timeline.events.length));
-        const state = replayStateAt(this.state.events, replayCutoff(timeline, index));
+        const state = replayStateAt(timeline.allEvents, replayCutoff(timeline, index));
         const current = index > 0 ? timeline.events[index - 1] : undefined;
         const eventPath = current ? eventFile(current) : null;
         const file = pinnedFile
@@ -187,17 +236,17 @@ export class ReplayController {
         const timeline = this.timeline();
         const current = this.playhead > 0 ? timeline.events[this.playhead - 1] : undefined;
         return {
-            sessionId: this.state.selectedSessionId,
+            sessionId: this.scopeKey(),
             position: this.playhead,
             total: timeline.events.length,
             at: current ? timestamp(current) : 0,
             touchedPath: current ? eventFile(current) : null,
-            workspace: replayStateAt(this.state.events, replayCutoff(timeline, this.playhead)),
+            workspace: replayStateAt(timeline.allEvents, replayCutoff(timeline, this.playhead)),
         };
     }
 
     workspaceAt(sessionId: string, position: number): ReplayState | null {
-        const timeline = this.timelinesBySession.get(sessionId);
+        const timeline = sessionId === 'all' ? this.allTimeline : this.timelinesBySession.get(sessionId);
         if (!timeline) return null;
         return replayStateAt(timeline.allEvents, replayCutoff(timeline, position));
     }
@@ -225,10 +274,10 @@ export class ReplayController {
             integrity: this.state.integrity,
             sessions: [...this.state.sessions],
             events: timeline.events.length,
-            batches: session?.eventBatchCount ?? 0,
+            batches: session?.eventBatchCount
+                ?? this.state.sessions.reduce((total, item) => total + item.eventBatchCount, 0),
             checkpoints: this.state.integrity?.checkedCheckpoints ?? 0,
             externalPastes: timeline.events.filter((item) => item.event.type === 'editor.paste').length,
-            focusReturns: timeline.events.filter((item) => item.event.type === 'window.focus-restored').length,
             flags,
         };
     }
@@ -245,10 +294,47 @@ export class ReplayController {
     }
 
     private timeline(): ReplayTimeline {
-        return this.state.selectedSessionId
-            ? (this.timelinesBySession.get(this.state.selectedSessionId) ?? buildReplayTimeline([]))
-            : buildReplayTimeline([]);
+        return this.state.scope === 'all'
+            ? this.allTimeline
+            : this.state.selectedSessionId
+              ? (this.timelinesBySession.get(this.state.selectedSessionId) ?? buildReplayTimeline([]))
+              : buildReplayTimeline([]);
     }
+
+    private scopeKey(): string | null {
+        if (this.state.sessions.length === 0) return null;
+        return this.state.scope === 'all' ? 'all' : this.state.selectedSessionId;
+    }
+}
+
+async function mapWithConcurrency<T, R>(
+    items: readonly T[],
+    concurrency: number,
+    mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+    const results = new Array<R>(items.length);
+    let next = 0;
+    const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+        while (next < items.length) {
+            const index = next++;
+            results[index] = await mapper(items[index]!);
+        }
+    });
+    await Promise.all(workers);
+    return results;
+}
+
+function combinedIntegrity(items: readonly ReplayIntegrity[]): ReplayIntegrity | null {
+    if (items.length === 0) return null;
+    const severity = { VERIFIED: 0, LEGACY: 1, GAP: 2, INVALID: 3 } as const;
+    const worst = [...items].sort((left, right) => severity[right.status] - severity[left.status])[0]!;
+    return {
+        ...worst,
+        checkedBatches: items.reduce((total, item) => total + item.checkedBatches, 0),
+        checkedEvents: items.reduce((total, item) => total + item.checkedEvents, 0),
+        checkedCheckpoints: items.reduce((total, item) => total + item.checkedCheckpoints, 0),
+        message: `${items.length} sessions checked. ${worst.message}`,
+    };
 }
 
 function changedRange(item: SequencedReplayEvent): { offset: number; length: number } | null {
@@ -274,7 +360,7 @@ function selectionOffsets(content: string, selections: ReplaySelection[]): [numb
 }
 
 function isNotable(item: SequencedReplayEvent): boolean {
-    return item.event.type === 'editor.paste' || item.event.type === 'window.focus-restored';
+    return item.event.type === 'editor.paste';
 }
 
 function eventFile(item: SequencedReplayEvent): string | null {
@@ -300,7 +386,6 @@ function describe(item: SequencedReplayEvent): string {
         case 'editor.selection': return `Changed selection${path ? ` — ${path}` : ''}`;
         case 'editor.visible-range': return `Scrolled${path ? ` — ${path}` : ''}`;
         case 'editor.paste': return `Paste from outside — ${finiteNumber(item.event.length) ?? 0} characters${path ? ` — ${path}` : ''}`;
-        case 'window.focus-restored': return `Returned to the editor after ${formatDuration(finiteNumber(item.event.durationMs) ?? 0)}`;
         case 'session.started': return 'Recording started';
         case 'session.ended': return 'Recording ended';
         default: return item.event.type;
@@ -314,12 +399,6 @@ function timestamp(item: SequencedReplayEvent): number {
 
 function finiteNumber(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function formatDuration(milliseconds: number): string {
-    if (milliseconds < 1_000) return `${Math.round(milliseconds)} ms`;
-    if (milliseconds < 60_000) return `${Math.round(milliseconds / 1_000)} seconds`;
-    return `${Math.round(milliseconds / 60_000)} minutes`;
 }
 
 function errorMessage(error: unknown): string {

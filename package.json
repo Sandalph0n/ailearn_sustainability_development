@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "app:init": "node scripts/init.mjs",
-    "dev": "next dev --webpack",
+    "dev": "next dev ",
+    "dev_wp": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

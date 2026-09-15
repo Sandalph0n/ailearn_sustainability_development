@@ -201,6 +201,7 @@ async function authorizeReplay(input: {
     loginSessionId: string;
     workSessionId: string;
     roleAssignmentId: string;
+    runtimeToolVersionId?: string;
 }): Promise<AuthorizedRuntime> {
     const workSession = await db.assignmentWorkSession.findUnique({
         where: { id: input.workSessionId },
@@ -208,8 +209,12 @@ async function authorizeReplay(input: {
             id: true,
             assignmentWorkspaceId: true,
             toolId: true,
-            tool: { select: { code: true } },
-            toolVersion: { select: { id: true, version: true, entryPath: true } },
+            tool: {
+                select: {
+                    code: true,
+                    activeVersion: { select: { id: true, version: true, entryPath: true } },
+                },
+            },
             workspace: {
                 select: {
                     attempt: {
@@ -230,8 +235,18 @@ async function authorizeReplay(input: {
         },
     });
     if (!workSession) throw new ToolSessionError(404, 'NOT_FOUND', 'Tool work session not found');
-    if (!workSession.toolVersion) {
-        throw new ToolSessionError(409, 'RESOURCE_IN_USE', 'This legacy session has no pinned tool version');
+
+    // Replays use the current decoder/UI. Event compatibility belongs to the tool because the
+    // platform intentionally stores opaque JSON. Token refresh keeps an already-loaded runtime on
+    // its existing immutable version so an activation during review cannot swap code underneath it.
+    const runtimeVersion = input.runtimeToolVersionId
+        ? await db.toolVersion.findFirst({
+            where: { id: input.runtimeToolVersionId, toolId: workSession.toolId },
+            select: { id: true, version: true, entryPath: true },
+        })
+        : workSession.tool.activeVersion;
+    if (!runtimeVersion) {
+        throw new ToolSessionError(409, 'RESOURCE_IN_USE', 'This tool has no runtime available for replay');
     }
 
     const access = await assignmentAccess(
@@ -247,11 +262,11 @@ async function authorizeReplay(input: {
 
     return {
         toolCode: workSession.tool.code,
-        entryPath: workSession.toolVersion.entryPath,
+        entryPath: runtimeVersion.entryPath,
         tokenContext: {
             userId: input.userId,
             toolId: workSession.toolId,
-            toolVersionId: workSession.toolVersion.id,
+            toolVersionId: runtimeVersion.id,
             workSessionId: workSession.id,
             assignmentWorkspaceId: workSession.assignmentWorkspaceId,
             roleAssignmentId: input.roleAssignmentId,
@@ -268,6 +283,7 @@ export async function startToolReplaySession(input: {
     loginSessionId: string;
     workSessionId: string;
     roleAssignmentId: string;
+    runtimeToolVersionId?: string;
 }): Promise<{ response: ToolSessionResponse; toolCode: string; toolVersionId: string }> {
     const runtime = await authorizeReplay(input);
     return {
@@ -300,6 +316,7 @@ export async function refreshToolSession(claims: ToolClaims): Promise<{
             loginSessionId: claims.loginSessionId,
             workSessionId: claims.workSessionId,
             roleAssignmentId: claims.roleAssignmentId,
+            runtimeToolVersionId: claims.toolVersionId,
         });
     }
 

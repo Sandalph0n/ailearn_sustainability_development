@@ -257,6 +257,423 @@ body,
     color: var(--vscode-icon-foreground);
 }
 
+/* Replay is deliberately a dense editor surface: it follows VS Code's panel tokens and spacing
+   instead of introducing a separate dashboard/card visual language. */
+.lernumi-replay-transport-host {
+    box-sizing: border-box;
+    display: flex !important;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden !important;
+    color: var(--vscode-panel-foreground, var(--vscode-foreground));
+    background: var(--vscode-panel-background);
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+}
+
+.replay-studio {
+    display: grid;
+    min-width: 0;
+    height: 100%;
+    grid-template-rows: auto 24px minmax(28px, 1fr) 18px 24px;
+    overflow: hidden;
+}
+
+.replay-studio [hidden] { display: none !important; }
+
+.replay-studio button,
+.replay-studio select {
+    box-sizing: border-box;
+    min-height: 24px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    color: var(--vscode-foreground);
+    background: transparent;
+    font: inherit;
+}
+
+.replay-studio button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.replay-studio button:hover:not(:disabled) {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.replay-studio button:focus-visible,
+.replay-studio select:focus-visible,
+.replay-timeline-scroll:focus-visible,
+.replay-overview:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.replay-studio button:disabled,
+.replay-studio select:disabled {
+    cursor: default;
+    opacity: .5;
+}
+
+.replay-commandbar {
+    display: flex;
+    min-width: 0;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.replay-playback-cluster,
+.replay-options,
+.replay-zoom-controls {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 4px;
+}
+
+.replay-options {
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.replay-icon-button {
+    width: 26px;
+    padding: 2px;
+}
+
+.replay-primary {
+    min-width: 68px;
+    padding: 2px 10px;
+    color: var(--vscode-button-foreground) !important;
+    background: var(--vscode-button-background) !important;
+}
+
+.replay-primary:hover:not(:disabled) {
+    background: var(--vscode-button-hoverBackground) !important;
+}
+
+.replay-quiet-button {
+    padding: 2px 8px;
+    border-color: var(--vscode-dropdown-border, var(--vscode-panel-border)) !important;
+}
+
+.replay-clock {
+    min-width: 178px;
+    margin-left: 5px;
+    color: var(--vscode-foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.replay-field {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 9px;
+    line-height: 10px;
+}
+
+.replay-field select {
+    min-width: 108px;
+    max-width: 220px;
+    height: 24px;
+    padding: 1px 22px 1px 6px;
+    border-color: var(--vscode-dropdown-border, transparent);
+    color: var(--vscode-dropdown-foreground);
+    background: var(--vscode-dropdown-background);
+    font-size: var(--vscode-font-size);
+}
+
+.replay-field:first-child select { min-width: 190px; }
+.replay-file-field select { min-width: 145px; }
+
+.replay-timeline-header {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    height: 24px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    color: var(--vscode-descriptionForeground);
+}
+
+.replay-scale {
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replay-timeline-scroll {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--vscode-editor-background);
+    scrollbar-color: var(--vscode-scrollbarSlider-background) transparent;
+    scrollbar-width: thin;
+}
+
+.replay-timeline-canvas {
+    position: relative;
+    min-width: 100%;
+    height: 100%;
+}
+
+.replay-ruler {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 23px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    color: var(--vscode-descriptionForeground);
+    background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-panel-background));
+    pointer-events: none;
+}
+
+.replay-ruler-tick {
+    position: absolute;
+    bottom: 0;
+    height: 19px;
+    padding-left: 5px;
+    border-left: 1px solid var(--vscode-editorRuler-foreground, var(--vscode-panel-border));
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    line-height: 15px;
+    white-space: nowrap;
+}
+
+.replay-event-lane {
+    position: absolute;
+    inset: 23px 0 0;
+    overflow: hidden;
+    cursor: crosshair;
+    background-image: linear-gradient(to bottom, transparent 49%, var(--vscode-panel-border) 50%, transparent 51%);
+}
+
+.replay-event-marker {
+    position: absolute;
+    top: 21px;
+    width: 1px;
+    height: 18px;
+    background: var(--vscode-descriptionForeground);
+    opacity: .65;
+    pointer-events: none;
+}
+
+.replay-event-marker.notable {
+    top: 14px;
+    width: 3px;
+    height: 31px;
+    background: var(--vscode-editorWarning-foreground);
+    opacity: 1;
+}
+
+.replay-event-marker.session-start {
+    top: 0;
+    height: 100%;
+    border-left: 1px dashed var(--vscode-focusBorder);
+    background: transparent;
+    opacity: .8;
+}
+
+.replay-session-label {
+    position: absolute;
+    top: 3px;
+    z-index: 2;
+    padding: 1px 4px;
+    color: var(--vscode-descriptionForeground);
+    background: var(--vscode-editor-background);
+    font-size: 9px;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(3px);
+}
+
+.replay-idle-gap {
+    position: absolute;
+    inset-block: 7px;
+    z-index: 1;
+    min-width: 3px;
+    overflow: hidden;
+    border-inline: 1px dashed var(--vscode-editorWarning-foreground);
+    color: var(--vscode-editorWarning-foreground);
+    background: repeating-linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--vscode-editorWarning-foreground) 18%, transparent) 0 5px,
+        transparent 5px 10px
+    );
+    font-size: 9px;
+    line-height: 20px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.replay-playhead {
+    position: absolute;
+    z-index: 5;
+    inset-block: 0;
+    width: 1px;
+    background: var(--vscode-debugIcon-startForeground, var(--vscode-focusBorder));
+    pointer-events: none;
+    will-change: left;
+}
+
+.replay-playhead > span {
+    position: absolute;
+    top: 0;
+    left: -4px;
+    width: 0;
+    height: 0;
+    border-top: 6px solid var(--vscode-debugIcon-startForeground, var(--vscode-focusBorder));
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+}
+
+.replay-status {
+    min-height: 18px;
+    padding: 1px 8px;
+    overflow: hidden;
+    border-top: 1px solid var(--vscode-panel-border);
+    color: var(--vscode-descriptionForeground);
+    font-size: 11px;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replay-status.notable { color: var(--vscode-editorWarning-foreground); }
+
+.replay-overview-row {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    min-height: 24px;
+    padding: 3px 8px 4px;
+    border-top: 1px solid var(--vscode-panel-border);
+}
+
+.replay-overview-label {
+    color: var(--vscode-descriptionForeground);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.replay-overview {
+    position: relative;
+    height: 15px;
+    overflow: hidden;
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+    cursor: pointer;
+}
+
+.replay-overview-marks,
+.replay-overview-window {
+    position: absolute;
+    inset-block: 0;
+}
+
+.replay-overview-marks { inset-inline: 0; }
+
+.replay-overview-gap {
+    position: absolute;
+    inset-block: 1px;
+    min-width: 2px;
+    background: color-mix(in srgb, var(--vscode-editorWarning-foreground) 48%, transparent);
+}
+
+.replay-overview-session,
+.replay-overview-flag {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    width: 1px;
+    background: var(--vscode-focusBorder);
+}
+
+.replay-overview-flag {
+    width: 2px;
+    background: var(--vscode-editorWarning-foreground);
+}
+
+.replay-overview-window {
+    box-sizing: border-box;
+    min-width: 8px;
+    border: 1px solid var(--vscode-focusBorder);
+    background: color-mix(in srgb, var(--vscode-focusBorder) 13%, transparent);
+    cursor: grab;
+}
+
+.replay-overview-window:active { cursor: grabbing; }
+
+.replay-overview-grip {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 16px;
+    border-top: 3px double var(--vscode-focusBorder);
+    opacity: .8;
+    transform: translateX(-50%);
+}
+
+.replay-overview-handle {
+    position: absolute;
+    z-index: 2;
+    inset-block: -1px;
+    width: 7px;
+    background: var(--vscode-focusBorder);
+    cursor: ew-resize;
+}
+
+.replay-overview-handle::after {
+    position: absolute;
+    top: 4px;
+    left: 2px;
+    width: 2px;
+    height: 5px;
+    border-inline: 1px solid var(--vscode-panel-background);
+    content: '';
+}
+
+.replay-overview-handle.start { left: -1px; }
+.replay-overview-handle.end { right: -1px; }
+
+@media (max-width: 1100px) {
+    .replay-commandbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .replay-options {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+}
+
+@media (max-width: 720px) {
+    .replay-clock { min-width: 0; }
+    .replay-field:first-child select { min-width: 150px; }
+    .replay-file-field { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .boot-spinner { animation: none; }
 }
