@@ -6,7 +6,8 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import {
     BookOpen01Icon,
     Calendar03Icon,
-    CheckListIcon,
+    CalendarMortarboardIcon,
+    CourseIcon,
     Folder01Icon,
     Home01Icon,
     Settings01Icon,
@@ -88,8 +89,8 @@ const INSTITUTION_ITEMS = [
     },
     {
         href: '/navigation/institution/terms',
-        label: 'Terms',
-        icon: CheckListIcon,
+        label: 'Study Term',
+        icon: CalendarMortarboardIcon,
         permissions: [
             PERMISSION_CODE.TERM_CREATE,
             PERMISSION_CODE.TERM_VIEW,
@@ -99,8 +100,8 @@ const INSTITUTION_ITEMS = [
     },
     {
         href: '/navigation/institution/offerings',
-        label: 'Offerings',
-        icon: CheckListIcon,
+        label: 'Subject Offering',
+        icon: CourseIcon,
         permissions: [
             PERMISSION_CODE.OFFERING_CREATE,
             PERMISSION_CODE.OFFERING_VIEW,
