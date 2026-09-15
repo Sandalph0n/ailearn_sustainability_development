@@ -60,4 +60,8 @@ model User {
 
   /// Workspace cá nhân thì ngược lại — dữ liệu riêng, không có giá trị đối chứng, xoá theo được.
   personalWorkspaces PersonalWorkspace[]
+
+  /// Lịch cá nhân — riêng tư, xoá theo tài khoản.
+  calendarEvents  CalendarEvent[]
+  assessmentPlans AssessmentPlan[]
 }

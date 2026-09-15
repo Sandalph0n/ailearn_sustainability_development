@@ -1,0 +1,23 @@
+/// Kế hoạch làm một bài của MỘT người: "tôi định làm bài này từ ngày X đến ngày Y".
+///
+/// Hạn nộp là của bài (`Assessment.dueAt`); khoảng thời gian làm là của người học, mỗi người một
+/// kiểu. Lịch Gantt vẽ dải này thay vì chỉ đánh dấu tuần nộp. Riêng tư, xoá theo tài khoản.
+model AssessmentPlan {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  userId       String @db.Uuid
+  assessmentId String @db.Uuid
+
+  /// Ngày dân sự (không giờ) theo lịch của cơ sở.
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assessmentId])
+  @@index([assessmentId])
+}

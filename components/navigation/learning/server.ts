@@ -8,6 +8,7 @@ import { PERMISSION_CODE, type PermissionCode } from '@/lib/auth/permissions';
 import { getCurrentSession } from '@/lib/auth/session/service';
 import { CONTEXT_PARAM } from '@/lib/context/context-params';
 import { db } from '@/lib/db';
+import type { CalendarData, CalendarTerm } from '@/components/navigation/calendar/types';
 import {
     accessCoversOffering,
     canViewOwnAttempts,
@@ -466,5 +467,93 @@ export async function getOwnAttempt(
             offering: serializeOffering(row.assessment.offering, null),
             tools: row.assessment.allowedTools.map((edge) => edge.tool),
         },
+    };
+}
+
+/**
+ * Dữ liệu cho trang Calendar: mọi lượt mở môn vai trò này thấy được, kèm kỳ (với các giai đoạn
+ * teaching/recess/exam) và bài đã công bố. Cùng bộ lọc với "My Subjects" nên hai trang không bao
+ * giờ lệch nhau về môn nào được hiện.
+ */
+export async function loadLearningCalendar(
+    access: LearningAccess,
+    now: Date,
+): Promise<CalendarData> {
+    const canSeeAssessments = canViewPublishedAssessments(access);
+    const rows = await db.offering.findMany({
+        where: offeringWhere(access),
+        orderBy: [{ term: { year: 'asc' } }, { term: { session: 'asc' } }, { subject: { subjectCode: 'asc' } }],
+        select: {
+            id: true,
+            subject: { select: { subjectCode: true, subjectName: true } },
+            term: {
+                select: {
+                    id: true,
+                    year: true,
+                    session: true,
+                    periods: {
+                        orderBy: { startAt: 'asc' },
+                        select: { id: true, name: true, type: true, startAt: true, endAt: true },
+                    },
+                },
+            },
+            ...(canSeeAssessments
+                ? {
+                      assessments: {
+                          where: { publishAt: { lte: now } },
+                          orderBy: [{ dueAt: 'asc' }, { name: 'asc' }],
+                          select: {
+                              id: true,
+                              name: true,
+                              weight: true,
+                              hurdle: true,
+                              isGroup: true,
+                              dueAt: true,
+                              expectedDue: true,
+                          },
+                      },
+                  }
+                : {}),
+        },
+    });
+
+    const terms = new Map<string, CalendarTerm>();
+    for (const row of rows) {
+        if (!terms.has(row.term.id)) {
+            terms.set(row.term.id, {
+                id: row.term.id,
+                year: row.term.year,
+                session: row.term.session,
+                periods: row.term.periods.map((period) => ({
+                    id: period.id,
+                    name: period.name,
+                    type: period.type,
+                    startAt: period.startAt.toISOString(),
+                    endAt: period.endAt.toISOString(),
+                })),
+            });
+        }
+    }
+
+    return {
+        timeZone: 'Australia/Sydney',
+        canSeeAssessments,
+        terms: [...terms.values()],
+        offerings: rows.map((row) => ({
+            id: row.id,
+            termId: row.term.id,
+            subject: { code: row.subject.subjectCode, name: row.subject.subjectName },
+            assessments: ('assessments' in row ? row.assessments : []).map((assessment) => ({
+                id: assessment.id,
+                offeringId: row.id,
+                name: assessment.name,
+                weight: assessment.weight,
+                hurdle: assessment.hurdle,
+                isGroup: assessment.isGroup,
+                dueAt: assessment.dueAt?.toISOString() ?? null,
+                expectedDue: assessment.expectedDue,
+                href: learningHref(`/navigation/assessments/${assessment.id}`, access, row.id),
+            })),
+        })),
     };
 }

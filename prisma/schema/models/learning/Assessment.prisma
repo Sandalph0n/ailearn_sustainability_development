@@ -32,6 +32,7 @@ model Assessment {
   allowedTools AssessmentAllowTool[]
   /// `Restrict`: còn bài làm của sinh viên thì không xoá được bài tập.
   attempts     AssessmentAttempt[]
+  plans        AssessmentPlan[]
 
   @@index([offeringId])
 }

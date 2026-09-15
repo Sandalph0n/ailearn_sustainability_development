@@ -20,6 +20,7 @@ model Offering {
   scopeAssignments        ScopeAssignment[]
   scopeAssignmentCodes    ScopeAssignmentCode[]
   scopeAssignmentRequests ScopeAssignmentRequest[]
+  calendarEvents          CalendarEvent[]
 
   /// Một môn chỉ mở một lần trong một kỳ.
   @@unique([subjectId, termId])

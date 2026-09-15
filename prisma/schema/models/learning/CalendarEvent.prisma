@@ -1,0 +1,27 @@
+/// Một mục lịch cá nhân — "ôn chương 3", "họp nhóm" — do người dùng tự kéo lên tuần của mình.
+///
+/// Khác với hạn nộp bài (suy từ `Assessment.dueAt`, không lưu ở đây), mục này thuộc về MỘT người
+/// và không ai khác thấy. Xoá tài khoản là xoá theo, không có giá trị đối chứng.
+model CalendarEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  userId String @db.Uuid
+
+  title String
+  note  String?
+
+  startAt DateTime
+  endAt   DateTime
+
+  /// Tuỳ chọn gắn với một lượt mở môn để tô màu và lọc; môn bị xoá thì mục lịch vẫn còn.
+  offeringId String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offering Offering? @relation(fields: [offeringId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startAt])
+  @@index([offeringId])
+}

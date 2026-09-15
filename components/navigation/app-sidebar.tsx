@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     BookOpen01Icon,
+    Calendar03Icon,
     CheckListIcon,
     Folder01Icon,
     Home01Icon,
@@ -48,6 +49,12 @@ const PERSONAL_ITEMS = [
         href: '/navigation/subjects',
         label: 'My Subjects',
         icon: BookOpen01Icon,
+        permissions: [PERMISSION_CODE.OFFERING_VIEW],
+    },
+    {
+        href: '/navigation/calendar',
+        label: 'Calendar',
+        icon: Calendar03Icon,
         permissions: [PERMISSION_CODE.OFFERING_VIEW],
     },
     { href: '/navigation/workspaces', label: 'Workspaces', icon: Folder01Icon },
