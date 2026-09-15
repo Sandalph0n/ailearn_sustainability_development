@@ -19,8 +19,12 @@ function create(): S3Client {
     const accessKeyId = process.env.S3_ACCESS_KEY_ID;
     const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
 
-    if (!region || !accessKeyId || !secretAccessKey) {
-        throw new Error('S3_REGION, S3_ACCESS_KEY_ID or S3_SECRET_ACCESS_KEY is missing from .env');
+    if (!region) {
+        throw new Error('S3_REGION is missing from the environment');
+    }
+
+    if (Boolean(accessKeyId) !== Boolean(secretAccessKey)) {
+        throw new Error('S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY must be provided together');
     }
 
     // `S3_ENDPOINT` chỉ có ở máy dev, trỏ tới container MinIO. Trên AWS thì bỏ biến đó đi và SDK
@@ -33,7 +37,9 @@ function create(): S3Client {
         // MinIO nhận địa chỉ dạng `host/bucket`; S3 thật muốn `bucket.host`. Bật cờ này đúng lúc
         // có endpoint riêng, để cùng một mã chạy được ở cả hai nơi.
         forcePathStyle: Boolean(endpoint),
-        credentials: { accessKeyId, secretAccessKey },
+        // Local MinIO uses the explicit pair from `.env`. On AWS, omitting both values lets the
+        // SDK use App Runner's short-lived instance-role credentials instead of a stored key.
+        credentials: accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
     });
 }
 

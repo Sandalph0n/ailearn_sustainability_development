@@ -64,6 +64,9 @@ next-env.d.ts
 # Screenshot do AI model tự chụp và test
 /.screenshots/
 
+# Local deployment walkthrough captures may expose cloud resource metadata.
+/deployment-captures/
+
 # Independently built browser tools. Source is tracked; generated packages are reproducible.
 /.tmp/
 /packages/*/node_modules/
