@@ -1,4 +1,4 @@
-import type { IDisposable } from 'monaco-editor';
+import { editor as monacoEditor, type IDisposable } from 'monaco-editor';
 import { StandaloneServices } from '@codingame/monaco-vscode-api';
 import { URI } from '@codingame/monaco-vscode-api/vscode/vs/base/common/uri';
 import { ILanguageService } from '@codingame/monaco-vscode-api/vscode/vs/editor/common/languages/language.service';
@@ -11,16 +11,22 @@ import {
     ViewContainerLocation,
 } from '@codingame/monaco-vscode-workbench-service-override';
 import { IViewsService } from '@codingame/monaco-vscode-api/vscode/vs/workbench/services/views/common/viewsService.service';
+import { IEditorService } from '@codingame/monaco-vscode-api/vscode/vs/workbench/services/editor/common/editorService.service';
+import type { ITextDiffEditorPane } from '@codingame/monaco-vscode-api/vscode/vs/workbench/common/editor';
 import * as vscode from 'vscode';
 
 import type { ReplayController, ReplayFrame } from './controller';
+import {
+    REPLAY_DIFF_SCHEME,
+    ReplayDiffFileSystemProvider,
+    replayAfterUri,
+    replayBeforeUri,
+} from './diff-file-system';
 import { HISTORY_SCHEME, HistoryFileSystemProvider, historyUri } from './history-file-system';
 import { historyChildren } from './history-tree';
 import { ReplayTransport } from './transport';
 import dashboardCss from './webview/dashboard.css?raw';
 import dashboardScript from './webview/dashboard.js?raw';
-import replayCss from './webview/replay.css?raw';
-import replayScript from './webview/replay.js?raw';
 
 let controller: ReplayController | null = null;
 let renderNavigation: (() => void) | null = null;
@@ -29,6 +35,12 @@ let replayTransport: ReplayTransport | null = null;
 let historyPlayheadThrottle: ReturnType<typeof setTimeout> | null = null;
 const expandedHistoryFolders = new Set<string>();
 const REPLAY_PANEL_VIEW_ID = 'lernumi.logInspector.replayControls';
+const replayDiffFiles = new ReplayDiffFileSystemProvider();
+let replayEditor: ReplayDiffEditor | null = null;
+
+function getReplayEditor(): ReplayDiffEditor {
+    return replayEditor ??= new ReplayDiffEditor(replayDiffFiles);
+}
 
 /**
  * Activity Bar container matching MQ Smart Learning: the sidebar is navigation only. The actual
@@ -104,10 +116,10 @@ export function registerReplayView(options: { openByDefault: boolean }): void {
             container.classList.add('lernumi-replay-transport-host');
             const transport = new ReplayTransport(container, {
                 revealEditor() {
-                    if (controller) ReplayPanel.show(controller);
+                    if (controller) void getReplayEditor().show(controller.frame(controller.history().position));
                 },
                 showFrame(frame) {
-                    ReplayPanel.showFrame(frame);
+                    getReplayEditor().update(frame);
                 },
             });
             replayTransport = transport;
@@ -124,6 +136,11 @@ export function registerReplayView(options: { openByDefault: boolean }): void {
 
 export function attachReplayController(value: ReplayController): void {
     controller = value;
+    vscode.workspace.registerFileSystemProvider(
+        REPLAY_DIFF_SCHEME,
+        replayDiffFiles,
+        { isCaseSensitive: true, isReadonly: true },
+    );
     vscode.workspace.registerFileSystemProvider(
         HISTORY_SCHEME,
         new HistoryFileSystemProvider(value),
@@ -388,52 +405,97 @@ class DashboardPanel {
 }
 
 async function openReplay(model: ReplayController, startAt?: number): Promise<void> {
-    ReplayPanel.show(model);
+    await getReplayEditor().show(model.frame(model.history().position));
     await StandaloneServices.get(IViewsService).openView(REPLAY_PANEL_VIEW_ID, true);
     replayTransport?.connect(model);
     replayTransport?.syncFromModel(startAt);
 }
 
-class ReplayPanel {
-    private static current: ReplayPanel | null = null;
-    private readonly panel: vscode.WebviewPanel;
-    private ready = false;
-    private pendingFrame: ReplayFrame | null = null;
+class ReplayDiffEditor {
+    private frame: ReplayFrame | null = null;
+    private pane: ITextDiffEditorPane | null = null;
+    private opening: Promise<void> | null = null;
 
-    static show(model: ReplayController): void {
-        if (ReplayPanel.current) {
-            ReplayPanel.current.panel.reveal();
-            return;
-        }
-        ReplayPanel.current = new ReplayPanel();
-    }
+    constructor(private readonly files: ReplayDiffFileSystemProvider) {}
 
-    static showFrame(frame: ReplayFrame): void {
-        ReplayPanel.current?.postFrame(frame);
-    }
-
-    private constructor() {
-        this.panel = vscode.window.createWebviewPanel(
-            'lernumi.logInspector.replay',
-            'Replay',
-            vscode.ViewColumn.Active,
-            { enableScripts: true, retainContextWhenHidden: true },
-        );
-        const body = '<div class="label" id="label">Open the Replay panel to begin.</div><div class="code" id="code"></div>';
-        this.panel.webview.html = webviewDocument(this.panel.webview, 'Replay', replayCss, replayScript, body);
-        this.panel.webview.onDidReceiveMessage((message: { type?: string }) => {
-            if (message.type !== 'ready') return;
-            this.ready = true;
-            if (this.pendingFrame) this.postFrame(this.pendingFrame);
+    async show(frame?: ReplayFrame): Promise<void> {
+        if (frame) this.update(frame);
+        if (this.opening) return this.opening;
+        this.opening = this.open().finally(() => {
+            this.opening = null;
         });
-        this.panel.onDidDispose(() => {
-            ReplayPanel.current = null;
+        return this.opening;
+    }
+
+    update(frame: ReplayFrame): void {
+        this.frame = frame;
+        this.files.setFrame(frame);
+        this.updateModels(frame);
+    }
+
+    private async open(): Promise<void> {
+        const pane = await StandaloneServices.get(IEditorService).openEditor({
+            label: 'Replay',
+            description: 'Changes from the previous event',
+            original: { resource: URI.parse(replayBeforeUri.toString()) },
+            modified: { resource: URI.parse(replayAfterUri.toString()) },
+            options: {
+                pinned: true,
+                revealIfOpened: true,
+            },
+        });
+        if (!pane) return;
+        this.pane = pane;
+        this.configure(pane);
+        if (this.frame) this.updateModels(this.frame);
+    }
+
+    private configure(pane: ITextDiffEditorPane): void {
+        const control = pane.getControl() as monacoEditor.IDiffEditor | undefined;
+        control?.updateOptions({
+            readOnly: true,
+            originalEditable: false,
+            renderSideBySide: false,
+            useInlineViewWhenSpaceIsLimited: true,
+            enableSplitViewResizing: false,
+            renderMarginRevertIcon: false,
+            renderGutterMenu: false,
+            diffCodeLens: false,
+            diffAlgorithm: 'advanced',
+            ignoreTrimWhitespace: false,
+            experimental: {
+                showMoves: false,
+                showEmptyDecorations: true,
+                useTrueInlineView: true,
+            },
         });
     }
 
-    private postFrame(frame: ReplayFrame): void {
-        this.pendingFrame = frame;
-        if (this.ready) void this.panel.webview.postMessage({ type: 'frame', frame });
+    private updateModels(frame: ReplayFrame): void {
+        const modelService = StandaloneServices.get(IModelService);
+        const before = modelService.getModel(URI.parse(replayBeforeUri.toString()));
+        const after = modelService.getModel(URI.parse(replayAfterUri.toString()));
+        if (!before || !after) return;
+
+        if (before.getValue() !== frame.previousContent) modelService.updateModel(before, frame.previousContent);
+        if (after.getValue() !== frame.content) modelService.updateModel(after, frame.content);
+
+        const languageService = StandaloneServices.get(ILanguageService);
+        const resource = URI.file(frame.file ?? 'Replay.txt');
+        const languageId = languageService.guessLanguageIdByFilepathOrFirstLine(
+            resource,
+            frame.content.split(/\r?\n/, 1)[0],
+        ) ?? 'plaintext';
+        monacoEditor.setModelLanguage(before, languageId);
+        monacoEditor.setModelLanguage(after, languageId);
+
+        const control = this.pane?.getControl() as monacoEditor.IDiffEditor | undefined;
+        if (!control) return;
+        this.configure(this.pane!);
+        const focusOffset = frame.change?.offset ?? frame.selection[0]?.[1] ?? 0;
+        const position = after.getPositionAt(Math.min(Math.max(focusOffset, 0), after.getValueLength()));
+        control.getModifiedEditor().setPosition(position);
+        control.getModifiedEditor().revealPositionInCenterIfOutsideViewport(position);
     }
 }
 
