@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import {
   Background,
   BackgroundVariant,
+  ConnectionMode,
   Controls,
   ReactFlow,
   ReactFlowProvider,
@@ -47,6 +48,7 @@ function ReplayFlow({ page }: { page: ReplayDiagramPage }) {
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={{ type: 'connection' }}
+      connectionMode={ConnectionMode.Loose}
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
