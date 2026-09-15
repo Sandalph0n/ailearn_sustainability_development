@@ -1,7 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import {
+    ArrowLeft01Icon,
+    BookOpen01Icon,
+    Calendar03Icon,
+    UserMultipleIcon,
+} from '@hugeicons/core-free-icons';
 import { z } from 'zod';
 
 import {
@@ -25,6 +30,15 @@ const ASSESSMENT_ACTIONS = [
     PERMISSION_CODE.ASSESSMENT_DELETE,
 ] as const;
 const PAGE_ACTIONS = [PERMISSION_CODE.OFFERING_VIEW, ...ASSESSMENT_ACTIONS] as const;
+const PEOPLE_ACTIONS = [
+    PERMISSION_CODE.MEMBER_VIEW,
+    PERMISSION_CODE.ROLE_ASSIGNMENT_VIEW,
+    PERMISSION_CODE.ROLE_ASSIGNMENT_CREATE,
+    PERMISSION_CODE.ROLE_ASSIGNMENT_REVOKE,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_VIEW,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_CREATE,
+    PERMISSION_CODE.SCOPE_ASSIGNMENT_REVOKE,
+] as const;
 
 const DATE_TIME = new Intl.DateTimeFormat('en-AU', {
     day: 'numeric',
@@ -91,8 +105,8 @@ export default async function InstitutionOfferingAssessmentsPage({
             where: { id: offeringId },
             select: {
                 id: true,
-                subject: { select: { subjectCode: true, subjectName: true } },
-                term: { select: { year: true, session: true } },
+                subject: { select: { id: true, subjectCode: true, subjectName: true } },
+                term: { select: { id: true, year: true, session: true } },
             },
         }),
         capabilities.view
@@ -154,10 +168,22 @@ export default async function InstitutionOfferingAssessmentsPage({
         [CONTEXT_PARAM.institution]: institutionId,
         [CONTEXT_PARAM.role]: roleId,
     }).toString();
+    const offeringContextQuery = new URLSearchParams({
+        [CONTEXT_PARAM.institution]: institutionId,
+        [CONTEXT_PARAM.role]: roleId,
+        [CONTEXT_PARAM.offering]: offering.id,
+    }).toString();
+    const canOpenSubject =
+        active.role.scopeType === 'INSTITUTION' &&
+        hasPermission(active.permissions, PERMISSION_CODE.SUBJECT_VIEW);
+    const canOpenTerm =
+        active.role.scopeType === 'INSTITUTION' &&
+        hasPermission(active.permissions, PERMISSION_CODE.TERM_VIEW);
+    const canOpenPeople = hasAnyPermission(active.permissions, PEOPLE_ACTIONS);
 
     return (
         <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 py-7">
-            <div>
+            <div className="border-b pb-5">
                 <Button
                     nativeButton={false}
                     variant="ghost"
@@ -172,17 +198,68 @@ export default async function InstitutionOfferingAssessmentsPage({
                     <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
                     Offerings
                 </Button>
-                <p className="text-primary mt-4 text-xs font-semibold tracking-[0.16em] uppercase">
-                    Assessment management
-                </p>
-                <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight">
-                    {offering.subject.subjectCode} · {offering.term.year} Session{' '}
-                    {offering.term.session}
-                </h1>
-                <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-                    {offering.subject.subjectName}. Configure grading, dates, hurdle rules and
-                    the tools students may use.
-                </p>
+                <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p className="text-primary text-xs font-semibold tracking-[0.16em] uppercase">
+                            Offering workspace
+                        </p>
+                        <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight">
+                            {offering.subject.subjectCode} · {offering.term.year} Session{' '}
+                            {offering.term.session}
+                        </h1>
+                        <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+                            {offering.subject.subjectName}. Continue to related catalog, calendar,
+                            people, and assessment work from this offering.
+                        </p>
+                    </div>
+                    <nav aria-label="Related offering pages" className="flex flex-wrap gap-2">
+                        {canOpenSubject && (
+                            <Button
+                                nativeButton={false}
+                                variant="outline"
+                                size="sm"
+                                render={
+                                    <Link
+                                        href={`/navigation/institution/subjects/${offering.subject.id}?${contextQuery}`}
+                                    />
+                                }
+                            >
+                                <HugeiconsIcon icon={BookOpen01Icon} strokeWidth={2} />
+                                Subject
+                            </Button>
+                        )}
+                        {canOpenTerm && (
+                            <Button
+                                nativeButton={false}
+                                variant="outline"
+                                size="sm"
+                                render={
+                                    <Link
+                                        href={`/navigation/institution/terms/${offering.term.id}?${contextQuery}`}
+                                    />
+                                }
+                            >
+                                <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
+                                Term
+                            </Button>
+                        )}
+                        {canOpenPeople && (
+                            <Button
+                                nativeButton={false}
+                                variant="outline"
+                                size="sm"
+                                render={
+                                    <Link
+                                        href={`/navigation/institution/people?${offeringContextQuery}`}
+                                    />
+                                }
+                            >
+                                <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />
+                                People &amp; access
+                            </Button>
+                        )}
+                    </nav>
+                </div>
             </div>
 
             <AssessmentsTable

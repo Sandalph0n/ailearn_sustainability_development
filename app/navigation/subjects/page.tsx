@@ -4,6 +4,10 @@ import { HugeiconsIcon } from '@hugeicons/react';
 
 import { formatDate, termLabel } from '@/components/navigation/learning/format';
 import { LearningPageHeader } from '@/components/navigation/learning/page-header';
+import {
+    OfferingFilters,
+    type OfferingStatusFilter,
+} from '@/components/navigation/learning/offering-filters';
 import { termStatus, type LearningAccess, type TermStatus } from '@/components/navigation/learning/policy';
 import type { LearningOfferingSummary } from '@/components/navigation/learning/types';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +21,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 const STATUS_ORDER: TermStatus[] = ['current', 'upcoming', 'past'];
+const STATUS_FILTERS = new Set<OfferingStatusFilter>(['all', ...STATUS_ORDER]);
 const STATUS_COPY: Record<TermStatus, { title: string; description: string }> = {
     current: {
         title: 'Current study',
@@ -39,8 +44,23 @@ export default async function MySubjectsPage({
     const { access } = await requireLearningPageAccess(query, PERMISSION_CODE.OFFERING_VIEW);
     const now = new Date();
     const offerings = await listLearningOfferings(access, now);
+    const rawQuery = Array.isArray(query.q) ? query.q[0] : query.q;
+    const normalizedQuery = rawQuery?.trim().toLocaleLowerCase() ?? '';
+    const rawStatus = Array.isArray(query.status) ? query.status[0] : query.status;
+    const status: OfferingStatusFilter = STATUS_FILTERS.has(rawStatus as OfferingStatusFilter)
+        ? (rawStatus as OfferingStatusFilter)
+        : 'all';
+    const visibleOfferings = offerings.filter((offering) => {
+        const offeringStatus = termStatus(
+            { year: offering.term.year, periods: offering.term.periods },
+            now,
+        );
+        const matchesStatus = status === 'all' || offeringStatus === status;
+        const haystack = `${offering.subject.code} ${offering.subject.name}`.toLocaleLowerCase();
+        return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
+    });
 
-    const grouped = Map.groupBy(offerings, (offering) =>
+    const grouped = Map.groupBy(visibleOfferings, (offering) =>
         termStatus(
             {
                 year: offering.term.year,
@@ -63,6 +83,10 @@ export default async function MySubjectsPage({
                 }
             />
 
+            {offerings.length > 0 && (
+                <OfferingFilters status={status} resultCount={visibleOfferings.length} />
+            )}
+
             {offerings.length === 0 ? (
                 <section className="flex min-h-72 flex-col items-center justify-center rounded-xl border border-dashed px-6 text-center">
                     <span className="bg-brand-teal/10 text-brand-teal flex size-11 items-center justify-center rounded-lg">
@@ -79,6 +103,13 @@ export default async function MySubjectsPage({
                     >
                         Open Subject Access
                     </Link>
+                </section>
+            ) : visibleOfferings.length === 0 ? (
+                <section className="flex min-h-52 flex-col items-center justify-center border-y px-6 text-center">
+                    <h2 className="font-heading text-lg font-semibold">No matching subjects</h2>
+                    <p className="text-muted-foreground mt-1 max-w-md text-sm leading-6">
+                        Try another subject code, name, or study-period filter.
+                    </p>
                 </section>
             ) : (
                 <div className="space-y-9">

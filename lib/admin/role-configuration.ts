@@ -3,6 +3,7 @@ import 'server-only';
 
 import type { Prisma } from '@/app/generated/prisma/client';
 import type { RoleSchemaValue } from '@/lib/admin/role-schema';
+import { permissionSupportsRoleScope } from '@/lib/auth/permissions';
 
 export class RoleConfigurationError extends Error {
     constructor(
@@ -85,7 +86,7 @@ export async function validateRoleConfiguration(
         }),
         tx.permission.findMany({
             where: { id: { in: data.permissionIds } },
-            select: { id: true },
+            select: { id: true, permission: true },
         }),
         tx.role.findMany({
             where: { id: { in: data.prerequisiteRoleIds } },
@@ -112,6 +113,18 @@ export async function validateRoleConfiguration(
 
     if (permissions.length !== data.permissionIds.length) {
         throw new RoleConfigurationError('One or more permissions do not exist', 'permissionIds');
+    }
+
+    if (
+        data.scopeType === 'OFFERING' &&
+        permissions.some((permission) =>
+            !permissionSupportsRoleScope(permission.permission, data.scopeType),
+        )
+    ) {
+        throw new RoleConfigurationError(
+            'Offering-scoped roles cannot grant permissions for institution-only resources',
+            'permissionIds',
+        );
     }
 
     if (

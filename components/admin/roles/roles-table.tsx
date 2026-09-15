@@ -48,6 +48,7 @@ import {
     FULL_CRUD_CAPABILITIES,
     type CrudCapabilities,
 } from '@/lib/admin/resource-capabilities';
+import { permissionSupportsRoleScope } from '@/lib/auth/permissions';
 
 export type RoleListItem = {
     id: string;
@@ -493,6 +494,12 @@ function RoleForm({
                                         value: permission.id,
                                         label: permission.permission,
                                         description: permission.description ?? undefined,
+                                        disabledReason: permissionSupportsRoleScope(
+                                            permission.permission,
+                                            chosenScope,
+                                        )
+                                            ? undefined
+                                            : 'This action changes an institution-level resource and cannot be narrowed to an offering. Choose Institution scope to grant it.',
                                     }))}
                                 />
                             </div>

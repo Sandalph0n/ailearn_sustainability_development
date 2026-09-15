@@ -66,6 +66,50 @@ export const PERMISSION_CODE = {
 
 export type PermissionCode = (typeof PERMISSION_CODE)[keyof typeof PERMISSION_CODE];
 
+export type PermissionRoleScope = 'INSTITUTION' | 'OFFERING';
+
+/**
+ * These actions target institution-owned resources that cannot be narrowed to one existing
+ * offering. Offering-scoped roles may still use every other action, but authorization must
+ * constrain it to the assignment's offering set.
+ */
+export const INSTITUTION_ONLY_PERMISSION_CODES = new Set<PermissionCode>([
+    PERMISSION_CODE.INSTITUTION_SETTINGS_VIEW,
+    PERMISSION_CODE.INSTITUTION_SETTINGS_UPDATE,
+    PERMISSION_CODE.INSTITUTION_SETTINGS_MANAGE,
+    PERMISSION_CODE.SUBJECT_CREATE,
+    PERMISSION_CODE.SUBJECT_VIEW,
+    PERMISSION_CODE.SUBJECT_UPDATE,
+    PERMISSION_CODE.SUBJECT_DELETE,
+    PERMISSION_CODE.SUBJECT_MANAGE,
+    PERMISSION_CODE.TERM_CREATE,
+    PERMISSION_CODE.TERM_VIEW,
+    PERMISSION_CODE.TERM_UPDATE,
+    PERMISSION_CODE.TERM_DELETE,
+    PERMISSION_CODE.TERM_MANAGE,
+    PERMISSION_CODE.OFFERING_CREATE,
+    PERMISSION_CODE.ROLE_REQUEST_VIEW,
+    PERMISSION_CODE.ROLE_REQUEST_APPROVE,
+    PERMISSION_CODE.ROLE_REQUEST_REJECT,
+    PERMISSION_CODE.ROLE_REQUEST_REVIEW,
+    PERMISSION_CODE.ROLE_CREATE,
+    PERMISSION_CODE.ROLE_VIEW,
+    PERMISSION_CODE.ROLE_UPDATE,
+    PERMISSION_CODE.ROLE_DELETE,
+    PERMISSION_CODE.ROLE_MANAGE,
+    PERMISSION_CODE.AUDIT_VIEW,
+]);
+
+export function permissionSupportsRoleScope(
+    permission: string,
+    scopeType: PermissionRoleScope,
+): boolean {
+    return (
+        scopeType === 'INSTITUTION' ||
+        !INSTITUTION_ONLY_PERMISSION_CODES.has(permission as PermissionCode)
+    );
+}
+
 export type PermissionDefinition = Readonly<{
     description: string;
 }>;

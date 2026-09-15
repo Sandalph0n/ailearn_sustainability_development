@@ -18,6 +18,8 @@ export type TransferListOption = {
     value: string;
     label: string;
     description?: string;
+    /** The option remains discoverable, but cannot be moved into Selected. */
+    disabledReason?: string;
 };
 
 export type LockedTransferListOption = {
@@ -90,6 +92,7 @@ export function FormTransferList<
                 });
 
                 const add = (value: string) => {
+                    if (options.find((option) => option.value === value)?.disabledReason) return;
                     field.onChange([...selectedValues, value]);
                     field.onBlur();
                 };
@@ -209,16 +212,18 @@ function TransferItems({
                     !adding &&
                     !directlySelectedValues.has(option.value) &&
                     lockedByValue.get(option.value);
+                const disabledReason =
+                    (inherited ? inherited.disabledReason : undefined) ?? option.disabledReason;
                 const moveButton = (
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        disabled={Boolean(inherited)}
+                        disabled={Boolean(disabledReason)}
                         onClick={() => onMove(option.value)}
                         aria-label={`${adding ? 'Select' : 'Remove'} ${option.label}`}
                         title={
-                            inherited
+                            disabledReason
                                 ? undefined
                                 : adding
                                   ? 'Move to selected'
@@ -238,7 +243,7 @@ function TransferItems({
                         key={option.value}
                         className={
                             'group flex min-h-14 items-center gap-3 rounded-sm border-l-2 px-2.5 py-2 transition-colors ' +
-                            (inherited
+                            (inherited || option.disabledReason
                                 ? 'border-border bg-muted/40'
                                 : 'hover:bg-muted/60 border-transparent')
                         }
@@ -261,15 +266,20 @@ function TransferItems({
                                     {inherited.annotation}
                                 </p>
                             )}
+                            {!inherited && option.disabledReason && (
+                                <p className="text-foreground/65 mt-1 text-xs font-medium">
+                                    Institution scope only
+                                </p>
+                            )}
                         </div>
 
-                        {inherited ? (
+                        {disabledReason ? (
                             <Tooltip>
                                 <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
                                     {moveButton}
                                 </TooltipTrigger>
                                 <TooltipContent side="left">
-                                    {inherited.disabledReason}
+                                    {disabledReason}
                                 </TooltipContent>
                             </Tooltip>
                         ) : (

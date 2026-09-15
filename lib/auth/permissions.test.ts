@@ -11,6 +11,7 @@ import {
     hasEveryPermission,
     hasPermission,
     isPermissionCode,
+    permissionSupportsRoleScope,
 } from './permissions';
 
 describe('permission catalog', () => {
@@ -113,6 +114,21 @@ describe('permission catalog', () => {
         ).toBe(false);
         expect(
             hasEveryPermission([PERMISSION_CODE.SUBJECT_MANAGE], subjectActions),
+        ).toBe(true);
+    });
+
+    it('keeps institution resources out of offering-scoped role definitions', () => {
+        expect(
+            permissionSupportsRoleScope(PERMISSION_CODE.SUBJECT_UPDATE, 'OFFERING'),
+        ).toBe(false);
+        expect(
+            permissionSupportsRoleScope(PERMISSION_CODE.OFFERING_CREATE, 'OFFERING'),
+        ).toBe(false);
+        expect(
+            permissionSupportsRoleScope(PERMISSION_CODE.ASSESSMENT_UPDATE, 'OFFERING'),
+        ).toBe(true);
+        expect(
+            permissionSupportsRoleScope(PERMISSION_CODE.SUBJECT_UPDATE, 'INSTITUTION'),
         ).toBe(true);
     });
 });
