@@ -1,7 +1,9 @@
 /**
  * Remove local-only role QA personas and every database record they own.
  *
- * The target is deliberately fixed to `qa+%@ailearn.local`. The cleanup runs in one
+ * The target is deliberately fixed to `qa+%@lernumi.local`. Historical `ailearn.local`
+ * principals are not touched: some authored immutable tool versions and must remain as audit
+ * identities. The cleanup runs in one
  * transaction and aborts if a QA-created access code has granted scope to a non-QA user,
  * because deleting that scope would cross the cleanup boundary.
  */
@@ -25,13 +27,13 @@ async function deleteRows(name, sql) {
 
 try {
     await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
-    await client.query("SELECT pg_advisory_xact_lock(hashtext('ailearn:qa-role-persona-cleanup'))");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('lernumi:qa-role-persona-cleanup'))");
 
     await client.query(`
         CREATE TEMP TABLE qa_cleanup_users ON COMMIT DROP AS
         SELECT "id", "email"
           FROM "User"
-         WHERE "email" LIKE 'qa+%@ailearn.local'
+         WHERE "email" LIKE 'qa+%@lernumi.local'
     `);
 
     const targetResult = await client.query(
@@ -210,7 +212,7 @@ try {
         const remainingResult = await client.query(
             `SELECT COUNT(*)::int AS "count"
                FROM "User"
-              WHERE "email" LIKE 'qa+%@ailearn.local'`,
+              WHERE "email" LIKE 'qa+%@lernumi.local'`,
         );
         if (remainingResult.rows[0].count !== 0) {
             throw new Error('Cleanup verification failed: QA role personas still exist');
