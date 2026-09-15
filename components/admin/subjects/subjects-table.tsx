@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -82,6 +83,7 @@ export function SubjectsTable({
     dir,
     endpoint = '/api/admin/subjects',
     contextQuery = '',
+    subjectBasePath,
     capabilities = FULL_CAPABILITIES,
 }: {
     subjects: SubjectListItem[];
@@ -97,6 +99,8 @@ export function SubjectsTable({
     endpoint?: string;
     /** Active institution/role context, forwarded to protected non-admin endpoints. */
     contextQuery?: string;
+    /** When present, subject names and offering counts lead to a contextual detail page. */
+    subjectBasePath?: string;
     capabilities?: SubjectCapabilities;
 }) {
     const list = useListQuery();
@@ -112,7 +116,16 @@ export function SubjectsTable({
 
                 column.accessor('subjectName', {
                     header: 'Name',
-                    cell: (info) => <span className="font-medium">{info.getValue()}</span>,
+                    cell: (info) => {
+                        const href = subjectBasePath
+                            ? contextualHref(`${subjectBasePath}/${info.row.original.id}`, contextQuery)
+                            : null;
+                        return href ? (
+                            <Link href={href} className="font-medium hover:text-primary hover:underline underline-offset-4">
+                                {info.getValue()}
+                            </Link>
+                        ) : <span className="font-medium">{info.getValue()}</span>;
+                    },
                 }),
 
                 ...(locked
@@ -132,7 +145,20 @@ export function SubjectsTable({
                 column.accessor((row) => row.counts.offerings, {
                     id: 'offerings',
                     header: 'Offerings',
-                    cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+                    cell: (info) => {
+                        const href = subjectBasePath
+                            ? contextualHref(`${subjectBasePath}/${info.row.original.id}`, contextQuery)
+                            : null;
+                        return href ? (
+                            <Link
+                                href={href}
+                                className="text-primary inline-flex min-w-8 items-center gap-1 font-medium tabular-nums hover:underline underline-offset-4"
+                                aria-label={`View ${info.getValue()} offerings for ${info.row.original.subjectCode}`}
+                            >
+                                {info.getValue()}
+                            </Link>
+                        ) : <span className="tabular-nums">{info.getValue()}</span>;
+                    },
                 }),
 
                 ...(capabilities.update || capabilities.delete
@@ -156,7 +182,7 @@ export function SubjectsTable({
                       ]
                     : []),
             ] as Array<AdminColumnDef<SubjectListItem>>,
-        [capabilities.delete, capabilities.update, contextQuery, endpoint, locked],
+        [capabilities.delete, capabilities.update, contextQuery, endpoint, locked, subjectBasePath],
     );
 
     if (editing) {
@@ -473,5 +499,9 @@ function RowActions({ subject, canUpdate, canDelete, endpoint, onEdit }: {
 }
 
 function endpointFor(path: string, query: string): string {
+    return query ? `${path}?${query}` : path;
+}
+
+function contextualHref(path: string, query: string): string {
     return query ? `${path}?${query}` : path;
 }

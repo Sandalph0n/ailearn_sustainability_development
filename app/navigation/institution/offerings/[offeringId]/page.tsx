@@ -24,6 +24,7 @@ const ASSESSMENT_ACTIONS = [
     PERMISSION_CODE.ASSESSMENT_UPDATE,
     PERMISSION_CODE.ASSESSMENT_DELETE,
 ] as const;
+const PAGE_ACTIONS = [PERMISSION_CODE.OFFERING_VIEW, ...ASSESSMENT_ACTIONS] as const;
 
 const DATE_TIME = new Intl.DateTimeFormat('en-AU', {
     day: 'numeric',
@@ -70,7 +71,7 @@ export default async function InstitutionOfferingAssessmentsPage({
         { institutionId, roleId },
         { kind: 'OFFERING', institutionId, offeringId },
     );
-    if (!active || !hasAnyPermission(active.permissions, ASSESSMENT_ACTIONS)) {
+    if (!active || !hasAnyPermission(active.permissions, PAGE_ACTIONS)) {
         redirect('/navigation/dashboard');
     }
 

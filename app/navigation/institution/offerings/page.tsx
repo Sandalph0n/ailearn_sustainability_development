@@ -80,6 +80,8 @@ export default async function InstitutionOfferingsPage({
                   )
                   .map((context) => context.offering!.id);
     const canManageAssessments = hasAnyPermission(active.permissions, ASSESSMENT_ACTIONS);
+    const canOpenOffering =
+        hasPermission(active.permissions, PERMISSION_CODE.OFFERING_VIEW) || canManageAssessments;
     const capabilities = {
         // Offering creation is institution-level: an offering-scoped role cannot target a row
         // that does not exist yet. The existing write routes enforce the same boundary.
@@ -111,7 +113,7 @@ export default async function InstitutionOfferingsPage({
                 searchParams={query}
                 endpoint={`/api/institutions/${active.institution.id}/offerings`}
                 assessmentBasePath={
-                    canManageAssessments ? '/navigation/institution/offerings' : null
+                    canOpenOffering ? '/navigation/institution/offerings' : null
                 }
                 contextQuery={contextQuery}
                 capabilities={capabilities}

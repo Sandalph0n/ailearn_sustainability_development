@@ -88,6 +88,7 @@ export default async function InstitutionSubjectsPage({
                 lockedInstitutionId={active.institution.id}
                 endpoint={`/api/institutions/${active.institution.id}/subjects`}
                 contextQuery={contextQuery}
+                subjectBasePath="/navigation/institution/subjects"
                 capabilities={capabilities}
             />
         </main>

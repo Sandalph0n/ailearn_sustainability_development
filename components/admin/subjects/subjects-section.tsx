@@ -33,12 +33,15 @@ export async function SubjectsSection({
     lockedInstitutionId = null,
     endpoint,
     contextQuery,
+    subjectBasePath,
     capabilities,
 }: {
     searchParams: Record<string, string | string[] | undefined>;
     lockedInstitutionId?: string | null;
     endpoint?: string;
     contextQuery?: string;
+    /** Optional human-facing detail route. Admin tables omit it; navigation supplies it. */
+    subjectBasePath?: string;
     capabilities?: SubjectCapabilities;
 }) {
     const SORT_FIELDS = ['subjectCode', 'subjectName', 'institution', 'offerings'] as const;
@@ -129,6 +132,7 @@ export async function SubjectsSection({
             dir={dir}
             endpoint={endpoint}
             contextQuery={contextQuery}
+            subjectBasePath={subjectBasePath}
             capabilities={capabilities}
         />
     );
