@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add01Icon, Delete02Icon, Edit02Icon, MoreVerticalIcon } from '@hugeicons/core-free-icons';
+import {
+    Add01Icon,
+    Delete02Icon,
+    Download04Icon,
+    Edit02Icon,
+    MoreVerticalIcon,
+} from '@hugeicons/core-free-icons';
+import type { UseFormReturn } from 'react-hook-form';
+import { toast } from 'sonner';
 
 import { DeleteResourceDialog } from '@/components/admin/delete-resource-dialog';
 import {
@@ -33,6 +41,10 @@ import {
     type SubjectFormValue,
     type SubjectSchemaValue,
 } from '@/lib/admin/subject-schema';
+import type { CatalogInfo, CatalogSubject } from '@/lib/institution-adapters';
+
+/** Cơ sở kèm nguồn danh mục công khai (nếu có) để biểu mẫu hiện nút tra cứu. */
+export type SubjectInstitutionOption = InstitutionOption & { catalog: CatalogInfo | null };
 
 export type SubjectListItem = {
     id: string;
@@ -73,7 +85,7 @@ export function SubjectsTable({
     capabilities = FULL_CAPABILITIES,
 }: {
     subjects: SubjectListItem[];
-    institutions: InstitutionOption[];
+    institutions: SubjectInstitutionOption[];
     institutionId: string | null;
     /** Đang ở trang con của một cơ sở: cột và bộ lọc cơ sở đều thừa. */
     locked: boolean;
@@ -155,6 +167,7 @@ export function SubjectsTable({
                 presetInstitutionId={institutionId}
                 locked={locked}
                 createEndpoint={endpointFor(endpoint, contextQuery)}
+                lookupEndpoint={endpointFor(`${endpoint}/lookup`, contextQuery)}
                 editEndpoint={
                     editing === 'create'
                         ? undefined
@@ -238,14 +251,17 @@ function SubjectForm({
     presetInstitutionId,
     locked = false,
     createEndpoint,
+    lookupEndpoint,
     editEndpoint,
     onCancel,
 }: {
     subject?: SubjectListItem;
-    institutions: InstitutionOption[];
+    institutions: SubjectInstitutionOption[];
     presetInstitutionId?: string | null;
     locked?: boolean;
     createEndpoint: string;
+    /** `GET ?code=` tra mã môn trong danh mục công khai của cơ sở đang chọn. */
+    lookupEndpoint: string;
     editEndpoint?: string;
     onCancel: () => void;
 }) {
@@ -323,10 +339,85 @@ function SubjectForm({
                                 autoComplete="off"
                             />
                         </div>
+                        <CatalogLookup
+                            form={form}
+                            institutions={institutions}
+                            lookupEndpoint={lookupEndpoint}
+                        />
                     </div>
                 </ResourceFormSection>
             )}
         </ResourceFormPage>
+    );
+}
+
+/**
+ * Nút "điền từ danh mục công khai".
+ *
+ * Chỉ hiện khi cơ sở đang chọn có adapter. Kết quả đổ vào form chứ không lưu thẳng: người dùng
+ * vẫn thấy và sửa được trước khi bấm Save, vì mô tả Handbook thường dài hơn mức muốn giữ.
+ */
+function CatalogLookup({
+    form,
+    institutions,
+    lookupEndpoint,
+}: {
+    form: UseFormReturn<SubjectFormValue, unknown, SubjectSchemaValue>;
+    institutions: SubjectInstitutionOption[];
+    lookupEndpoint: string;
+}) {
+    const [pending, setPending] = useState(false);
+    const institutionId = form.watch('institutionId');
+    const code = form.watch('subjectCode').trim();
+    const catalog = institutions.find((institution) => institution.id === institutionId)?.catalog;
+
+    if (!catalog) return null;
+
+    async function lookup() {
+        setPending(true);
+        try {
+            // Route admin cần `institutionId`; route theo cơ sở đã có id trong đường dẫn và bỏ qua.
+            const url = new URL(lookupEndpoint, window.location.origin);
+            url.searchParams.set('institutionId', institutionId);
+            url.searchParams.set('code', code);
+
+            const response = await fetch(url, { headers: { accept: 'application/json' } });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                toast.error(body?.error?.message ?? `Could not reach the ${catalog!.label}.`);
+                return;
+            }
+
+            const subject = body.subject as CatalogSubject;
+            const fill = { shouldDirty: true, shouldValidate: true };
+            form.setValue('subjectCode', subject.subjectCode, fill);
+            form.setValue('subjectName', subject.subjectName, fill);
+            form.setValue('subjectDescription', subject.subjectDescription ?? '', fill);
+            toast.success(`Filled from the ${catalog!.label} (${subject.year}). Review before saving.`);
+        } catch {
+            toast.error('Cannot reach the server. Check your connection.');
+        } finally {
+            setPending(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending || code.length < 2 || form.formState.isSubmitting}
+                onClick={lookup}
+            >
+                <HugeiconsIcon icon={Download04Icon} strokeWidth={2} />
+                {pending ? 'Looking up…' : `Fill from ${catalog.label}`}
+            </Button>
+            <p className="text-muted-foreground text-sm">
+                Looks the code up in the public {catalog.label} and fills in the name and
+                description. You can still edit them before saving.
+            </p>
+        </div>
     );
 }
 
