@@ -5,6 +5,14 @@ import { ComponentProps, ReactNode } from 'react';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectTrigger, SelectValue } from './ui/select';
 import { Checkbox } from './ui/checkbox';
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from './ui/combobox';
 
 type FormControlProps<
     TFieldValues extends FieldValues = FieldValues,
@@ -170,6 +178,82 @@ export const FormSelect: FormControlFunc<{
                     <SelectContent>{children}</SelectContent>
                 </Select>
             )}
+        </FormBase>
+    );
+};
+
+export type FormComboboxOption = {
+    value: string;
+    label: string;
+    description?: string;
+};
+
+/**
+ * Searchable single-value selector for long administrative catalogs.
+ *
+ * The form stores only the option value while the combobox receives the full option object, so
+ * the selected label remains readable without leaking UUIDs into the input.
+ */
+export const FormCombobox: FormControlFunc<{
+    options: FormComboboxOption[];
+    placeholder?: string;
+    emptyText?: string;
+    disabled?: boolean;
+}> = ({ options, placeholder, emptyText = 'No matching option.', disabled, ...props }) => {
+    return (
+        <FormBase {...props}>
+            {({ onChange, onBlur, value, ref: _ref, ...field }) => {
+                const selected = options.find((option) => option.value === value) ?? null;
+
+                return (
+                    <Combobox
+                        items={options}
+                        value={selected}
+                        onValueChange={(option: FormComboboxOption | null) =>
+                            onChange(option?.value ?? '')
+                        }
+                        itemToStringLabel={(option: FormComboboxOption) => option.label}
+                        itemToStringValue={(option: FormComboboxOption) => option.value}
+                        isItemEqualToValue={(
+                            option: FormComboboxOption,
+                            current: FormComboboxOption,
+                        ) => option.value === current.value}
+                        filter={(option: FormComboboxOption, query: string) => {
+                            const searchable = `${option.label} ${option.description ?? ''}`;
+                            return searchable.toLocaleLowerCase().includes(query.toLocaleLowerCase());
+                        }}
+                        disabled={disabled}
+                    >
+                        <ComboboxInput
+                            {...field}
+                            onBlur={onBlur}
+                            className="w-full"
+                            placeholder={placeholder}
+                            disabled={disabled}
+                            showClear={false}
+                        />
+                        <ComboboxContent>
+                            <ComboboxEmpty>{emptyText}</ComboboxEmpty>
+                            <ComboboxList>
+                                {(option: FormComboboxOption) => (
+                                    <ComboboxItem key={option.value} value={option}>
+                                        <span className="flex min-w-0 flex-col">
+                                            <span className="truncate font-medium">
+                                                {option.label}
+                                            </span>
+                                            {option.description && (
+                                                <span className="text-muted-foreground truncate text-xs">
+                                                    {option.description}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </ComboboxItem>
+                                )}
+                            </ComboboxList>
+                        </ComboboxContent>
+                    </Combobox>
+                );
+            }}
         </FormBase>
     );
 };

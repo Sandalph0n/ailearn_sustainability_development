@@ -19,7 +19,7 @@ import {
 } from '@/components/admin/resource-form-page';
 import { UrlSelectFilter } from '@/components/admin/url-select-filter';
 import { useListQuery } from '@/components/admin/use-list-query';
-import { FormSelect } from '@/components/form';
+import { FormCombobox } from '@/components/form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTable, columnHelperFor, type AdminColumnDef } from '@/components/ui/data-table';
@@ -437,42 +437,32 @@ function AssignmentFields({
 
     return (
         <div className="grid gap-5 lg:grid-cols-3">
-            <FormSelect
+            <FormCombobox
                 control={form.control}
                 name="userId"
                 label="Person"
-                items={Object.fromEntries(
-                    users.map((user) => [
-                        user.id,
-                        `${user.lastName}, ${user.firstName} · ${user.email}`,
-                    ]),
-                )}
-            >
-                {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                        {user.lastName}, {user.firstName} · {user.email}
-                    </SelectItem>
-                ))}
-            </FormSelect>
-            <FormSelect
+                placeholder="Search by name or email"
+                emptyText="No person found."
+                options={users.map((user) => ({
+                    value: user.id,
+                    label: `${user.lastName}, ${user.firstName}`,
+                    description: user.email,
+                }))}
+            />
+            <FormCombobox
                 control={form.control}
                 name="roleId"
                 label="Role"
-                items={Object.fromEntries(
-                    roles.map((role) => [
-                        role.id,
-                        `${role.roleName} · ${role.scopeType === 'INSTITUTION' ? 'Institution' : 'Offering'}`,
-                    ]),
-                )}
-            >
-                {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                        {role.roleName} ·{' '}
-                        {role.scopeType === 'INSTITUTION' ? 'Institution' : 'Offering'}
-                    </SelectItem>
-                ))}
-            </FormSelect>
-            <FormSelect
+                placeholder="Search roles"
+                emptyText="No role found."
+                options={roles.map((role) => ({
+                    value: role.id,
+                    label: role.roleName,
+                    description:
+                        role.scopeType === 'INSTITUTION' ? 'Institution-wide' : 'Offering-scoped',
+                }))}
+            />
+            <FormCombobox
                 control={form.control}
                 name="offeringId"
                 label="Scope"
@@ -481,16 +471,11 @@ function AssignmentFields({
                         ? 'Optional. An offering scope can be added later.'
                         : 'The available scope follows the selected role.'
                 }
-                items={Object.fromEntries(
-                    scopeOptions.map((option) => [option.value, option.label]),
-                )}
-            >
-                {scopeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                    </SelectItem>
-                ))}
-            </FormSelect>
+                placeholder={selectedRole ? 'Search available scope' : 'Choose a role first'}
+                emptyText="No offering found."
+                disabled={!selectedRole}
+                options={scopeOptions}
+            />
         </div>
     );
 }
