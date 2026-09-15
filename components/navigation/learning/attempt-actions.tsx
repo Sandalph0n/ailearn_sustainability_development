@@ -56,7 +56,6 @@ export function StartAttemptButton({
             const payload = (await response.json()) as { attempt: { id: string } };
             toast.success('New attempt started');
             router.push(`${attemptBasePath}/${payload.attempt.id}?${contextQuery}`);
-            router.refresh();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Could not start attempt');
         } finally {

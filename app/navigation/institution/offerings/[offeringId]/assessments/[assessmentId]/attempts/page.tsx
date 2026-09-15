@@ -65,11 +65,14 @@ export default async function AssessmentAttemptsPage({
     );
     if (
         !access ||
-        !hasPermission(access.permissions, PERMISSION_CODE.ATTEMPT_VIEW_ALL) ||
-        !hasPermission(access.permissions, PERMISSION_CODE.TOOL_SESSION_REPLAY_ALL)
+        !hasPermission(access.permissions, PERMISSION_CODE.ATTEMPT_VIEW_ALL)
     ) {
         redirect('/navigation/dashboard');
     }
+    const canReplay = hasPermission(
+        access.permissions,
+        PERMISSION_CODE.TOOL_SESSION_REPLAY_ALL,
+    );
 
     const attempts = await db.assessmentAttempt.findMany({
         where: { assessmentId },
@@ -161,11 +164,17 @@ export default async function AssessmentAttemptsPage({
                                                         {DATE_TIME.format(workSession.startAt)} · {(workSession.eventBatches[0]?.seqEnd ?? -1) + 1} events · {workSession.endAt ? 'closed' : 'open'}
                                                     </p>
                                                 </div>
-                                                <LaunchReplayButton
-                                                    workSessionId={workSession.id}
-                                                    roleAssignmentId={access.assignmentId}
-                                                    toolName={workSession.tool.name}
-                                                />
+                                                {canReplay ? (
+                                                    <LaunchReplayButton
+                                                        workSessionId={workSession.id}
+                                                        roleAssignmentId={access.assignmentId}
+                                                        toolName={workSession.tool.name}
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground text-xs">
+                                                        Replay unavailable for this role
+                                                    </span>
+                                                )}
                                             </div>
                                         ))
                                     )}

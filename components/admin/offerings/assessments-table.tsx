@@ -208,15 +208,20 @@ export function AssessmentsTable({
                     <Badge variant={complete ? 'default' : 'secondary'}>
                         {totalWeight}% of 100% allocated
                     </Badge>
-                    {!complete && (
-                        <span className="text-muted-foreground text-sm">
-                            The grading plan is still incomplete.
-                        </span>
-                    )}
+                    <span className="text-muted-foreground text-sm">
+                        {complete
+                            ? 'Edit or reduce an existing weight before adding another assessment.'
+                            : 'The grading plan is still incomplete.'}
+                    </span>
                     <div className="flex-1" />
                     {capabilities.create && (
                         <Button
                             disabled={totalWeight >= 100}
+                            title={
+                                totalWeight >= 100
+                                    ? 'The grading plan already totals 100%.'
+                                    : undefined
+                            }
                             onClick={() => setEditing('create')}
                         >
                             <HugeiconsIcon icon={Add01Icon} strokeWidth={2} />

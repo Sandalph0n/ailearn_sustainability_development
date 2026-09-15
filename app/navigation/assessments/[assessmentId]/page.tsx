@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Alert02Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { Alert02Icon, ArrowRight01Icon, UserMultipleIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 
 import { StartAttemptButton } from '@/components/navigation/learning/attempt-actions';
@@ -8,7 +8,8 @@ import { dueLabel, formatDateTime, termLabel } from '@/components/navigation/lea
 import { LearningPageHeader } from '@/components/navigation/learning/page-header';
 import { canStartAttempts } from '@/components/navigation/learning/policy';
 import { Badge } from '@/components/ui/badge';
-import { PERMISSION_CODE } from '@/lib/auth/permissions';
+import { Button } from '@/components/ui/button';
+import { hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
 import {
     getPublishedAssessment,
     learningContextParams,
@@ -36,6 +37,11 @@ export default async function AssessmentLearningPage({
     const offeringId = assessment.offering.id;
     const contextQuery = learningContextParams(access, offeringId).toString();
     const mayStart = canStartAttempts(access) && !assessment.isGroup;
+    const mayReviewStudentAttempts = hasPermission(
+        access.permissions,
+        PERMISSION_CODE.ATTEMPT_VIEW_ALL,
+    );
+    const studentAttemptsHref = `/navigation/institution/offerings/${offeringId}/assessments/${assessment.id}/attempts?${contextQuery}`;
 
     return (
         <main className="mx-auto w-full max-w-7xl py-7">
@@ -107,8 +113,16 @@ export default async function AssessmentLearningPage({
                     <section aria-labelledby="attempts-heading">
                         <div className="mb-3 flex items-end justify-between gap-3">
                             <div>
-                                <h2 id="attempts-heading" className="font-heading text-lg font-semibold">Your attempts</h2>
-                                <p className="text-muted-foreground mt-0.5 text-sm">Attempts are currently unlimited.</p>
+                                <h2 id="attempts-heading" className="font-heading text-lg font-semibold">
+                                    {attempts === null && mayReviewStudentAttempts
+                                        ? 'Student attempts'
+                                        : 'Your attempts'}
+                                </h2>
+                                <p className="text-muted-foreground mt-0.5 text-sm">
+                                    {attempts === null && mayReviewStudentAttempts
+                                        ? 'Inspect work submitted within this offering.'
+                                        : 'Attempts are currently unlimited.'}
+                                </p>
                             </div>
                             {mayStart && (
                                 <StartAttemptButton
@@ -120,7 +134,25 @@ export default async function AssessmentLearningPage({
                             )}
                         </div>
 
-                        {attempts === null ? (
+                        {attempts === null && mayReviewStudentAttempts ? (
+                            <div className="rounded-xl border bg-card p-5">
+                                <p className="text-sm font-medium">
+                                    This role reviews student work rather than starting its own attempt.
+                                </p>
+                                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                                    Continue to the offering workspace to see students, attempt status,
+                                    and recorded tool sessions.
+                                </p>
+                                <Button
+                                    nativeButton={false}
+                                    className="mt-4"
+                                    render={<Link href={studentAttemptsHref} />}
+                                >
+                                    <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />
+                                    Review student attempts
+                                </Button>
+                            </div>
+                        ) : attempts === null ? (
                             <div className="rounded-xl border border-dashed p-5 text-sm">
                                 <p className="font-medium">Attempt history is unavailable</p>
                                 <p className="text-muted-foreground mt-1">This role cannot view your attempts.</p>
