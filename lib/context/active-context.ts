@@ -47,7 +47,7 @@ export async function listContextOptions(userId: string): Promise<ContextOption[
                     id: true,
                     roleName: true,
                     scopeType: true,
-                    institution: { select: { id: true, name: true } },
+                    institution: { select: { id: true, name: true, logoKey: true } },
                 },
             },
             scopeAssignments: {

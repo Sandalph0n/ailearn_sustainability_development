@@ -12,7 +12,11 @@ import {
 function option(offeringId: string | null): ContextOption {
     return {
         assignmentId: 'assignment-1',
-        institution: { id: 'institution-1', name: 'Macquarie University' },
+        institution: {
+            id: 'institution-1',
+            name: 'Macquarie University',
+            logoKey: null,
+        },
         role: {
             id: offeringId ? 'student-role' : 'staff-role',
             roleName: offeringId ? 'Student' : 'Staff',

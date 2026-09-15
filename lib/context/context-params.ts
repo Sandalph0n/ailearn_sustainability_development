@@ -25,7 +25,7 @@ export const CONTEXT_PARAM = {
 export type ContextOption = {
     /** `RoleAssignment.id` — định danh thật của một ngữ cảnh. */
     assignmentId: string;
-    institution: { id: string; name: string };
+    institution: { id: string; name: string; logoKey: string | null };
     role: { id: string; roleName: string; scopeType: 'INSTITUTION' | 'OFFERING' };
     /** Có với context OFFERING đã scope; null với role INSTITUTION hoặc OFFERING chưa scope. */
     offering: {

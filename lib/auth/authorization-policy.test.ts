@@ -34,7 +34,7 @@ describe('authorization policy', () => {
     it('matches all context dimensions and never falls back', () => {
         const context: ContextOption = {
             assignmentId: 'assignment',
-            institution: { id: 'institution', name: 'Institution' },
+            institution: { id: 'institution', name: 'Institution', logoKey: null },
             role: { id: 'role', roleName: 'Editor', scopeType: 'INSTITUTION' },
             offering: null,
         };
@@ -58,7 +58,7 @@ describe('authorization policy', () => {
     it('lets institution roles cover every offering but keeps offering roles in assigned scope', () => {
         const institutionContext: ContextOption = {
             assignmentId: 'institution-assignment',
-            institution: { id: 'institution', name: 'Institution' },
+            institution: { id: 'institution', name: 'Institution', logoKey: null },
             role: {
                 id: 'institution-role',
                 roleName: 'Institution manager',
@@ -68,7 +68,7 @@ describe('authorization policy', () => {
         };
         const offeringContext: ContextOption = {
             assignmentId: 'offering-assignment',
-            institution: { id: 'institution', name: 'Institution' },
+            institution: { id: 'institution', name: 'Institution', logoKey: null },
             role: {
                 id: 'offering-role',
                 roleName: 'Tutor',

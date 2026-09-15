@@ -17,7 +17,11 @@ function context(
 ): AuthorizedContextOption {
     return {
         assignmentId: overrides.assignmentId,
-        institution: overrides.institution ?? { id: 'institution-a', name: 'Institution A' },
+        institution: overrides.institution ?? {
+            id: 'institution-a',
+            name: 'Institution A',
+            logoKey: null,
+        },
         role: overrides.role ?? {
             id: 'role-a',
             roleName: 'Student',

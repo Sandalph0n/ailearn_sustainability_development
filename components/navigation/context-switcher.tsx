@@ -14,6 +14,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { pictureUrl } from '@/components/media/picture-url';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     CONTEXT_PARAM,
     contextKey,
@@ -109,9 +111,20 @@ export function ContextSwitcher({ options }: { options: ContextOption[] }) {
                         className="h-11 max-w-64 justify-start gap-2 px-2"
                         aria-label={`Acting as ${contextLabel(active)} at ${active.institution.name}`}
                     >
-                        <span className="bg-brand-teal/12 text-brand-teal flex size-7 shrink-0 items-center justify-center rounded-md">
-                            <HugeiconsIcon icon={UniversityIcon} strokeWidth={2} className="size-4" />
-                        </span>
+                        <Avatar className="size-7 rounded-md after:rounded-md">
+                            <AvatarImage
+                                src={pictureUrl(active.institution.logoKey)}
+                                alt=""
+                                className="rounded-md"
+                            />
+                            <AvatarFallback className="bg-brand-teal/12 text-brand-teal rounded-md">
+                                <HugeiconsIcon
+                                    icon={UniversityIcon}
+                                    strokeWidth={2}
+                                    className="size-4"
+                                />
+                            </AvatarFallback>
+                        </Avatar>
                         <span className="grid flex-1 text-left leading-tight">
                             <span className="truncate text-sm font-medium">
                                 {contextLabel(active)}
