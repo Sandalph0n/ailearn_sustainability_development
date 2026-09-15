@@ -44,7 +44,6 @@ export type ReplayFrame = {
     files: string[];
     label: string;
     notable: boolean;
-    previousContent: string;
     content: string;
     change: { offset: number; length: number } | null;
     selection: [number, number][];
@@ -203,9 +202,8 @@ export class ReplayController {
         const timeline = this.timeline();
         const index = Math.max(0, Math.min(position, timeline.events.length));
         const state = replayStateAt(timeline.allEvents, replayCutoff(timeline, index));
-        const previousState = replayStateAt(timeline.allEvents, replayCutoff(timeline, Math.max(0, index - 1)));
         const current = index > 0 ? timeline.events[index - 1] : undefined;
-        const eventPath = current ? displayFile(current) : null;
+        const eventPath = current ? eventFile(current) : null;
         const file = pinnedFile
             ?? eventPath
             ?? state.activePath
@@ -215,7 +213,6 @@ export class ReplayController {
             ? [...state.files.values()].find((candidate) => candidate.path === file)
             : undefined;
         const content = replayFile?.content ?? '';
-        const previousFile = previousReplayFile(previousState, current, file);
 
         return {
             index,
@@ -225,7 +222,6 @@ export class ReplayController {
             files: [...state.files.values()].map((item) => item.path).sort(),
             label: current ? describe(current) : 'Start',
             notable: current ? isNotable(current) : false,
-            previousContent: index === 0 ? content : (previousFile?.content ?? ''),
             content,
             change: current ? changedRange(current) : null,
             selection: file && state.activePath === file ? selectionOffsets(content, state.selections) : [],
@@ -309,43 +305,6 @@ export class ReplayController {
         if (this.state.sessions.length === 0) return null;
         return this.state.scope === 'all' ? 'all' : this.state.selectedSessionId;
     }
-}
-
-function displayFile(item: SequencedReplayEvent): string | null {
-    if (item.event.type === 'folder.snapshot'
-        || item.event.type === 'folder.created'
-        || item.event.type === 'folder.deleted'
-        || item.event.type === 'folder.renamed') return null;
-    return eventFile(item);
-}
-
-function previousReplayFile(
-    state: ReplayState,
-    current: SequencedReplayEvent | undefined,
-    file: string | null,
-) {
-    if (!file) return undefined;
-
-    const direct = [...state.files.values()].find((candidate) => candidate.path === file);
-    if (direct) return direct;
-
-    const documentId = current && typeof current.event.documentId === 'string'
-        ? current.event.documentId
-        : null;
-    if (documentId) {
-        const sameDocument = state.files.get(documentId);
-        if (sameDocument) return sameDocument;
-    }
-
-    if (current?.event.type === 'folder.renamed'
-        && typeof current.event.fromPath === 'string'
-        && typeof current.event.toPath === 'string'
-        && (file === current.event.toPath || file.startsWith(`${current.event.toPath}/`))) {
-        const previousPath = `${current.event.fromPath}${file.slice(current.event.toPath.length)}`;
-        return [...state.files.values()].find((candidate) => candidate.path === previousPath);
-    }
-
-    return undefined;
 }
 
 async function mapWithConcurrency<T, R>(
