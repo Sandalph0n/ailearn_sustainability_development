@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { applyAutoGrantedRoles } from '../../lib/auth/auto-grant.ts';
 import { ALL_PERMISSION_CODES } from '../../lib/auth/permissions.ts';
+import { emailSchema } from '../../lib/auth/validation/credentials.ts';
 
 const roleSeed = readFileSync(
     new URL('../../prisma/seedingdata/015-mq-roles.sql', import.meta.url),
@@ -134,6 +136,43 @@ describe('Macquarie role catalog seed', () => {
             'offering.view',
             'tool.launch',
         ]);
+    });
+
+    it.each([
+        ['learner@students.mq.edu.au', true],
+        ['  Learner@STUDENTS.MQ.EDU.AU  ', true],
+        ['staff@mq.edu.au', false],
+        ['learner@example.com', false],
+        ['learner@students.mq.edu.au.example.com', false],
+        ['learner@studentsXmq.edu.au', false],
+        ['learner@students.mqXedu.au', false],
+        ['learner@students.mq.eduXau', false],
+    ])('auto-grants the seeded Student role for %s: %s', async (email, shouldGrant) => {
+        const student = rolesByCode.get('offering:student');
+        const autoGrant = roleSeed.match(
+            /WHEN\s+role\."roleCode"\s*=\s*'offering:student'\s+THEN\s+'([^']+)'/,
+        );
+        expect(autoGrant, 'Student must have an email auto-grant rule in the seed').not.toBeNull();
+
+        const tx = {
+            role: {
+                findMany: vi.fn().mockResolvedValue([
+                    { id: student.id, autoGrantEmailRegex: autoGrant[1] },
+                ]),
+            },
+            roleAssignment: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
+        };
+        const userId = 'test-user';
+        const grantedRoles = await applyAutoGrantedRoles(tx, userId, emailSchema.parse(email));
+
+        expect(grantedRoles).toEqual(shouldGrant ? [student.id] : []);
+        if (shouldGrant) {
+            expect(tx.roleAssignment.createMany).toHaveBeenCalledExactlyOnceWith({
+                data: [{ userId, roleId: student.id }],
+            });
+        } else {
+            expect(tx.roleAssignment.createMany).not.toHaveBeenCalled();
+        }
     });
 
     it('keeps role inheritance as a same-scope DAG without self-cycles', () => {

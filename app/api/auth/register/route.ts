@@ -9,6 +9,7 @@ import {
     invalidOriginResponse,
     jsonResponse,
 } from '@/lib/auth/http/response';
+import { applyAutoGrantedRoles } from '@/lib/auth/auto-grant';
 import { hashPassword } from '@/lib/auth/password/hash';
 import { prepareSession, setSessionCookie } from '@/lib/auth/session/service';
 import { formatValidationErrors, SignUpSchema } from '@/lib/auth/validation/credentials';
@@ -85,7 +86,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             const session = prepareSession(user.id);
             await transaction.loginSession.create({ data: session.record });
 
-            return { user, session };
+            // Tự cấp vai trò theo email (ví dụ @students.mq.edu.au → Student). Nằm TRONG cùng
+            // transaction: nếu bước này hỏng thì cả tài khoản lẫn phiên đều được cuộn lại, không
+            // để lại một user cấp dở vai trò.
+            const grantedRoleIds = await applyAutoGrantedRoles(transaction, user.id, user.email);
+
+            return { user, session, grantedRoleIds };
         });
 
         // Đặt cookie SAU khi transaction xong. Làm trước mà transaction hỏng thì trình duyệt

@@ -19,8 +19,8 @@ model Role {
   /// Khớp thì vào thẳng; không khớp thì chỉ có thể qua `RoleRequest` nếu `requestMode` cho phép.
   /// Đây là lối tắt để không phải duyệt tay hàng nghìn sinh viên mỗi kỳ.
   ///
-  /// Chỉ có nghĩa với vai trò phạm vi INSTITUTION — ánh xạ email xảy ra lúc vào TRƯỜNG, khi chưa
-  /// có lượt mở môn nào để nói tới. Check constraint trong migration giữ bất biến này ở database.
+  /// Áp dụng cho cả INSTITUTION và OFFERING. Role OFFERING được tự cấp ở trạng thái chưa có
+  /// ScopeAssignment; quyền trên từng offering chỉ có hiệu lực sau khi được gắn scope.
   autoGrantEmailRegex String?
 
   /// Vai trò này có hiệu lực ở tầng nào. OFFERING role lấy các scope từ `ScopeAssignment` và có
