@@ -51,6 +51,18 @@ export default function proxy(request: NextRequest): NextResponse {
         return notFound();
     }
 
+    // Service workers and sandboxed webviews do not reliably carry the platform session cookie.
+    // On a shared demo host they must reach the runtime route directly: redirecting their script
+    // request to /auth makes ServiceWorker.register() fail by specification. The route handler
+    // still authorizes the executable entry with the path-bound runtime cookie; package assets are
+    // deliberately workspace-agnostic and every data API continues to require its bearer token.
+    if (
+        USES_SHARED_RUNTIME_HOST &&
+        (path === '/tool-runtime/bootstrap' || RUNTIME_ASSET_PATH.test(path))
+    ) {
+        return NextResponse.next();
+    }
+
     // API handlers authenticate themselves. Static assets must never be redirected to HTML.
     if (
         path.startsWith('/api/') ||

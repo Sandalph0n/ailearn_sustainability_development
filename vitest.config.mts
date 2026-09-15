@@ -6,6 +6,7 @@ export default defineConfig({
         // Next dùng marker này để chặn import server module vào Client Component. Trong unit test
         // ta chạy trực tiếp module server, nên thay marker cố ý-ném-lỗi bằng một module rỗng.
         alias: {
+            '@': fileURLToPath(new URL('./', import.meta.url)),
             'server-only': fileURLToPath(new URL('./tests/server-only-stub.ts', import.meta.url)),
         },
     },
