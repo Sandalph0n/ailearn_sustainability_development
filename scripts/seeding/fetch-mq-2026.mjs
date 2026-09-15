@@ -45,6 +45,11 @@ const SOURCES = [
         department: 'School of Natural Sciences',
         include: (code) => new Set(['BIOL1400', 'BIOL2400']).has(code),
     },
+    {
+        // Essay-based units, to exercise writing tools (Lernumi Word) rather than code.
+        department: 'Macquarie Law School',
+        include: (code) => new Set(['LAWS5018', 'LAWS5043', 'LAWS8021']).has(code),
+    },
 ];
 
 const REQUEST_HEADERS = {

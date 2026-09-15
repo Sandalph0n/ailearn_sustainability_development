@@ -40,7 +40,7 @@ describe('Macquarie assessment publication seed', () => {
         'utf8',
     );
 
-    it('publishes the selected COMP subjects without publishing the whole catalog', () => {
+    it('publishes the selected COMP and LAWS subjects without publishing the whole catalog', () => {
         const publishedSubjects = publicationCsv
             .trim()
             .split(/\r?\n/)
@@ -56,6 +56,8 @@ describe('Macquarie assessment publication seed', () => {
             'COMP2100',
             'COMP2200',
             'COMP2300',
+            'LAWS5018',
+            'LAWS8021',
         ]);
         expect(assessmentSql).toContain(
             "'COMP1000', 2026, 1, 'Project Handover and Review'",

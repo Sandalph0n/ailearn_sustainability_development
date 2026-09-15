@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T03:51:28.218Z",
+  "generatedAt": "2026-09-15T23:46:45.204Z",
   "year": 2026,
   "sessions": [
     1,
@@ -12,9 +12,9 @@
   "counts": {
     "institutions": 1,
     "terms": 2,
-    "subjects": 131,
-    "offerings": 177,
-    "assessments": 539,
-    "assessmentsWithExactDueAt": 323
+    "subjects": 134,
+    "offerings": 180,
+    "assessments": 548,
+    "assessmentsWithExactDueAt": 329
   }
 }
