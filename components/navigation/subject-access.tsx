@@ -24,6 +24,13 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 
 export type SubjectAccessOffering = {
@@ -70,6 +77,27 @@ function offeringLabel(offering: SubjectAccessOffering): string {
     return `${offering.subjectCode} · ${offering.subjectName} · Session ${offering.session} ${offering.year}`;
 }
 
+const ALL_TERMS = 'all';
+
+function termKey(offering: { year: number; session: number }): string {
+    return `${offering.year}-${offering.session}`;
+}
+
+/**
+ * Lọc theo từng từ thay vì theo nguyên chuỗi: "comp 3000", "prog lang" hay "COMP3000" đều phải ra
+ * "COMP3000 · Programming Languages". Mã môn được so cả dạng bỏ khoảng trắng để "comp 3000" khớp.
+ */
+function matchesOffering(offering: SubjectAccessOffering, query: string): boolean {
+    const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return true;
+    const haystack =
+        `${offering.subjectCode} ${offering.subjectName} session ${offering.session} ${offering.year}`.toLowerCase();
+    const compactCode = offering.subjectCode.toLowerCase();
+    const compactQuery = tokens.join('');
+    if (compactCode.includes(compactQuery)) return true;
+    return tokens.every((token) => haystack.includes(token));
+}
+
 export function SubjectAccess({
     roles,
     offerings,
@@ -100,6 +128,32 @@ export function SubjectAccess({
                 !unavailable.has(candidate.id),
         );
     }, [offerings, selectedRole]);
+
+    // Các kỳ có trong danh sách, mới nhất trước — để thu hẹp 170+ lượt mở môn trước khi gõ tìm.
+    const terms = useMemo(() => {
+        const seen = new Map<string, { year: number; session: number }>();
+        for (const candidate of availableOfferings) {
+            seen.set(termKey(candidate), { year: candidate.year, session: candidate.session });
+        }
+        return [...seen.values()].sort((a, b) => b.year - a.year || b.session - a.session);
+    }, [availableOfferings]);
+    const [term, setTerm] = useState<string>(ALL_TERMS);
+    // Chuỗi đang gõ, đọc thẳng từ ô input. Base UI giữ lại giá trị trong lúc IME đang ghép chữ
+    // (bộ gõ tiếng Việt như Unikey/Telex) và chỉ cập nhật khi kết thúc ghép — thường là lúc bấm
+    // space — nên nếu để nó tự lọc thì gõ mã môn phải thêm dấu cách mới thấy kết quả. Tự lọc bằng
+    // `filteredItems` để danh sách đổi theo từng phím.
+    const [query, setQuery] = useState('');
+    const offeringsInTerm = useMemo(
+        () =>
+            term === ALL_TERMS
+                ? availableOfferings
+                : availableOfferings.filter((candidate) => termKey(candidate) === term),
+        [availableOfferings, term],
+    );
+    const matchingOfferings = useMemo(
+        () => offeringsInTerm.filter((candidate) => matchesOffering(candidate, query)),
+        [offeringsInTerm, query],
+    );
 
     function chooseRole(nextAssignmentId: string | null) {
         setAssignmentId(nextAssignmentId);
@@ -292,13 +346,53 @@ export function SubjectAccess({
                     {adding && selectedRole?.scopeType === 'OFFERING' ? (
                         <div className="bg-muted/20 rounded-lg border p-5 sm:p-6">
                             <div className="max-w-2xl space-y-2">
-                                <label htmlFor="subject-offering" className="text-sm font-medium">
-                                    Subject offering
-                                </label>
+                                <div className="flex flex-wrap items-end justify-between gap-3">
+                                    <label htmlFor="subject-offering" className="text-sm font-medium">
+                                        Subject offering
+                                    </label>
+                                    {terms.length > 1 && (
+                                        <Select
+                                            items={{
+                                                [ALL_TERMS]: 'All terms',
+                                                ...Object.fromEntries(
+                                                    terms.map((entry) => [
+                                                        termKey(entry),
+                                                        `Session ${entry.session} ${entry.year}`,
+                                                    ]),
+                                                ),
+                                            }}
+                                            value={term}
+                                            onValueChange={(next) => {
+                                                setTerm(next ?? ALL_TERMS);
+                                                setOffering(null);
+                                            }}
+                                        >
+                                            <SelectTrigger
+                                                aria-label="Filter by term"
+                                                className="h-8 w-44 text-xs"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={ALL_TERMS}>All terms</SelectItem>
+                                                {terms.map((entry) => (
+                                                    <SelectItem
+                                                        key={termKey(entry)}
+                                                        value={termKey(entry)}
+                                                    >
+                                                        Session {entry.session} {entry.year}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
                                 <Combobox
-                                    items={availableOfferings}
+                                    items={offeringsInTerm}
+                                    filteredItems={matchingOfferings}
                                     value={offering}
                                     onValueChange={setOffering}
+                                    onInputValueChange={setQuery}
                                     itemToStringLabel={offeringLabel}
                                     itemToStringValue={(item: SubjectAccessOffering) => item.id}
                                     isItemEqualToValue={(
@@ -309,11 +403,15 @@ export function SubjectAccess({
                                     <ComboboxInput
                                         id="subject-offering"
                                         className="w-full"
-                                        placeholder="Search by subject code or name"
+                                        placeholder={`Search ${offeringsInTerm.length} offering${offeringsInTerm.length === 1 ? '' : 's'} by code or name`}
                                         showClear
+                                        onInput={(event) => setQuery(event.currentTarget.value)}
                                     />
                                     <ComboboxContent>
-                                        <ComboboxEmpty>No available offering found.</ComboboxEmpty>
+                                        <ComboboxEmpty>
+                                            No offering matches. Try the subject code, a word from
+                                            the name, or another term.
+                                        </ComboboxEmpty>
                                         <ComboboxList>
                                             {(item: SubjectAccessOffering) => (
                                                 <ComboboxItem key={item.id} value={item}>
