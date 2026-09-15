@@ -15,6 +15,7 @@ export type Screen =
   | { kind: 'booting' }
   | { kind: 'dashboard' }
   | { kind: 'editor'; diagramId: string }
+  | { kind: 'replay' }
   /** Token gone, launch link incomplete, or the session was ended on purpose. */
   | { kind: 'blocked'; title: string; detail: string };
 
@@ -47,6 +48,12 @@ export const useLernumiApp = create<LernumiAppState>((set, get) => ({
     }
     if (clean === '/dashboard' || clean === '/') {
       set({ screen: { kind: 'dashboard' } });
+      return;
+    }
+    if (clean === '/replay') {
+      if (get().context?.session.capabilities.includes('replay:read')) {
+        set({ screen: { kind: 'replay' } });
+      }
       return;
     }
     if (clean === '/login') {

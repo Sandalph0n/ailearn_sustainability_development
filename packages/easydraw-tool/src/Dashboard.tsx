@@ -14,6 +14,7 @@ import {
   Trash2,
   Lock,
   BookOpen,
+  History,
 } from 'lucide-react';
 import Logo from '@/lib/components/Logo';
 import NewDiagramDialog from '@/lib/components/NewDiagramDialog';
@@ -57,7 +58,15 @@ function typeMeta(type: string) {
   return DIAGRAM_TYPE_MAP[type as DiagramType] ?? DIAGRAM_TYPE_MAP.erd;
 }
 
-export default function Dashboard({ diagrams: store }: { diagrams: LernumiDiagrams }) {
+export default function Dashboard({
+  diagrams: store,
+  flushEvents,
+  onOpenReplay,
+}: {
+  diagrams: LernumiDiagrams;
+  flushEvents: () => Promise<void>;
+  onOpenReplay: () => Promise<void>;
+}) {
   const navigate = useLernumiApp((s) => s.navigate);
   const context = useLernumiApp((s) => s.context);
   const readOnly = useLernumiApp((s) => s.readOnly);
@@ -82,6 +91,7 @@ export default function Dashboard({ diagrams: store }: { diagrams: LernumiDiagra
   const initials = accountInitials(user);
   const assessment = context?.assessment;
   const offering = context?.offering;
+  const canReplay = context?.session.capabilities.includes('replay:read') ?? false;
 
   const filtered = diagrams
     .filter((d) => d.title.toLowerCase().includes(search.trim().toLowerCase()))
@@ -100,6 +110,7 @@ export default function Dashboard({ diagrams: store }: { diagrams: LernumiDiagra
 
   const handleCreateDiagram = async ({ name, type }: { name: string; type: string }) => {
     const created = await store.create({ title: name, type });
+    await flushEvents();
     navigate(`/editor/${created.id}`);
   };
 
@@ -118,12 +129,14 @@ export default function Dashboard({ diagrams: store }: { diagrams: LernumiDiagra
     const d = renameTarget;
     if (!d) return;
     await store.rename(d.id, name);
+    await flushEvents();
     setDiagrams((prev) => prev.map((x) => (x.id === d.id ? { ...x, title: name } : x)));
   };
 
   const duplicateDiagram = async (d: DiagramSummary) => {
     setMenuFor(null);
     const created = await store.duplicate(d.id);
+    await flushEvents();
     setDiagrams((prev) => [created, ...prev]);
   };
 
@@ -137,6 +150,7 @@ export default function Dashboard({ diagrams: store }: { diagrams: LernumiDiagra
     const d = deleteTarget;
     if (!d) return;
     await store.remove(d.id);
+    await flushEvents();
     setDiagrams((prev) => prev.filter((x) => x.id !== d.id));
   };
 
@@ -165,6 +179,16 @@ export default function Dashboard({ diagrams: store }: { diagrams: LernumiDiagra
           <Logo size="md" />
 
           <div className="flex items-center gap-4">
+            {canReplay && (
+              <button
+                type="button"
+                onClick={() => void onOpenReplay()}
+                className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-surface-hover"
+              >
+                <History size={17} />
+                History
+              </button>
+            )}
             {readOnly ? (
               <span className="flex min-h-11 items-center gap-2 rounded-xl bg-panel px-4 py-2.5 text-sm font-medium text-ink-muted">
                 <Lock size={16} />

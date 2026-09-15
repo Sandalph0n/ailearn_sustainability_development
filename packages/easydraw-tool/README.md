@@ -44,8 +44,12 @@ and update `editor/UPSTREAM`.
 - CSP is `connect-src 'self'`: the tool can only reach `/api/tool/v1/*`.
 - `src/styles.css` adds `@source '../editor'` so Tailwind keeps utilities used only
   inside the editor.
-- The launch token lives in memory. A hard reload loses it; the student reopens the
-  tool from Lernumi. Refresh runs every ~4 minutes via `POST /token`.
+- The launch token lives in memory. On a hard reload the tool recovers a fresh token
+  through the host-only `POST __lernumi/token` bridge; normal refresh still runs every
+  ~4 minutes through `POST /token`.
+- Owner sessions record ordered, integrity-chained workspace events. **History** replays
+  one session or the complete attempt history inside the same EasyDraw entry; reviewers
+  enter this read-only replay surface directly when Lernumi grants `replay:read`.
 - A submitted attempt launches with `session.readOnly`: the canvas is locked and the
   dashboard hides create/rename/duplicate/delete. The token then lacks `files:write`,
   so nothing can be written server-side either way.

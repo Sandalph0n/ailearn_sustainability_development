@@ -7,3 +7,52 @@
  */
 @import '../editor/app/globals.css';
 @source '../editor';
+
+.replay-canvas .react-flow__node,
+.replay-canvas .react-flow__edge {
+  pointer-events: none;
+}
+
+.replay-transport-button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 0.375rem;
+  background: white;
+  color: var(--color-ink);
+}
+
+.replay-transport-button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.replay-transport-button:disabled {
+  opacity: 0.35;
+}
+
+.replay-select {
+  height: 2.25rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.375rem;
+  background: white;
+  padding: 0 0.625rem;
+  color: var(--color-ink);
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.replay-select:focus {
+  border-color: var(--color-primary);
+}
+
+.replay-range {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.replay-range:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
