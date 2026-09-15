@@ -61,7 +61,7 @@ const ACCESS_CONTROL_ITEMS = [
 const INSTITUTION_ITEMS = [
     {
         href: '/navigation/institution/settings',
-        label: 'Settings',
+        label: 'Institution Profile',
         icon: Settings01Icon,
         permissions: [
             PERMISSION_CODE.INSTITUTION_SETTINGS_VIEW,

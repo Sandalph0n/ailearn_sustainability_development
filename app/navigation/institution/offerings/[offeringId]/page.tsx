@@ -208,8 +208,8 @@ export default async function InstitutionOfferingAssessmentsPage({
                             {offering.term.session}
                         </h1>
                         <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-                            {offering.subject.subjectName}. Continue to related catalog, calendar,
-                            people, and assessment work from this offering.
+                            {offering.subject.subjectName}. Review the related pages and work
+                            available to this role.
                         </p>
                     </div>
                     <nav aria-label="Related offering pages" className="flex flex-wrap gap-2">

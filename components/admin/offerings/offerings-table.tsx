@@ -77,6 +77,7 @@ export function OfferingsTable({
     dir,
     endpoint = ENDPOINT,
     assessmentBasePath,
+    detailActionLabel = 'Manage assessments',
     contextQuery,
     capabilities = FULL_CRUD_CAPABILITIES,
     emptyMessage,
@@ -94,6 +95,7 @@ export function OfferingsTable({
     dir: 'asc' | 'desc';
     endpoint?: string;
     assessmentBasePath?: string | null;
+    detailActionLabel?: string;
     contextQuery?: string;
     capabilities?: CrudCapabilities;
     emptyMessage?: string;
@@ -156,6 +158,7 @@ export function OfferingsTable({
                             institutionId={institutionId}
                             endpoint={endpoint}
                             assessmentBasePath={assessmentBasePath}
+                            detailActionLabel={detailActionLabel}
                             contextQuery={contextQuery}
                             capabilities={capabilities}
                             onEdit={() => setEditing(info.row.original)}
@@ -163,7 +166,7 @@ export function OfferingsTable({
                     ),
                 }),
             ] as Array<AdminColumnDef<OfferingListItem>>,
-        [assessmentBasePath, capabilities, contextQuery, endpoint, institutionId],
+        [assessmentBasePath, capabilities, contextQuery, detailActionLabel, endpoint, institutionId],
     );
 
     const canCreate = subjects.length > 0 && terms.length > 0;
@@ -325,6 +328,7 @@ function OfferingActions({
     institutionId,
     endpoint,
     assessmentBasePath,
+    detailActionLabel,
     contextQuery,
     capabilities,
     onEdit,
@@ -333,6 +337,7 @@ function OfferingActions({
     institutionId: string;
     endpoint: string;
     assessmentBasePath?: string | null;
+    detailActionLabel: string;
     contextQuery?: string;
     capabilities: CrudCapabilities;
     onEdit: () => void;
@@ -358,7 +363,7 @@ function OfferingActions({
                         }
                     >
                         <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
-                        Manage assessments
+                        {detailActionLabel}
                     </DropdownMenuItem>}
                     {capabilities.update && (inUse === 0 ? (
                         <DropdownMenuItem onClick={onEdit}>

@@ -115,6 +115,7 @@ export default async function InstitutionOfferingsPage({
                 assessmentBasePath={
                     canOpenOffering ? '/navigation/institution/offerings' : null
                 }
+                detailActionLabel={canManageAssessments ? 'Manage assessments' : 'View offering'}
                 contextQuery={contextQuery}
                 capabilities={capabilities}
                 allowedOfferingIds={scopedOfferingIds}

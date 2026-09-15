@@ -13,6 +13,7 @@ export async function OfferingsSection({
     searchParams,
     endpoint,
     assessmentBasePath,
+    detailActionLabel,
     contextQuery,
     capabilities,
     allowedOfferingIds,
@@ -22,6 +23,7 @@ export async function OfferingsSection({
     searchParams: Record<string, string | string[] | undefined>;
     endpoint?: string;
     assessmentBasePath?: string | null;
+    detailActionLabel?: string;
     contextQuery?: string;
     capabilities?: CrudCapabilities;
     /** Null means every offering in the institution; an array is an exact role scope. */
@@ -125,6 +127,7 @@ export async function OfferingsSection({
             dir={dir}
             endpoint={endpoint}
             assessmentBasePath={assessmentBasePath}
+            detailActionLabel={detailActionLabel}
             contextQuery={contextQuery}
             capabilities={capabilities}
             emptyMessage={emptyMessage}

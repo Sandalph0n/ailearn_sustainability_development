@@ -35,10 +35,12 @@ export default async function InstitutionSettingsPage({
                     Institution workspace
                 </p>
                 <h1 className="font-heading mt-1 text-2xl font-semibold tracking-tight">
-                    Settings
+                    {canEdit ? 'Institution settings' : 'Institution profile'}
                 </h1>
                 <p className="text-muted-foreground mt-1 text-sm">
-                    Maintain the public identity of {institution.name}.
+                    {canEdit
+                        ? `Maintain the public identity of ${institution.name}.`
+                        : `View the public identity of ${institution.name}.`}
                 </p>
             </header>
 
