@@ -79,7 +79,8 @@ assignment under which the user acts. A replay launch supplies the recorded work
 assignment. The server independently derives the workspace, institution, offering, tool version,
 and capabilities; callers cannot widen scope by sending those IDs.
 
-The response contains a five-minute HS256 JWT and a `runtimeUrl` on the isolated tool origin. The
+The response contains a three-hour HS256 JWT for the current demo and a `runtimeUrl` on the isolated
+tool origin. The
 token is encoded in the URL fragment because fragments are available to browser JavaScript but are
 never sent in HTTP requests, server logs, or referrer headers. A trusted bootstrap page exchanges
 it for a host-only runtime cookie before loading protected package assets. The tool entry receives

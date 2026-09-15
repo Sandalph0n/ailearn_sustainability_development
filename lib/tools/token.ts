@@ -7,7 +7,7 @@ import { ToolCapabilitySchema, type ToolCapability } from './api-contract';
 
 export const TOOL_TOKEN_ISSUER = 'lernumi';
 export const TOOL_TOKEN_AUDIENCE = 'lernumi-tool-api';
-export const TOOL_TOKEN_TTL_SECONDS = 5 * 60;
+export const TOOL_TOKEN_TTL_SECONDS = 3 * 60 * 60;
 
 export { ToolCapabilitySchema, type ToolCapability } from './api-contract';
 
@@ -31,7 +31,8 @@ export type ToolTokenContext = Omit<z.infer<typeof ToolClaimsSchema>, 'jti' | 's
 
 /**
  * Token sống ngắn để API của tool không phải tra login session/RBAC cho từng batch. Khi refresh
- * token, server lại kiểm quyền đầy đủ; quyền vừa bị thu hồi vì thế tồn tại nhiều nhất năm phút.
+ * token, server lại kiểm quyền đầy đủ. Bản demo giữ token trong ba giờ để một buổi làm việc dài
+ * không phụ thuộc vào refresh liên tục; production nên cân nhắc rút ngắn khoảng này.
  */
 export async function signToolToken(context: ToolTokenContext): Promise<string> {
     const now = Math.floor(Date.now() / 1000);

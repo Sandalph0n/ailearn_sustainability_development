@@ -81,7 +81,7 @@ export class ToolApiClient implements ToolDocumentApi, ToolEventApi {
         return this.json<RuntimeContext>('context');
     }
 
-    async startTokenRefresh(expiresIn = 300): Promise<void> {
+    async startTokenRefresh(expiresIn = 3 * 60 * 60): Promise<void> {
         window.clearTimeout(this.refreshTimer);
         const delay = Math.max(30, expiresIn - 60) * 1_000;
         this.refreshTimer = window.setTimeout(() => void this.refreshToken(), delay);

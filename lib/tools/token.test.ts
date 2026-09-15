@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { decodeJwt } from 'jose';
 
-import { signToolToken, verifyToolToken } from './token';
+import { signToolToken, TOOL_TOKEN_TTL_SECONDS, verifyToolToken } from './token';
 
 const context = {
     userId: '10000000-0000-4000-8000-000000000001',
@@ -21,6 +22,7 @@ describe('tool JWT', () => {
     it('round-trips the pinned session context', async () => {
         vi.stubEnv('TOOL_TOKEN_SECRET', 'unit-test-secret-that-is-at-least-thirty-two-bytes');
         const token = await signToolToken({ ...context, capabilities: [...context.capabilities] });
+        const timestamps = decodeJwt(token);
         const claims = await verifyToolToken(token, 'events:append');
 
         expect(claims.sub).toBe(context.userId);
@@ -28,6 +30,8 @@ describe('tool JWT', () => {
         expect(claims.roleAssignmentId).toBe(context.roleAssignmentId);
         expect(claims.loginSessionId).toBe(context.loginSessionId);
         expect(claims.capabilities).not.toContain('replay:read');
+        expect(timestamps.exp! - timestamps.iat!).toBe(3 * 60 * 60);
+        expect(TOOL_TOKEN_TTL_SECONDS).toBe(3 * 60 * 60);
     });
 
     it('refuses a capability absent from the signed token', async () => {

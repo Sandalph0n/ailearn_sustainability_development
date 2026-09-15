@@ -67,7 +67,7 @@ paths:
       operationId: refreshToolToken
       summary: Refresh a live tool JWT
       description: >-
-        Call before the current five-minute token expires. Revalidates the platform login session,
+        Call before the current three-hour demo token expires. Revalidates the platform login session,
         role, offering scope, permissions, submission state, tool allowance, and pinned version.
       security:
         - toolBearer: []
@@ -566,7 +566,7 @@ components:
           type: string
           description: Short-lived scoped JWT. Keep in memory only.
         tokenType: { type: string, const: Bearer }
-        expiresIn: { type: integer, const: 300 }
+        expiresIn: { type: integer, const: 10800 }
         runtimeUrl:
           type: string
           description: Version-pinned entry URL carrying the one-time launch token in its fragment.
