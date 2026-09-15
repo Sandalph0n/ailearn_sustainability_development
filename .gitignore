@@ -75,3 +75,6 @@ next-env.d.ts
 
 # HTML cache for the reproducible public-data import. Normalised CSV files remain tracked.
 /prisma/seedingdata/source/**/cache/
+
+.vercel
+.env*
