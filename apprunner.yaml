@@ -1,6 +1,26 @@
 version: 1.0
 runtime: nodejs22
 build:
+  env:
+    # Next imports the server modules while compiling. These non-secret build placeholders let
+    # Prisma and the storage client initialise without connecting to production infrastructure.
+    # Real values are supplied as App Runner runtime environment variables.
+    - name: DATABASE_URL
+      value: postgresql://build:build@127.0.0.1:5432/build
+    - name: S3_REGION
+      value: ap-southeast-2
+    - name: S3_BUCKET_MEDIA
+      value: lernumi-build-media
+    - name: S3_BUCKET_DOCS
+      value: lernumi-build-docs
+    - name: S3_BUCKET_TOOLS
+      value: lernumi-build-tools
+    - name: S3_BUCKET_ARCHIVE
+      value: lernumi-build-archive
+    - name: PLATFORM_ORIGIN
+      value: https://build.lernumi.invalid
+    - name: TOOL_RUNTIME_ORIGIN
+      value: https://build.lernumi.invalid
   commands:
     pre-build:
       - npm install --global pnpm@11.10.0

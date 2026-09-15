@@ -8,6 +8,9 @@ import { SESSION_COOKIE_NAME } from '@/lib/auth/session/cookie';
  */
 const TOOL_RUNTIME_ORIGIN = process.env.TOOL_RUNTIME_ORIGIN || 'http://127.0.0.1:3000';
 const TOOL_RUNTIME_HOST = new URL(TOOL_RUNTIME_ORIGIN).host.toLowerCase();
+const PLATFORM_ORIGIN = process.env.PLATFORM_ORIGIN || 'http://localhost:3000';
+const PLATFORM_HOST = new URL(PLATFORM_ORIGIN).host.toLowerCase();
+const USES_SHARED_RUNTIME_HOST = TOOL_RUNTIME_HOST === PLATFORM_HOST;
 const RUNTIME_ASSET_PATH = /^\/tools\/[a-z0-9-]{2,40}\/[0-9a-f-]{36}\/.+/;
 /** Đường dẫn ai cũng vào được. So khớp CHÍNH XÁC, không theo tiền tố. */
 const PUBLIC_PATHS = new Set(['/', '/auth', '/about', '/privacy', '/terms']);
@@ -26,7 +29,10 @@ function notFound(): NextResponse {
 export default function proxy(request: NextRequest): NextResponse {
     const host = (request.headers.get('host') || '').toLowerCase();
     const path = request.nextUrl.pathname;
-    const isToolHost = host === TOOL_RUNTIME_HOST;
+    // A production deployment should normally use app.lernumi.com and tools.lernumi.com. App
+    // Runner's generated demo URL only gives us one host, though, so the same deployment can also
+    // serve the runtime by path. Route handlers still require the scoped runtime cookie/JWT.
+    const isToolHost = !USES_SHARED_RUNTIME_HOST && host === TOOL_RUNTIME_HOST;
 
     if (isToolHost) {
         const allowed =
@@ -37,11 +43,11 @@ export default function proxy(request: NextRequest): NextResponse {
         return allowed ? NextResponse.next() : notFound();
     }
 
-    if (
+    const isRuntimeOnlyPath =
         path === '/tool-runtime/bootstrap' ||
         path === '/api/tool/v1/runtime-auth' ||
-        RUNTIME_ASSET_PATH.test(path)
-    ) {
+        RUNTIME_ASSET_PATH.test(path);
+    if (!USES_SHARED_RUNTIME_HOST && isRuntimeOnlyPath) {
         return notFound();
     }
 
