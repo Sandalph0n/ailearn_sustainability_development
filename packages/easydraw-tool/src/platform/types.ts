@@ -15,6 +15,7 @@ export type ToolDocument = {
 
 export type RuntimeContext = {
     apiVersion: 'v1';
+    platform: { dashboardUrl: string };
     user: { id: string; displayName: string; avatarUrl: string | null };
     role: { id: string; roleCode: string; roleName: string; scopeType: 'INSTITUTION' | 'OFFERING' };
     tool: {

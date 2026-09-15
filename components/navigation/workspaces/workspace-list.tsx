@@ -19,6 +19,8 @@ export type WorkspaceSummary = {
     updated: string;
     documentCount: number;
     submitted: boolean;
+    attemptNumber?: number;
+    started?: string;
     href: string;
 };
 
@@ -96,7 +98,27 @@ function WorkspaceGroup({ title, description, items, empty, action }: { title: s
                     {items.map((workspace) => (
                         <Link key={workspace.id} href={workspace.href} className="group bg-card hover:border-primary/35 flex min-w-0 items-center gap-4 rounded-xl border p-4 transition-colors">
                             <div className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg"><HugeiconsIcon icon={workspace.kind === 'PERSONAL' ? Folder01Icon : workspace.submitted ? LockIcon : File01Icon} strokeWidth={2} className="size-5" /></div>
-                            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate font-medium">{workspace.name}</p>{workspace.submitted && <span className="bg-muted rounded px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase">Submitted</span>}</div><p className="text-muted-foreground mt-0.5 truncate text-xs">{workspace.detail}</p><p className="text-muted-foreground mt-2 text-xs">{workspace.documentCount} items · {workspace.updated}</p></div>
+                            <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <p className="truncate font-medium">{workspace.name}</p>
+                                    {workspace.attemptNumber !== undefined && (
+                                        <span className="bg-primary/8 text-primary rounded px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase">
+                                            Attempt {workspace.attemptNumber}
+                                        </span>
+                                    )}
+                                    {workspace.kind === 'ASSIGNMENT' && (
+                                        <span className="bg-muted rounded px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase">
+                                            {workspace.submitted ? 'Submitted' : 'Active'}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                                    {workspace.detail}{workspace.started ? ` · Started ${workspace.started}` : ''}
+                                </p>
+                                <p className="text-muted-foreground mt-2 text-xs">
+                                    {workspace.documentCount} items · Last opened {workspace.updated}
+                                </p>
+                            </div>
                             <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="text-muted-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
                         </Link>
                     ))}

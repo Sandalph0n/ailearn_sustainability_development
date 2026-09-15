@@ -20,9 +20,12 @@ export default async function WorkspacesPage() {
                 select: {
                     attempt: {
                         select: {
+                            id: true,
+                            startAt: true,
                             submitAt: true,
                             assessment: {
                                 select: {
+                                    id: true,
                                     name: true,
                                     offering: {
                                         select: {
@@ -40,16 +43,39 @@ export default async function WorkspacesPage() {
         },
     });
     const date = new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Australia/Sydney' });
+    const dateTime = new Intl.DateTimeFormat('en-AU', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'Australia/Sydney',
+    });
+    const attemptNumbers = new Map<string, number>();
+    const attemptsByAssessment = new Map<string, Array<{ id: string; startAt: Date }>>();
+    for (const row of rows) {
+        const attempt = row.assignment?.attempt;
+        if (!attempt) continue;
+        const siblings = attemptsByAssessment.get(attempt.assessment.id) ?? [];
+        siblings.push({ id: attempt.id, startAt: attempt.startAt });
+        attemptsByAssessment.set(attempt.assessment.id, siblings);
+    }
+    for (const siblings of attemptsByAssessment.values()) {
+        siblings
+            .sort((left, right) => left.startAt.getTime() - right.startAt.getTime())
+            .forEach((attempt, index) => attemptNumbers.set(attempt.id, index + 1));
+    }
     const workspaces: WorkspaceSummary[] = rows.map((row) => {
         const attempt = row.assignment?.attempt;
         return {
             id: row.id,
             name: row.name,
             kind: row.personal ? 'PERSONAL' : 'ASSIGNMENT',
-            detail: attempt ? `${attempt.assessment.offering.subject.subjectCode} · ${attempt.assessment.name} · S${attempt.assessment.offering.term.session} ${attempt.assessment.offering.term.year}` : 'Personal workspace · no activity recording',
+            detail: attempt ? `${attempt.assessment.offering.subject.subjectCode} · S${attempt.assessment.offering.term.session} ${attempt.assessment.offering.term.year}` : 'Personal workspace · no activity recording',
             updated: date.format(row.lastOpenedAt ?? row.createdAt),
             documentCount: row._count.documents,
             submitted: attempt?.submitAt !== null && attempt?.submitAt !== undefined,
+            attemptNumber: attempt ? attemptNumbers.get(attempt.id) : undefined,
+            started: attempt ? dateTime.format(attempt.startAt) : undefined,
             href: `/navigation/workspaces/${row.id}`,
         };
     });

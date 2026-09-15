@@ -15,6 +15,7 @@ import {
   Lock,
   BookOpen,
   History,
+  ArrowLeft,
 } from 'lucide-react';
 import Logo from '@/lib/components/Logo';
 import NewDiagramDialog from '@/lib/components/NewDiagramDialog';
@@ -176,7 +177,16 @@ export default function Dashboard({
       {/* Header */}
       <header className="border-b border-line-soft bg-white">
         <div className="flex w-full items-center justify-between px-5 py-4 sm:px-8">
-          <Logo size="md" />
+          <div className="flex items-center gap-3">
+            <a
+              href={context?.platform.dashboardUrl}
+              className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-surface-hover"
+            >
+              <ArrowLeft size={17} />
+              Back to Lernumi
+            </a>
+            <Logo size="md" />
+          </div>
 
           <div className="flex items-center gap-4">
             {canReplay && (
@@ -244,7 +254,7 @@ export default function Dashboard({
                       </div>
                     )}
                     <p className="border-t border-line px-3 py-2.5 text-xs leading-5 text-ink-muted">
-                      Your diagrams are saved into this attempt on Lernumi. Close this tab to return.
+                      Your diagrams are saved into this attempt on Lernumi.
                     </p>
                   </div>
                 </>
