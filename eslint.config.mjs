@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     // Generated tool bundles are uploaded artifacts, not source code.
     "packages/*/dist/**",
     "packages/*/artifacts/**",
+    // Upstream easydraw editor mirrored verbatim (see packages/easydraw-tool/README.md);
+    // it is linted in its own repository with its own config.
+    "packages/easydraw-tool/editor/**",
     ".tmp/**",
 
     // Code tham khảo, không phải của ứng dụng — không lint, không typecheck.

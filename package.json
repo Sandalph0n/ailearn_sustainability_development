@@ -30,7 +30,11 @@
     "tool:code-editor:dev": "pnpm --dir packages/code-editor-tool dev",
     "tool:code-editor:check": "pnpm --dir packages/code-editor-tool check",
     "tool:code-editor:build": "pnpm --dir packages/code-editor-tool build",
-    "tool:code-editor:package": "pnpm --dir packages/code-editor-tool package"
+    "tool:code-editor:package": "pnpm --dir packages/code-editor-tool package",
+    "tool:easydraw:dev": "pnpm --dir packages/easydraw-tool dev",
+    "tool:easydraw:check": "pnpm --dir packages/easydraw-tool check",
+    "tool:easydraw:build": "pnpm --dir packages/easydraw-tool build",
+    "tool:easydraw:package": "pnpm --dir packages/easydraw-tool package"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1117.0",
