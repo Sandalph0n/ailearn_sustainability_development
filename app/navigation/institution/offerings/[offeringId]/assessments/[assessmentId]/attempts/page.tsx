@@ -1,9 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 
-import { LaunchReplayButton } from '@/components/navigation/learning/replay-actions';
+import {
+    AssessmentAttemptBrowser,
+    type ReviewStudent,
+} from '@/components/navigation/learning/assessment-attempt-browser';
 import { LearningPageHeader } from '@/components/navigation/learning/page-header';
-import { Badge } from '@/components/ui/badge';
 import { findContextForTarget } from '@/lib/auth/authorization-policy';
 import { listAuthorizedContextOptions } from '@/lib/auth/authorization-service';
 import { hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
@@ -89,10 +91,7 @@ export default async function AssessmentAttemptsPage({
                         select: {
                             id: true,
                             startAt: true,
-                            endAt: true,
-                            tool: { select: { name: true, code: true } },
-                            toolVersion: { select: { version: true } },
-                            _count: { select: { eventBatches: true } },
+                            tool: { select: { name: true } },
                             eventBatches: {
                                 orderBy: { seqEnd: 'desc' },
                                 take: 1,
@@ -110,80 +109,67 @@ export default async function AssessmentAttemptsPage({
         [CONTEXT_PARAM.role]: roleId,
     }).toString();
 
+    const studentsById = new Map<string, ReviewStudent>();
+    for (const attempt of attempts) {
+        const displayName =
+            [attempt.user.firstName, attempt.user.lastName].filter(Boolean).join(' ') ||
+            attempt.user.email;
+        const sessions = attempt.workspace?.workSessions ?? [];
+        const sessionEvents = sessions.map((session) => ({
+            session,
+            eventCount: Math.max(0, (session.eventBatches[0]?.seqEnd ?? -1) + 1),
+        }));
+        const replaySource =
+            sessionEvents.find(({ eventCount }) => eventCount > 0)?.session ?? sessions[0] ?? null;
+        const record = studentsById.get(attempt.user.id) ?? {
+            id: attempt.user.id,
+            displayName,
+            email: attempt.user.email,
+            attempts: [],
+        };
+        record.attempts.push({
+            id: attempt.id,
+            number: 0,
+            startedAt: DATE_TIME.format(attempt.startAt),
+            submitted: attempt.submitAt !== null,
+            sessionCount: sessions.length,
+            eventCount: sessionEvents.reduce((total, item) => total + item.eventCount, 0),
+            toolNames: [...new Set(sessions.map((session) => session.tool.name))],
+            replay: replaySource
+                ? { workSessionId: replaySource.id, toolName: replaySource.tool.name }
+                : null,
+        });
+        studentsById.set(attempt.user.id, record);
+    }
+    const students = [...studentsById.values()]
+        .map((student) => ({
+            ...student,
+            attempts: student.attempts.map((attempt, index, all) => ({
+                ...attempt,
+                number: all.length - index,
+            })),
+        }))
+        .sort((left, right) =>
+            left.displayName.localeCompare(right.displayName, 'en', { sensitivity: 'base' }),
+        );
+
     return (
         <main className="mx-auto w-full max-w-7xl py-7">
             <LearningPageHeader
                 eyebrow={`${assessment.offering.subject.subjectCode} · Assessment review`}
                 title={assessment.name}
-                description={`Review student attempts and open the exact tool version that recorded each work session. ${assessment.offering.term.year} Session ${assessment.offering.term.session}.`}
+                description={`Choose a student, then review each attempt as one complete replay. ${assessment.offering.term.year} Session ${assessment.offering.term.session}.`}
                 back={{
                     href: `/navigation/institution/offerings/${offeringId}?${contextQuery}`,
                     label: 'Assessment management',
                 }}
             />
 
-            <div className="overflow-hidden rounded-lg border bg-card">
-                <div className="grid grid-cols-[minmax(15rem,1.25fr)_9rem_8rem_minmax(26rem,2fr)] gap-4 border-b bg-muted/35 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <span>Student</span>
-                    <span>Started</span>
-                    <span>Status</span>
-                    <span>Recorded sessions</span>
-                </div>
-                {attempts.length === 0 ? (
-                    <p className="px-4 py-12 text-center text-sm text-muted-foreground">No attempts have been started.</p>
-                ) : (
-                    attempts.map((attempt) => {
-                        const displayName = [attempt.user.firstName, attempt.user.lastName].filter(Boolean).join(' ') || attempt.user.email;
-                        const sessions = attempt.workspace?.workSessions ?? [];
-                        return (
-                            <section
-                                key={attempt.id}
-                                className="grid grid-cols-[minmax(15rem,1.25fr)_9rem_8rem_minmax(26rem,2fr)] gap-4 border-b px-4 py-4 last:border-b-0"
-                            >
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium">{displayName}</p>
-                                    <p className="truncate text-xs text-muted-foreground">{attempt.user.email}</p>
-                                </div>
-                                <time className="text-sm tabular-nums">{DATE_TIME.format(attempt.startAt)}</time>
-                                <div>
-                                    <Badge variant={attempt.submitAt ? 'secondary' : 'outline'}>
-                                        {attempt.submitAt ? 'Submitted' : 'Active'}
-                                    </Badge>
-                                </div>
-                                <div className="grid gap-2">
-                                    {sessions.length === 0 ? (
-                                        <span className="text-sm text-muted-foreground">No tool activity recorded.</span>
-                                    ) : (
-                                        sessions.map((workSession) => (
-                                            <div key={workSession.id} className="flex items-center justify-between gap-4 border-b pb-2 last:border-0 last:pb-0">
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-medium">
-                                                        {workSession.tool.name} · {workSession.toolVersion?.version ?? 'legacy version'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {DATE_TIME.format(workSession.startAt)} · {(workSession.eventBatches[0]?.seqEnd ?? -1) + 1} events · {workSession.endAt ? 'closed' : 'open'}
-                                                    </p>
-                                                </div>
-                                                {canReplay ? (
-                                                    <LaunchReplayButton
-                                                        workSessionId={workSession.id}
-                                                        roleAssignmentId={access.assignmentId}
-                                                        toolName={workSession.tool.name}
-                                                    />
-                                                ) : (
-                                                    <span className="text-muted-foreground text-xs">
-                                                        Replay unavailable for this role
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </section>
-                        );
-                    })
-                )}
-            </div>
+            <AssessmentAttemptBrowser
+                students={students}
+                canReplay={canReplay}
+                roleAssignmentId={access.assignmentId}
+            />
         </main>
     );
 }
