@@ -54,7 +54,7 @@ const PERSONAL_ITEMS = [
 ] as const;
 
 const ACCESS_CONTROL_ITEMS = [
-    { href: '/navigation/roles', label: 'Role Management', icon: Shield01Icon },
+    { href: '/navigation/roles', label: 'My Roles', icon: Shield01Icon },
     { href: '/navigation/subject-access', label: 'Subject Access', icon: BookOpen01Icon },
 ] as const;
 

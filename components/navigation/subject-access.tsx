@@ -284,7 +284,7 @@ export function SubjectAccess({
                                         strokeWidth={2}
                                         data-icon="inline-start"
                                     />
-                                    Add subject access
+                                    Request subject access
                                 </Button>
                             ))}
                     </div>

@@ -361,7 +361,7 @@ function RowActions({
                             }
                         >
                             <HugeiconsIcon icon={Calendar03Icon} strokeWidth={2} />
-                            Manage periods
+                            {term.counts.periods === 0 ? 'Set up periods' : 'Manage periods'}
                         </DropdownMenuItem>
                     )}
 

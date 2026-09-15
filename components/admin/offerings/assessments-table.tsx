@@ -147,7 +147,26 @@ export function AssessmentsTable({
                 }),
                 column.accessor('attempts', {
                     header: 'Attempts',
-                    cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+                    cell: (info) => {
+                        const count = info.getValue();
+                        const reviewHref =
+                            canReviewAttempts && count > 0
+                                ? `/navigation/institution/offerings/${offeringId}/assessments/${info.row.original.id}/attempts${contextQuery ? `?${contextQuery}` : ''}`
+                                : undefined;
+
+                        return reviewHref ? (
+                            <Link
+                                href={reviewHref}
+                                className="text-primary inline-flex items-center gap-1 font-medium tabular-nums underline-offset-4 hover:underline"
+                                aria-label={`Review ${count} attempt${count === 1 ? '' : 's'} for ${info.row.original.name}`}
+                            >
+                                {count}
+                                <span className="text-xs">Review</span>
+                            </Link>
+                        ) : (
+                            <span className="tabular-nums">{count}</span>
+                        );
+                    },
                 }),
                 column.display({
                     id: 'flags',

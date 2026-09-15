@@ -78,7 +78,7 @@ export function WorkspaceList({ workspaces }: { workspaces: WorkspaceSummary[] }
 
     return (
         <div className="space-y-8">
-            <WorkspaceGroup title="Assessment work" description="Workspaces created from your assessment attempts." items={assignments} empty="Start an assessment attempt to create its workspace." />
+            <WorkspaceGroup title="Your assessment work" description="Workspaces created from assessment attempts owned by this account. Student work for review is available under Institution > Offerings." items={assignments} empty="No assessment workspaces belong to this account." />
             <WorkspaceGroup title="Personal work" description="Private notes, drafts and files with no activity recording." items={personal} empty="Create a personal workspace for notes and independent work." action={<Button onClick={() => setCreating(true)}><HugeiconsIcon icon={Add01Icon} strokeWidth={2} />New workspace</Button>} />
         </div>
     );

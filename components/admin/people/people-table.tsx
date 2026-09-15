@@ -745,7 +745,9 @@ function RoleAccessDetail({
                             ? `Revoked ${assignment.revoked}`
                             : assignment.role.scopeType === 'INSTITUTION'
                               ? 'This role applies across the institution.'
-                              : 'Each offering below can be revoked independently.'}
+                              : scopeCapabilities.revoke
+                                ? 'Each offering below can be revoked independently.'
+                                : 'This role is scoped to the offerings listed below.'}
                     </p>
                 </div>
                 {!assignment.revoked && canRevokeRole && (

@@ -133,7 +133,7 @@ export function RoleManagement({
                         Account access
                     </p>
                     <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-                        Role management
+                        My roles
                     </h1>
                     <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
                         Review the institutions you belong to and the active roles you hold at each

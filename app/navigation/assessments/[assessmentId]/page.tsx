@@ -8,7 +8,8 @@ import { dueLabel, formatDateTime, termLabel } from '@/components/navigation/lea
 import { LearningPageHeader } from '@/components/navigation/learning/page-header';
 import { canStartAttempts } from '@/components/navigation/learning/policy';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { hasPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
 import {
     getPublishedAssessment,
@@ -143,14 +144,13 @@ export default async function AssessmentLearningPage({
                                     Continue to the offering workspace to see students, attempt status,
                                     and recorded tool sessions.
                                 </p>
-                                <Button
-                                    nativeButton={false}
-                                    className="mt-4"
-                                    render={<Link href={studentAttemptsHref} />}
+                                <Link
+                                    href={studentAttemptsHref}
+                                    className={cn(buttonVariants(), 'mt-4')}
                                 >
                                     <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} />
                                     Review student attempts
-                                </Button>
+                                </Link>
                             </div>
                         ) : attempts === null ? (
                             <div className="rounded-xl border border-dashed p-5 text-sm">
