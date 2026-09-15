@@ -1,6 +1,7 @@
 import {
     SubjectsTable,
     type SubjectCapabilities,
+    type SubjectInstitutionOption,
     type SubjectListItem,
 } from '@/components/admin/subjects/subjects-table';
 import {
@@ -10,6 +11,7 @@ import {
     parseOptionalUuid,
 } from '@/lib/admin/list-params';
 import { db } from '@/lib/db';
+import { catalogInfoFor } from '@/lib/institution-adapters';
 
 /**
  * Bảng môn học dùng chung cho các lối vào quản trị hệ thống và quản trị theo institution.
@@ -87,14 +89,15 @@ export async function SubjectsSection({
             : Promise.resolve([]),
         canView ? db.subject.count({ where }) : Promise.resolve(0),
         // Trang con không cần danh sách để lọc, nhưng biểu mẫu vẫn cần một mục cho ô chọn.
+        // `website` là thứ quyết định cơ sở có danh mục công khai để tra cứu hay không.
         lockedInstitutionId
             ? db.institution.findMany({
                   where: { id: lockedInstitutionId },
-                  select: { id: true, name: true },
+                  select: { id: true, name: true, website: true },
               })
             : db.institution.findMany({
                   orderBy: { name: 'asc' },
-                  select: { id: true, name: true },
+                  select: { id: true, name: true, website: true },
               }),
     ]);
 
@@ -107,10 +110,16 @@ export async function SubjectsSection({
         counts: { offerings: row._count.offerings },
     }));
 
+    const institutionOptions: SubjectInstitutionOption[] = institutions.map((institution) => ({
+        id: institution.id,
+        name: institution.name,
+        catalog: catalogInfoFor(institution),
+    }));
+
     return (
         <SubjectsTable
             subjects={subjects}
-            institutions={institutions}
+            institutions={institutionOptions}
             institutionId={institutionId}
             locked={lockedInstitutionId !== null}
             page={page}

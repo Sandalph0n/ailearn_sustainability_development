@@ -47,7 +47,10 @@ SELECT
   'f715afb4-9475-5d59-a61f-e66d50c03fdb'::uuid,
   role."roleCode",
   role."roleName",
-  NULL,
+  CASE
+    WHEN role."roleCode" = 'offering:student' THEN '@students\.mq\.edu\.au$'
+    ELSE NULL
+  END,
   role."scopeType",
   role."requestMode"
 FROM seed_mq_roles AS role

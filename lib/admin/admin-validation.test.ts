@@ -25,7 +25,7 @@ describe('admin validation', () => {
         expect(InstitutionSchema.parse({ name: 'Example University', website: '' }).website).toBeNull();
     });
 
-    it('rejects duplicate role graph edges and invalid email auto-grant scope', () => {
+    it('rejects duplicate role graph edges and allows email auto-grant on any scope', () => {
         const base = {
             institutionId: INSTITUTION_ID,
             roleCode: 'offering:tutor',
@@ -41,9 +41,12 @@ describe('admin validation', () => {
         expect(RoleSchema.safeParse({ ...base, includedRoleIds: [ROLE_ID, ROLE_ID] }).success).toBe(
             false,
         );
+        // Vai trò cấp OFFERING nay ĐƯỢC mang regex ánh xạ email (trước kia chỉ INSTITUTION mới được).
         expect(RoleSchema.safeParse({ ...base, autoGrantEmailRegex: '@example\\.edu$' }).success).toBe(
-            false,
+            true,
         );
+        // Nhưng regex hỏng vẫn phải bị chặn, bất kể scope.
+        expect(RoleSchema.safeParse({ ...base, autoGrantEmailRegex: '(' }).success).toBe(false);
         expect(
             RoleSchema.safeParse({
                 ...base,

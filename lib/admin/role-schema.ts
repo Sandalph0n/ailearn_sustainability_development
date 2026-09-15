@@ -130,20 +130,19 @@ export const RoleSchema = z
                 path: ['roleCode'],
             });
         }
-    })
-    /**
-     * Luật nghiệp vụ: ánh xạ email chỉ có nghĩa ở cấp CƠ SỞ.
-     *
-     * Nó chạy lúc người dùng gia nhập một trường, khi chưa có lượt mở môn nào để nói tới. Gắn
-     * regex vào vai trò cấp OFFERING là tạo ra một trường không bao giờ được đọc.
-     *
-     * Prisma không khai được ràng buộc này (`CHECK` phải viết tay vào migration), nên nó sống ở
-     * đây — và vì cùng một schema chạy ở cả client lẫn server, luật chỉ viết một lần.
-     */
-    .refine((value) => value.autoGrantEmailRegex === null || value.scopeType === 'INSTITUTION', {
-        message: 'Email matching only applies to institution-wide roles',
-        path: ['autoGrantEmailRegex'],
     }) satisfies z.ZodType<RoleSchemaValue>;
+
+/*
+ * ─── Vì sao KHÔNG còn giới hạn ánh xạ email theo cấp CƠ SỞ ───────────────────
+ *
+ * Trước đây có một `.refine` chặn `autoGrantEmailRegex` chỉ cho vai trò INSTITUTION, với lý do:
+ * regex chạy lúc đăng ký, khi chưa có lượt mở môn nào để gắn vào.
+ *
+ * Nay chủ đích đã đổi: cho phép cả vai trò OFFERING mang regex, để email sinh viên tự cấp thẳng
+ * vai trò `offering:student`. Assignment sinh ra ở trạng thái CHƯA gắn môn — hợp lệ, vì offering
+ * nằm ở `ScopeAssignment` riêng, không phải trên `RoleAssignment`. Quyền cấp offering của vai trò
+ * chỉ có hiệu lực sau khi người dùng được ghi danh vào một môn cụ thể. Xem `lib/auth/auto-grant.ts`.
+ */
 
 export type RoleFormValue = z.input<typeof RoleSchema>;
 

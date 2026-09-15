@@ -79,6 +79,11 @@ chạm tới SQL:
    `010-mq-institution.sql` đến `050-mq-assessments.sql`.
 3. `pnpm db:seed` thực thi toàn bộ SQL theo thứ tự tên file.
 
+Ngoài seed, biểu mẫu tạo Subject có nút **Fill from Macquarie Handbook** cho cơ sở nào có
+`website` thuộc `mq.edu.au`: nó gọi `GET .../subjects/lookup?code=` để đọc tên và mô tả từ
+Handbook công khai rồi điền vào form (adapter ở `lib/institution-adapters/`). Người dùng vẫn
+sửa được trước khi lưu; Handbook không trả lời thì nhập tay như bình thường.
+
 Assessment luôn giữ nguyên nhãn hạn nộp công khai trong `expectedDue`. Chỉ nhãn chứa ngày đúng
 dạng `dd/mm/yyyy` mới có `dueAt`, đặt vào 23:59 ngày đó theo múi giờ Australia/Sydney.
 

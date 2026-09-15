@@ -1,0 +1,280 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Design tokens (Tailwind v4 CSS-first config). These become utilities, e.g.
+   `bg-primary`, `text-primary-deep`, `border-line`, `text-ink-muted`, so the
+   palette lives in one place.
+
+   Palette is shared with the Lernumi / ailearn app (its `app/globals.css`
+   declares the same colours as shadcn oklch tokens). Values here are the hex
+   equivalents so both apps read as one ecosystem:
+
+     primary        = ailearn --primary            (brand teal)
+     primary-deep   = ailearn --accent-foreground  (dark teal, text/hover)
+     primary-hover  = ailearn --ring               (lighter teal)
+     primary-tint   = ailearn --accent             (pale teal wash)
+     ink            = ailearn --foreground
+     ink-muted      = ailearn --muted-foreground
+     panel          = ailearn --secondary / --muted
+     line           = ailearn --input
+     line-soft      = ailearn --border
+     page           = ailearn --background
+     danger         = ailearn --destructive
+     brand-*        = ailearn --brand-teal/violet/amber/sky
+--------------------------------------------------------------------------- */
+@theme {
+	/* Brand teal (primary) */
+	--color-primary: #189589;
+	--color-primary-deep: #126862;
+	--color-primary-hover: #1fad9f;
+	--color-primary-tint: #e7f8f6;
+
+	/* Destructive — errors, delete actions. Was the brand red before the
+	   ecosystem palette; kept separate now that the brand is teal. */
+	--color-danger: #c4314e;
+	--color-danger-tint: #fdf1f3;
+
+	/* Four ecosystem brand hues (same names as ailearn: bg-brand-teal …) */
+	--color-brand-teal: #189589;
+	--color-brand-violet: #763adf;
+	--color-brand-amber: #e9820c;
+	--color-brand-sky: #0d91d3;
+
+	/* Ink / text — cool slate */
+	--color-ink: #121c21;
+	--color-ink-soft: #253035;
+	--color-ink-muted: #5e7178;
+	--color-toolbar-text: #425056;
+
+	/* Surfaces + lines — cool grey-blue */
+	--color-page: #f9fbfb;
+	--color-panel: #ecf3f3;
+	--color-surface-hover: #e4ebec;
+	--color-line: #cfdbde;
+	--color-line-soft: #dee6e8;
+	--color-line-dropdown: #e5edee;
+
+	/* Default UI font */
+	--font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Editor fonts — one .woff2 per family in public/fonts/ (served at /fonts/).
+   Family names must match the ToolBar font list exactly. Inter is the default.
+--------------------------------------------------------------------------- */
+@font-face {
+	font-family: 'Bergamo Std';
+	src: url('/fonts/bergamo-std.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Cousine';
+	src: url('/fonts/cousine.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Dustismo';
+	src: url('/fonts/dustismo.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Gentium Basic';
+	src: url('/fonts/gentium-basic.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/inter.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Kirsty';
+	src: url('/fonts/kirsty.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Komika Hand';
+	src: url('/fonts/komika-hand.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Liberation Mono';
+	src: url('/fonts/liberation-mono.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Liberation Sans';
+	src: url('/fonts/liberation-sans.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Liberation Serif';
+	src: url('/fonts/liberation-serif.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Orbitron';
+	src: url('/fonts/orbitron.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'SF Arch Rival';
+	src: url('/fonts/sf-arch-rival.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'SF Cartoonist Hand';
+	src: url('/fonts/sf-cartoonist-hand.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* Custom base/reset rules — inside `@layer base` so Tailwind utilities (later
+   `utilities` layer) can still override them. */
+@layer base {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	*:not(dialog) {
+		margin: 0;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		html {
+			interpolate-size: allow-keywords;
+		}
+	}
+
+	html,
+	body {
+		height: 100%;
+	}
+
+	body {
+		font-family: 'Inter', system-ui, -apple-system, sans-serif;
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Full-screen editor route locks page scroll (toggled by the editor page). */
+	body.editor-mode {
+		overflow: hidden;
+	}
+}
+
+/* Toolbar hover tooltip — pseudo-element text via content: attr(...). Kept as
+   plain CSS (Tailwind's content util can't express attr()). `.tb-tip` reads
+   aria-label; `.tb-tip-data` reads data-tip. Host buttons are `relative`. */
+.tb-tip::after,
+.tb-tip-data::after,
+.mb-tip::after {
+	position: absolute;
+	top: calc(100% + 7px);
+	left: 50%;
+	transform: translateX(-50%);
+	background: #253035;
+	color: #fff;
+	font-family: system-ui, -apple-system, sans-serif;
+	font-size: 0.72rem;
+	font-weight: 500;
+	padding: 4px 8px;
+	border-radius: 4px;
+	white-space: nowrap;
+	z-index: 200;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.12s ease;
+}
+.tb-tip::after,
+.mb-tip::after {
+	content: attr(aria-label);
+}
+.tb-tip-data::after {
+	content: attr(data-tip);
+}
+.tb-tip:hover::after,
+.tb-tip-data:hover::after,
+.mb-tip:hover::after {
+	opacity: 1;
+	transition-delay: 0.45s;
+}
+
+/* Legal page prose (LegalSection children) — ported from LegalSection.svelte's
+   scoped :global block; namespaced under .legal-copy so nothing else is hit. */
+.legal-copy p + p,
+.legal-copy p + ul,
+.legal-copy p + ol,
+.legal-copy ul + p,
+.legal-copy ol + p,
+.legal-copy div + p,
+.legal-copy p + div {
+	margin-top: 1rem;
+}
+.legal-copy ul,
+.legal-copy ol {
+	padding-left: 1.25rem;
+}
+.legal-copy ul {
+	list-style: disc;
+}
+.legal-copy ol {
+	list-style: decimal;
+}
+.legal-copy li + li {
+	margin-top: 0.5rem;
+}
+.legal-copy li::marker {
+	color: #189589;
+}
+.legal-copy a {
+	color: #189589;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.legal-copy a:hover {
+	color: #126862;
+}
+.legal-copy strong {
+	color: #121c21;
+	font-weight: 600;
+}
+.legal-copy h3 {
+	margin-top: 1.25rem;
+	margin-bottom: 0.4rem;
+	color: #121c21;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+/* Full-screen editor locks page scroll (added to <body> by the editor route). */
+body.editor-mode {
+	overflow: hidden;
+}
