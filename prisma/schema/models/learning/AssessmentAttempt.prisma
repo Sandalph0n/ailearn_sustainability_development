@@ -22,6 +22,11 @@ model AssessmentAttempt {
 
   workspace AssignmentWorkspace?
 
+  /// Mỗi lần chấm là một record riêng. Không có unique theo attempt hoặc người chấm: nhiều
+  /// người được chấm cùng một bài, và một người cũng có thể tạo bản chấm mới để sửa kết quả cũ.
+  marks  AssessmentAttemptMark[]
+  result AssessmentAttemptResult?
+
   @@index([userId, assessmentId])
   @@index([assessmentId])
 }

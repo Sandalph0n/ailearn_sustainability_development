@@ -7,6 +7,7 @@ import {
     BookOpen01Icon,
     Calendar03Icon,
     CalendarMortarboardIcon,
+    CheckmarkSquare02Icon,
     CourseIcon,
     Folder01Icon,
     Home01Icon,
@@ -36,7 +37,11 @@ import {
     CONTEXT_PARAM,
     type AuthorizedContextOption,
 } from '@/lib/context/context-params';
-import { hasAnyPermission, PERMISSION_CODE } from '@/lib/auth/permissions';
+import {
+    hasAnyPermission,
+    MARKING_REPLAY_PERMISSION_CODES,
+    PERMISSION_CODE,
+} from '@/lib/auth/permissions';
 
 /**
  * Mục điều hướng, để thành DỮ LIỆU — thêm một mục là thêm một dòng.
@@ -64,6 +69,14 @@ const PERSONAL_ITEMS = [
 const ACCESS_CONTROL_ITEMS = [
     { href: '/navigation/roles', label: 'My Roles', icon: Shield01Icon },
     { href: '/navigation/subject-access', label: 'Subject Access', icon: BookOpen01Icon },
+] as const;
+
+const MARKING_ITEMS = [
+    {
+        href: '/navigation/marking',
+        label: 'Marking & Replay',
+        icon: CheckmarkSquare02Icon,
+    },
 ] as const;
 
 const INSTITUTION_ITEMS = [
@@ -195,6 +208,10 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
             !('permissions' in item) ||
             (activeContext && hasAnyPermission(activeContext.permissions, item.permissions)),
     );
+    const showMarking = Boolean(
+        activeContext &&
+        hasAnyPermission(activeContext.permissions, MARKING_REPLAY_PERMISSION_CODES),
+    );
 
     /**
      * Mọi liên kết điều hướng mang theo ngữ cảnh đang hoạt động.
@@ -260,6 +277,28 @@ export function AppSidebar({ contexts }: { contexts: AuthorizedContextOption[] }
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
+
+                {showMarking && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Marking &amp; Replay</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {MARKING_ITEMS.map((item) => (
+                                    <SidebarMenuItem key={item.href}>
+                                        <SidebarMenuButton
+                                            isActive={pathname.startsWith(item.href)}
+                                            tooltip={item.label}
+                                            render={<Link href={withContext(item.href)} />}
+                                        >
+                                            <HugeiconsIcon icon={item.icon} strokeWidth={2} />
+                                            <span>{item.label}</span>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
 
                 <SidebarGroup>
                     <SidebarGroupLabel>Access Control</SidebarGroupLabel>

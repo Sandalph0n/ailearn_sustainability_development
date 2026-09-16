@@ -1,0 +1,20 @@
+/// Kết quả CHÍNH THỨC hiện tại của một attempt.
+///
+/// Các bản chấm vẫn sống độc lập trong `AssessmentAttemptMark`; bảng này chỉ chọn một bản đã
+/// được duyệt làm kết quả công bố. Tách riêng như vậy giúp đổi kết quả chính thức mà không xoá
+/// lịch sử chấm, đồng thời giữ đúng một kết quả cho mỗi attempt.
+model AssessmentAttemptResult {
+  attemptId     String @id @db.Uuid
+  markId        String @db.Uuid
+  finalisedById String @db.Uuid
+
+  finalisedAt DateTime @default(now())
+  note        String?
+
+  attempt     AssessmentAttempt     @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  mark        AssessmentAttemptMark @relation("officialAssessmentAttemptMark", fields: [markId, attemptId], references: [id, attemptId], onDelete: Restrict)
+  finalisedBy User                  @relation("assessmentAttemptResultsFinalisedByUser", fields: [finalisedById], references: [id], onDelete: Restrict)
+
+  @@unique([markId, attemptId])
+  @@index([finalisedById, finalisedAt])
+}

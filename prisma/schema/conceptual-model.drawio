@@ -1812,6 +1812,66 @@
         <mxCell id="ScopeReq-label-approvedScope" connectable="0" parent="ScopeReq-edge-approvedScope" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="approved scope &amp;gt;" vertex="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="AttemptMark-table" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;fillColor=#fad7ac;strokeColor=#b46504;" value="AssessmentAttemptMark (AE)" vertex="1">
+          <mxGeometry height="266" width="230" x="360" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-id" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;fontStyle=5;whiteSpace=wrap;html=1;" value="id (UUID, PI)" vertex="1">
+          <mxGeometry height="30" width="230" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-score" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="score / outOf" vertex="1">
+          <mxGeometry height="30" width="230" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-feedback" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="feedback" vertex="1">
+          <mxGeometry height="30" width="230" y="86" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-status" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="status (DRAFT / SUBMITTED / SUPERSEDED)" vertex="1">
+          <mxGeometry height="30" width="230" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-createdAt" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="createdAt" vertex="1">
+          <mxGeometry height="30" width="230" y="146" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-updatedAt" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="updatedAt" vertex="1">
+          <mxGeometry height="30" width="230" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-submittedAt" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="submittedAt" vertex="1">
+          <mxGeometry height="30" width="230" y="206" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-supersedes" parent="AttemptMark-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="supersedesMarkId" vertex="1">
+          <mxGeometry height="30" width="230" y="236" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-table" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;align=center;fontSize=14;fillColor=#fad7ac;strokeColor=#b46504;" value="AssessmentAttemptResult (AE)" vertex="1">
+          <mxGeometry height="146" width="230" x="660" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-attemptId" parent="AttemptResult-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;fontStyle=5;whiteSpace=wrap;html=1;" value="attemptId (UUID, PI)" vertex="1">
+          <mxGeometry height="30" width="230" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-markId" parent="AttemptResult-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="markId (UUID, UQ)" vertex="1">
+          <mxGeometry height="30" width="230" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-finalisedAt" parent="AttemptResult-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="finalisedAt" vertex="1">
+          <mxGeometry height="30" width="230" y="86" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-note" parent="AttemptResult-table" style="text;strokeColor=none;fillColor=none;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=12;whiteSpace=wrap;html=1;" value="note" vertex="1">
+          <mxGeometry height="30" width="230" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-edge-attempt" edge="1" parent="1" source="LMWKLvEU5ZvPng6FI72z-115" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="AttemptMark-table" value="has marks &amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-edge-marker" edge="1" parent="1" source="mVYId0udN_2KPuGNmYjD-22" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="AttemptMark-table" value="marked by &amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptMark-edge-revision" edge="1" parent="1" source="AttemptMark-table" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERzeroToOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="AttemptMark-table" value="supersedes &amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-edge-attempt" edge="1" parent="1" source="LMWKLvEU5ZvPng6FI72z-115" style="fontSize=12;html=1;endArrow=ERzeroToOne;startArrow=ERmandOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="AttemptResult-table" value="official result &amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-edge-mark" edge="1" parent="1" source="AttemptMark-table" style="fontSize=12;html=1;endArrow=ERzeroToOne;startArrow=ERmandOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="AttemptResult-table" value="selected mark &amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="AttemptResult-edge-finaliser" edge="1" parent="1" source="mVYId0udN_2KPuGNmYjD-22" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="AttemptResult-table" value="finalised by &amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

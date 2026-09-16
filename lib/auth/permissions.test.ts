@@ -15,9 +15,9 @@ import {
 } from './permissions';
 
 describe('permission catalog', () => {
-    it('contains exactly 57 unique codes with complete metadata', () => {
-        expect(ALL_PERMISSION_CODES).toHaveLength(57);
-        expect(new Set(ALL_PERMISSION_CODES).size).toBe(57);
+    it('contains exactly 58 unique codes with complete metadata', () => {
+        expect(ALL_PERMISSION_CODES).toHaveLength(58);
+        expect(new Set(ALL_PERMISSION_CODES).size).toBe(58);
         expect(Object.keys(PERMISSION_CATALOG).sort()).toEqual([...ALL_PERMISSION_CODES].sort());
         expect(Object.values(PERMISSION_CATALOG).every(({ description }) => description.length > 0))
             .toBe(true);
@@ -32,13 +32,10 @@ describe('permission catalog', () => {
     });
 
     it('matches every row inserted by the permission data migration', () => {
-        const migration = readFileSync(
-            new URL(
-                '../../prisma/migrations/20260907091000_authorization_permission_catalog/migration.sql',
-                import.meta.url,
-            ),
-            'utf8',
-        );
+        const migration = [
+            '../../prisma/migrations/20260907091000_authorization_permission_catalog/migration.sql',
+            '../../prisma/migrations/20260916100000_attempt_mark_permission/migration.sql',
+        ].map((path) => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
         const rows = [
             ...migration.matchAll(
                 /\(\s*'([a-z][a-z0-9_.]*)',\s*'((?:''|[^'])*)'\s*\)/g,
@@ -48,8 +45,8 @@ describe('permission catalog', () => {
             { description: match[2].replaceAll("''", "'") },
         ] as const);
 
-        expect(rows).toHaveLength(57);
-        expect(new Set(rows.map(([code]) => code)).size).toBe(57);
+        expect(rows).toHaveLength(58);
+        expect(new Set(rows.map(([code]) => code)).size).toBe(58);
         expect(Object.fromEntries(rows)).toEqual(
             Object.fromEntries(
                 ALL_PERMISSION_CODES.map((code) => [code, PERMISSION_CATALOG[code]]),

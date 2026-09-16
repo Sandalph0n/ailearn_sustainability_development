@@ -3,7 +3,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
 import { applyAutoGrantedRoles } from '../../lib/auth/auto-grant.ts';
-import { ALL_PERMISSION_CODES } from '../../lib/auth/permissions.ts';
+import {
+    ALL_PERMISSION_CODES,
+    hasPermission,
+    MARKING_REPLAY_PERMISSION_CODES,
+} from '../../lib/auth/permissions.ts';
 import { emailSchema } from '../../lib/auth/validation/credentials.ts';
 
 const roleSeed = readFileSync(
@@ -71,6 +75,30 @@ function includesRole(includingCode, includedCode) {
     );
 }
 
+function effectivePermissionsFor(roleCode) {
+    const role = rolesByCode.get(roleCode);
+    expect(role, `Expected role ${roleCode}`).toBeDefined();
+
+    const effectiveRoleIds = new Set([role.id]);
+    const queue = [role.id];
+    for (let index = 0; index < queue.length; index += 1) {
+        for (const edge of inclusions) {
+            if (
+                edge.includingRoleId !== queue[index] ||
+                effectiveRoleIds.has(edge.includedRoleId)
+            ) {
+                continue;
+            }
+            effectiveRoleIds.add(edge.includedRoleId);
+            queue.push(edge.includedRoleId);
+        }
+    }
+
+    return directPermissions
+        .filter(({ roleId }) => effectiveRoleIds.has(roleId))
+        .map(({ permission }) => permission);
+}
+
 describe('Macquarie role catalog seed', () => {
     it('defines exactly 18 uniquely named role codes using the scope convention', () => {
         expect(roles).toHaveLength(18);
@@ -125,7 +153,7 @@ describe('Macquarie role catalog seed', () => {
         expect(dynamicGrant, 'Chief must receive every row from Permission').not.toBeNull();
         expect(dynamicGrant[1]).toBe(chief.id);
         expect(new Set(ALL_PERMISSION_CODES).size).toBe(ALL_PERMISSION_CODES.length);
-        expect(ALL_PERMISSION_CODES).toHaveLength(57);
+        expect(ALL_PERMISSION_CODES).toHaveLength(58);
     });
 
     it('gives Student exactly the minimum learner permissions', () => {
@@ -137,6 +165,50 @@ describe('Macquarie role catalog seed', () => {
             'tool.launch',
             'tool_session.replay_own',
         ]);
+    });
+
+    it('grants the complete marking workflow only to the intended staff hierarchy', () => {
+        const markingRoles = [
+            'offering:tutor',
+            'offering:assessment.manager',
+            'offering:offering.manager',
+            'offering:unit.convenor',
+            'institution:assessment.manager',
+            'institution:offering.manager',
+            'institution:academic.operations.manager',
+            'institution:administrator',
+        ];
+
+        for (const roleCode of markingRoles) {
+            const permissions = effectivePermissionsFor(roleCode);
+            for (const permission of MARKING_REPLAY_PERMISSION_CODES) {
+                expect(
+                    hasPermission(permissions, permission),
+                    `${roleCode} should receive ${permission}`,
+                ).toBe(true);
+            }
+        }
+
+        const nonMarkingRoles = [
+            'offering:student',
+            'institution:staff',
+            'institution:subject.viewer',
+            'institution:subject.editor',
+            'institution:subject.manager',
+            'institution:term.manager',
+            'institution:access.reviewer',
+            'institution:access.manager',
+            'institution:audit.viewer',
+        ];
+
+        for (const roleCode of nonMarkingRoles) {
+            expect(
+                MARKING_REPLAY_PERMISSION_CODES.some((permission) =>
+                    hasPermission(effectivePermissionsFor(roleCode), permission),
+                ),
+                `${roleCode} should not enter the staff marking workspace`,
+            ).toBe(false);
+        }
     });
 
     it.each([

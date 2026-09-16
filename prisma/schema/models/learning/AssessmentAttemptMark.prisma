@@ -1,0 +1,48 @@
+/// Một LẦN CHẤM của một attempt.
+///
+/// Đây cố ý là bảng lịch sử, không phải một cột điểm trên `AssessmentAttempt`: cùng một attempt
+/// có thể được nhiều người chấm, và mỗi người có thể chấm lại nhiều lần. Bản chấm đã nộp không
+/// bị ghi đè; bản mới có thể trỏ tới bản mà nó thay thế qua `supersedesMarkId`.
+model AssessmentAttemptMark {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  attemptId  String @db.Uuid
+  markedById String @db.Uuid
+
+  /// Điểm thô và thang điểm đi cùng nhau để không mặc định mọi assessment đều chấm trên 100.
+  /// `score` có thể rỗng khi đang draft hoặc khi người chấm chỉ để lại feedback.
+  score Decimal? @db.Decimal(10, 2)
+  outOf Decimal  @default(100) @db.Decimal(10, 2)
+
+  feedback String?
+  status   AssessmentAttemptMarkStatus @default(DRAFT)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  submittedAt DateTime?
+
+  /// Rỗng với lần chấm độc lập đầu tiên. Quan hệ này chỉ được phép nối các mark của cùng attempt
+  /// (migration dùng foreign key ghép `supersedesMarkId + attemptId`).
+  supersedesMarkId String? @db.Uuid
+
+  attempt  AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  markedBy User              @relation("assessmentAttemptMarksByUser", fields: [markedById], references: [id], onDelete: Restrict)
+
+  supersedes AssessmentAttemptMark?  @relation("assessmentAttemptMarkRevisions", fields: [supersedesMarkId, attemptId], references: [id, attemptId], onDelete: Restrict)
+  revisions  AssessmentAttemptMark[] @relation("assessmentAttemptMarkRevisions")
+
+  /// Nếu bản chấm này được chọn làm kết quả chính thức, quan hệ một-một nằm ở đây.
+  officialResult AssessmentAttemptResult? @relation("officialAssessmentAttemptMark")
+
+  @@unique([id, attemptId])
+  @@index([attemptId, createdAt])
+  @@index([attemptId, status])
+  @@index([markedById, createdAt])
+  @@index([supersedesMarkId, attemptId])
+}
+
+enum AssessmentAttemptMarkStatus {
+  DRAFT
+  SUBMITTED
+  SUPERSEDED
+}

@@ -59,12 +59,21 @@ export const PERMISSION_CODE = {
     ASSESSMENT_ATTEMPT: 'assessment.attempt',
     ATTEMPT_VIEW_OWN: 'attempt.view_own',
     ATTEMPT_VIEW_ALL: 'attempt.view_all',
+    ATTEMPT_MARK: 'attempt.mark',
     TOOL_LAUNCH: 'tool.launch',
     TOOL_SESSION_REPLAY_OWN: 'tool_session.replay_own',
     TOOL_SESSION_REPLAY_ALL: 'tool_session.replay_all',
 } as const;
 
 export type PermissionCode = (typeof PERMISSION_CODE)[keyof typeof PERMISSION_CODE];
+
+/** Any one of these capabilities makes the Marking & Replay workspace useful. */
+export const MARKING_REPLAY_PERMISSION_CODES = [
+    PERMISSION_CODE.ASSESSMENT_VIEW,
+    PERMISSION_CODE.ATTEMPT_VIEW_ALL,
+    PERMISSION_CODE.TOOL_SESSION_REPLAY_ALL,
+    PERMISSION_CODE.ATTEMPT_MARK,
+] as const satisfies readonly PermissionCode[];
 
 export type PermissionRoleScope = 'INSTITUTION' | 'OFFERING';
 
@@ -282,6 +291,9 @@ export const PERMISSION_CATALOG = {
     },
     [PERMISSION_CODE.ATTEMPT_VIEW_ALL]: {
         description: 'View assessment attempts belonging to other members in scope.',
+    },
+    [PERMISSION_CODE.ATTEMPT_MARK]: {
+        description: 'Create, continue, and submit marks for assessment attempts in scope.',
     },
     [PERMISSION_CODE.TOOL_LAUNCH]: {
         description: 'Launch tools allowed by an assessment.',

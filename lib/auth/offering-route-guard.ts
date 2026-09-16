@@ -11,13 +11,14 @@ import {
     invalidOriginResponse,
 } from '@/lib/auth/http/response';
 import type { PermissionCode } from '@/lib/auth/permissions';
-import { getCurrentSession } from '@/lib/auth/session/service';
+import { getCurrentSession, type AuthSession } from '@/lib/auth/session/service';
 import { formatValidationErrors } from '@/lib/auth/validation/credentials';
 import { CONTEXT_PARAM, type AuthorizedContextOption } from '@/lib/context/context-params';
 import { db } from '@/lib/db';
 
 type OfferingGuardSuccess = {
     ok: true;
+    session: AuthSession;
     context: AuthorizedContextOption;
 };
 
@@ -76,7 +77,7 @@ export async function guardOfferingAction(
         };
     }
 
-    return { ok: true, context };
+    return { ok: true, session, context };
 }
 
 export async function guardOfferingWrite<TOutput>(
