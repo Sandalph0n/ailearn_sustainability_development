@@ -45,6 +45,7 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -486,28 +487,30 @@ export function WorkspaceDetail({
                                 }
                             />
                             <DropdownMenuContent align="end" className="w-72">
-                                <DropdownMenuLabel>
-                                    {toolLaunch?.mode === 'PERSONAL'
-                                        ? 'Available tools'
-                                        : 'Allowed for this assessment'}
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {tools.map((tool) => (
-                                    <DropdownMenuItem
-                                        key={tool.id}
-                                        disabled={Boolean(launchingToolId)}
-                                        onClick={() => void launchTool(tool)}
-                                        className="items-start gap-3 py-2.5"
-                                    >
-                                        <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} className="mt-0.5 size-4 shrink-0" />
-                                        <span className="min-w-0">
-                                            <span className="block text-sm font-medium">{tool.name}</span>
-                                            <span className="text-muted-foreground mt-0.5 block line-clamp-2 text-xs leading-4">
-                                                {tool.description ?? tool.code}
+                                <DropdownMenuGroup>
+                                    <DropdownMenuLabel>
+                                        {toolLaunch?.mode === 'PERSONAL'
+                                            ? 'Available tools'
+                                            : 'Allowed for this assessment'}
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {tools.map((tool) => (
+                                        <DropdownMenuItem
+                                            key={tool.id}
+                                            disabled={Boolean(launchingToolId)}
+                                            onClick={() => void launchTool(tool)}
+                                            className="items-start gap-3 py-2.5"
+                                        >
+                                            <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} className="mt-0.5 size-4 shrink-0" />
+                                            <span className="min-w-0">
+                                                <span className="block text-sm font-medium">{tool.name}</span>
+                                                <span className="text-muted-foreground mt-0.5 block line-clamp-2 text-xs leading-4">
+                                                    {tool.description ?? tool.code}
+                                                </span>
                                             </span>
-                                        </span>
-                                    </DropdownMenuItem>
-                                ))}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>
                         {selectedItems.length > 0 ? <>
