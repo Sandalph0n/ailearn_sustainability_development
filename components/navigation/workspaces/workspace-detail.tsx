@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type InputHTMLAttributes } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     Add01Icon,
+    ArrowDown01Icon,
     ArrowLeft01Icon,
     ArrowRight01Icon,
     Delete02Icon,
@@ -15,6 +16,7 @@ import {
     Home01Icon,
     MoreVerticalIcon,
     PencilEdit01Icon,
+    SourceCodeIcon,
     Upload01Icon,
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -44,6 +46,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -71,6 +74,17 @@ type DocumentItem = {
     downloadHref: string | null;
 };
 
+type WorkspaceTool = {
+    id: string;
+    code: string;
+    name: string;
+    description: string | null;
+};
+
+type ToolLaunch =
+    | { mode: 'PERSONAL'; workspaceId: string; roleAssignmentId: string }
+    | { mode: 'WORK'; attemptId: string; roleAssignmentId: string };
+
 export function WorkspaceDetail({
     workspaceId,
     readOnly,
@@ -78,6 +92,8 @@ export function WorkspaceDetail({
     folderIds,
     breadcrumbs,
     documents,
+    tools,
+    toolLaunch,
 }: {
     workspaceId: string;
     readOnly: boolean;
@@ -85,6 +101,8 @@ export function WorkspaceDetail({
     folderIds: string[];
     breadcrumbs: Array<{ id: string; name: string }>;
     documents: DocumentItem[];
+    tools: WorkspaceTool[];
+    toolLaunch: ToolLaunch | null;
 }) {
     const router = useRouter();
     const pathname = usePathname();
@@ -100,6 +118,7 @@ export function WorkspaceDetail({
     const [deleteTargets, setDeleteTargets] = useState<DocumentItem[] | null>(null);
     const [pending, setPending] = useState(false);
     const [pendingLabel, setPendingLabel] = useState<string | null>(null);
+    const [launchingToolId, setLaunchingToolId] = useState<string | null>(null);
 
     const visibleEntries = useMemo(
         () => [...documents].sort((left, right) =>
@@ -374,6 +393,29 @@ export function WorkspaceDetail({
         if (files.length > 1) toast.success(`${files.length} downloads started.`);
     }
 
+    async function launchTool(tool: WorkspaceTool) {
+        if (!toolLaunch || launchingToolId) return;
+        setLaunchingToolId(tool.id);
+        try {
+            const response = await fetch('/api/tool/v1/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...toolLaunch, toolId: tool.id }),
+            });
+            const body = (await response.json().catch(() => ({}))) as {
+                runtimeUrl?: string;
+                error?: { message?: string };
+            };
+            if (!response.ok || !body.runtimeUrl) {
+                throw new Error(body.error?.message ?? `Could not open ${tool.name}`);
+            }
+            window.location.assign(body.runtimeUrl);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : `Could not open ${tool.name}`);
+            setLaunchingToolId(null);
+        }
+    }
+
     const currentPathLabel = breadcrumbs.map((breadcrumb) => breadcrumb.name).join('/');
 
     return (
@@ -426,6 +468,48 @@ export function WorkspaceDetail({
                                 onChange={(event) => void uploadFiles([...(event.target.files ?? [])], true)}
                             />
                         </>}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger
+                                render={
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!toolLaunch || tools.length === 0 || Boolean(launchingToolId)}
+                                        aria-label="Open workspace with a tool"
+                                    >
+                                        {launchingToolId
+                                            ? <Spinner />
+                                            : <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} />}
+                                        <span className="hidden sm:inline">Open with</span>
+                                        <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} className="size-3.5" />
+                                    </Button>
+                                }
+                            />
+                            <DropdownMenuContent align="end" className="w-72">
+                                <DropdownMenuLabel>
+                                    {toolLaunch?.mode === 'PERSONAL'
+                                        ? 'Available tools'
+                                        : 'Allowed for this assessment'}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {tools.map((tool) => (
+                                    <DropdownMenuItem
+                                        key={tool.id}
+                                        disabled={Boolean(launchingToolId)}
+                                        onClick={() => void launchTool(tool)}
+                                        className="items-start gap-3 py-2.5"
+                                    >
+                                        <HugeiconsIcon icon={SourceCodeIcon} strokeWidth={2} className="mt-0.5 size-4 shrink-0" />
+                                        <span className="min-w-0">
+                                            <span className="block text-sm font-medium">{tool.name}</span>
+                                            <span className="text-muted-foreground mt-0.5 block line-clamp-2 text-xs leading-4">
+                                                {tool.description ?? tool.code}
+                                            </span>
+                                        </span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         {selectedItems.length > 0 ? <>
                             <span className="text-muted-foreground mr-1 text-xs tabular-nums">
                                 {selectedItems.length} selected

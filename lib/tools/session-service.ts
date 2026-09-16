@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { randomUUID } from 'node:crypto';
+
 import { listAuthorizedContextOptions } from '@/lib/auth/authorization-service';
 import {
     hasPermission,
@@ -169,7 +171,7 @@ export async function startToolWorkSession(input: {
             toolId: allowedTool.id,
             toolVersionId: allowedTool.activeVersion.id,
         },
-        select: { id: true },
+        select: { id: true, startAt: true },
     });
     const readOnly = attempt.submitAt !== null;
     const runtime: AuthorizedRuntime = {
@@ -183,9 +185,78 @@ export async function startToolWorkSession(input: {
             assignmentWorkspaceId: attempt.workspace.workspaceId,
             roleAssignmentId: input.roleAssignmentId,
             loginSessionId: input.loginSessionId,
+            workspaceKind: 'ASSIGNMENT',
+            sessionStartedAt: workSession.startAt.toISOString(),
             mode: 'OWNER',
             readOnly,
             capabilities: ownerCapabilities(access, readOnly),
+        },
+    };
+
+    return {
+        response: await issue(runtime),
+        toolCode: runtime.toolCode,
+        toolVersionId: runtime.tokenContext.toolVersionId,
+    };
+}
+
+export async function startPersonalToolSession(input: {
+    userId: string;
+    loginSessionId: string;
+    workspaceId: string;
+    toolId: string;
+    roleAssignmentId: string;
+}): Promise<{ response: ToolSessionResponse; toolCode: string; toolVersionId: string }> {
+    const [workspace, roleAssignment, tool] = await Promise.all([
+        db.workspace.findFirst({
+            where: { id: input.workspaceId, personal: { userId: input.userId } },
+            select: { id: true },
+        }),
+        db.roleAssignment.findFirst({
+            where: {
+                id: input.roleAssignmentId,
+                userId: input.userId,
+                roleRevokedAt: null,
+            },
+            select: { id: true },
+        }),
+        db.tool.findFirst({
+            where: { id: input.toolId, activeVersionId: { not: null } },
+            select: {
+                id: true,
+                code: true,
+                activeVersion: { select: { id: true, entryPath: true } },
+            },
+        }),
+    ]);
+
+    if (!workspace) {
+        throw new ToolSessionError(404, 'NOT_FOUND', 'Personal workspace not found');
+    }
+    if (!roleAssignment) {
+        throw new ToolSessionError(403, 'AUTHORIZATION_FORBIDDEN', 'Choose an active role before opening a tool');
+    }
+    if (!tool?.activeVersion) {
+        throw new ToolSessionError(409, 'RESOURCE_IN_USE', 'The selected tool has no active version');
+    }
+
+    const runtime: AuthorizedRuntime = {
+        toolCode: tool.code,
+        entryPath: tool.activeVersion.entryPath,
+        tokenContext: {
+            userId: input.userId,
+            toolId: tool.id,
+            toolVersionId: tool.activeVersion.id,
+            workSessionId: randomUUID(),
+            assignmentWorkspaceId: workspace.id,
+            roleAssignmentId: input.roleAssignmentId,
+            loginSessionId: input.loginSessionId,
+            workspaceKind: 'PERSONAL',
+            sessionStartedAt: new Date().toISOString(),
+            mode: 'OWNER',
+            readOnly: false,
+            // Personal workspaces deliberately do not record activity or expose replay.
+            capabilities: ['files:read', 'files:write'],
         },
     };
 
@@ -207,6 +278,7 @@ async function authorizeReplay(input: {
         where: { id: input.workSessionId },
         select: {
             id: true,
+            startAt: true,
             assignmentWorkspaceId: true,
             toolId: true,
             tool: {
@@ -271,6 +343,8 @@ async function authorizeReplay(input: {
             assignmentWorkspaceId: workSession.assignmentWorkspaceId,
             roleAssignmentId: input.roleAssignmentId,
             loginSessionId: input.loginSessionId,
+            workspaceKind: 'ASSIGNMENT',
+            sessionStartedAt: workSession.startAt.toISOString(),
             mode: 'REVIEWER',
             readOnly: true,
             capabilities: ['files:read', 'replay:read'],
@@ -320,10 +394,63 @@ export async function refreshToolSession(claims: ToolClaims): Promise<{
         });
     }
 
+    if (claims.workspaceKind === 'PERSONAL') {
+        const [workspace, roleAssignment, version] = await Promise.all([
+            db.workspace.findFirst({
+                where: { id: claims.assignmentWorkspaceId, personal: { userId: claims.sub } },
+                select: { id: true },
+            }),
+            db.roleAssignment.findFirst({
+                where: {
+                    id: claims.roleAssignmentId,
+                    userId: claims.sub,
+                    roleRevokedAt: null,
+                },
+                select: { id: true },
+            }),
+            db.toolVersion.findFirst({
+                where: { id: claims.toolVersionId, toolId: claims.toolId },
+                select: {
+                    id: true,
+                    entryPath: true,
+                    tool: { select: { code: true } },
+                },
+            }),
+        ]);
+        if (!workspace || !roleAssignment || !version) {
+            throw new ToolSessionError(401, 'AUTHENTICATION_REQUIRED', 'The personal tool session can no longer be refreshed');
+        }
+
+        const runtime: AuthorizedRuntime = {
+            toolCode: version.tool.code,
+            entryPath: version.entryPath,
+            tokenContext: {
+                userId: claims.sub,
+                toolId: claims.toolId,
+                toolVersionId: claims.toolVersionId,
+                workSessionId: claims.workSessionId,
+                assignmentWorkspaceId: claims.assignmentWorkspaceId,
+                roleAssignmentId: claims.roleAssignmentId,
+                loginSessionId: claims.loginSessionId,
+                workspaceKind: 'PERSONAL',
+                sessionStartedAt: claims.sessionStartedAt,
+                mode: 'OWNER',
+                readOnly: false,
+                capabilities: ['files:read', 'files:write'],
+            },
+        };
+        return {
+            response: await issue(runtime),
+            toolCode: runtime.toolCode,
+            toolVersionId: runtime.tokenContext.toolVersionId,
+        };
+    }
+
     const workSession = await db.assignmentWorkSession.findUnique({
         where: { id: claims.workSessionId },
         select: {
             id: true,
+            startAt: true,
             endAt: true,
             assignmentWorkspaceId: true,
             toolId: true,
@@ -388,6 +515,8 @@ export async function refreshToolSession(claims: ToolClaims): Promise<{
             assignmentWorkspaceId: claims.assignmentWorkspaceId,
             roleAssignmentId: claims.roleAssignmentId,
             loginSessionId: claims.loginSessionId,
+            workspaceKind: 'ASSIGNMENT',
+            sessionStartedAt: workSession.startAt.toISOString(),
             mode: 'OWNER',
             readOnly,
             capabilities: ownerCapabilities(access, readOnly),

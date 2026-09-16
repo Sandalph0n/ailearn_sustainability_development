@@ -14,6 +14,17 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         return errorResponse(403, 'AUTHORIZATION_FORBIDDEN', 'Replay sessions cannot be closed');
     }
 
+    // Personal tools do not create a recorded database session. Closing one only tells the
+    // runtime that this browser-held capability has ended; the JWT will expire naturally.
+    if (guard.claims.workspaceKind === 'PERSONAL') {
+        return jsonResponse({
+            session: {
+                id: guard.claims.workSessionId,
+                endAt: new Date().toISOString(),
+            },
+        });
+    }
+
     const current = await db.assignmentWorkSession.findFirst({
         where: {
             id: guard.claims.workSessionId,

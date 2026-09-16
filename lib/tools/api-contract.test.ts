@@ -16,7 +16,15 @@ const ids = {
 };
 
 describe('tool API request contract', () => {
-    it('accepts the two explicit session modes and rejects mixed fields', () => {
+    it('accepts the three explicit session modes and rejects mixed fields', () => {
+        expect(
+            ToolSessionRequestSchema.safeParse({
+                mode: 'PERSONAL',
+                workspaceId: ids.attempt,
+                toolId: ids.tool,
+                roleAssignmentId: ids.role,
+            }).success,
+        ).toBe(true);
         expect(
             ToolSessionRequestSchema.safeParse({
                 mode: 'WORK',
@@ -38,6 +46,15 @@ describe('tool API request contract', () => {
                 attemptId: ids.attempt,
                 toolId: ids.tool,
                 workSessionId: ids.workSession,
+                roleAssignmentId: ids.role,
+            }).success,
+        ).toBe(false);
+        expect(
+            ToolSessionRequestSchema.safeParse({
+                mode: 'PERSONAL',
+                workspaceId: ids.attempt,
+                attemptId: ids.attempt,
+                toolId: ids.tool,
                 roleAssignmentId: ids.role,
             }).success,
         ).toBe(false);

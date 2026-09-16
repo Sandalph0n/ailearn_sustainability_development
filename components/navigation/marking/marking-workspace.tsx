@@ -101,6 +101,7 @@ export function MarkingWorkspace({
     const [selectedTermId, setSelectedTermId] = useState(initialTerm?.id ?? null);
     const [selectedSubjectId, setSelectedSubjectId] = useState(initialSubject?.id ?? null);
     const [selectedStudentId, setSelectedStudentId] = useState(initialStudent?.id ?? null);
+    const [subjectQuery, setSubjectQuery] = useState('');
     const [studentQuery, setStudentQuery] = useState('');
 
     const selectedTerm = terms.find((term) => term.id === selectedTermId) ?? null;
@@ -108,6 +109,15 @@ export function MarkingWorkspace({
         selectedTerm?.subjects.find((subject) => subject.id === selectedSubjectId) ?? null;
     const selectedStudent =
         selectedSubject?.students.find((student) => student.id === selectedStudentId) ?? null;
+
+    const subjectQueryNeedle = subjectQuery.trim().toLocaleLowerCase();
+    const filteredSubjects = subjectQueryNeedle
+        ? (selectedTerm?.subjects ?? []).filter((subject) =>
+              `${subject.code} ${subject.name}`
+                  .toLocaleLowerCase()
+                  .includes(subjectQueryNeedle),
+          )
+        : (selectedTerm?.subjects ?? []);
 
     const studentQueryNeedle = studentQuery.trim().toLocaleLowerCase();
     const filteredStudents = studentQueryNeedle
@@ -122,6 +132,7 @@ export function MarkingWorkspace({
         setSelectedTermId(termId);
         setSelectedSubjectId(null);
         setSelectedStudentId(null);
+        setSubjectQuery('');
         setStudentQuery('');
         setSelectionInUrl({ termId, subjectId: undefined, studentId: undefined });
     }
@@ -151,6 +162,7 @@ export function MarkingWorkspace({
         setScreen('scope');
         setSelectedSubjectId(null);
         setSelectedStudentId(null);
+        setSubjectQuery('');
         setStudentQuery('');
         setSelectionInUrl({
             termId: selectedTermId ?? undefined,
@@ -245,9 +257,21 @@ export function MarkingWorkspace({
                                     ? `Choose a subject in ${selectedTerm.label} to continue.`
                                     : 'Choose a study term to see its subjects.'}
                             </p>
+                            <InputGroup className="mt-3">
+                                <InputGroupAddon>
+                                    <HugeiconsIcon icon={SearchIcon} strokeWidth={2} className="size-4" />
+                                </InputGroupAddon>
+                                <InputGroupInput
+                                    value={subjectQuery}
+                                    onChange={(event) => setSubjectQuery(event.target.value)}
+                                    placeholder="Search by subject code or name"
+                                    aria-label="Search subjects"
+                                    disabled={!selectedTerm}
+                                />
+                            </InputGroup>
                         </div>
                         <div className="max-h-[calc(100vh-20rem)] min-h-80 overflow-y-auto p-3">
-                            {(selectedTerm?.subjects ?? []).map((subject) => {
+                            {filteredSubjects.map((subject) => {
                                 const attemptCount = subject.students.reduce(
                                     (total, student) => total + student.attempts.length,
                                     0,
@@ -277,6 +301,11 @@ export function MarkingWorkspace({
                             {selectedTerm?.subjects.length === 0 && (
                                 <p className="text-muted-foreground px-4 py-12 text-center text-sm">
                                     No subjects are available in this study term.
+                                </p>
+                            )}
+                            {selectedTerm && selectedTerm.subjects.length > 0 && filteredSubjects.length === 0 && (
+                                <p className="text-muted-foreground px-4 py-12 text-center text-sm">
+                                    No subjects match “{subjectQuery.trim()}”.
                                 </p>
                             )}
                         </div>

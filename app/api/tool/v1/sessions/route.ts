@@ -11,6 +11,7 @@ import { getCurrentSession } from '@/lib/auth/session/service';
 import { ToolSessionRequestSchema } from '@/lib/tools/api-contract';
 import { readToolJson } from '@/lib/tools/api-request';
 import {
+    startPersonalToolSession,
     startToolReplaySession,
     startToolWorkSession,
     ToolSessionError,
@@ -33,10 +34,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const grant = parsed.data.mode === 'WORK'
             ? await startToolWorkSession({ userId: session.user.id, loginSessionId: session.session.id, ...parsed.data })
-            : await startToolReplaySession({ userId: session.user.id, loginSessionId: session.session.id, ...parsed.data });
+            : parsed.data.mode === 'PERSONAL'
+              ? await startPersonalToolSession({ userId: session.user.id, loginSessionId: session.session.id, ...parsed.data })
+              : await startToolReplaySession({ userId: session.user.id, loginSessionId: session.session.id, ...parsed.data });
         // The platform host cannot set a host-only cookie for the isolated tool origin. The
         // bootstrap page exchanges the fragment JWT for that cookie after navigation instead.
-        return jsonResponse(grant.response, { status: parsed.data.mode === 'WORK' ? 201 : 200 });
+        return jsonResponse(grant.response, { status: parsed.data.mode === 'REPLAY' ? 200 : 201 });
     } catch (error) {
         if (error instanceof ToolSessionError) {
             return errorResponse(error.status, error.code, error.message);

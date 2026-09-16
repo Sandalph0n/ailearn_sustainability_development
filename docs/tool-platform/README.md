@@ -76,8 +76,10 @@ or trust, incoming `Host` and `X-Forwarded-Host` headers before forwarding reque
 The platform shell—not third-party code—starts a session through `POST /sessions` while the user is
 logged in. A work launch supplies an owned assessment attempt, an allowed tool, and the exact role
 assignment under which the user acts. A replay launch supplies the recorded work session and role
-assignment. The server independently derives the workspace, institution, offering, tool version,
-and capabilities; callers cannot widen scope by sending those IDs.
+assignment. A personal launch supplies an owned personal workspace and may choose any active tool;
+it grants file access but deliberately grants neither event recording nor replay. The server
+independently derives the workspace, institution, offering, tool version, and capabilities;
+callers cannot widen scope by sending those IDs.
 
 The response contains a three-hour HS256 JWT for the current demo and a `runtimeUrl` on the isolated
 tool origin. The
@@ -115,8 +117,9 @@ async function api(path: string, init: RequestInit = {}) {
 
 Refresh shortly before expiry with `POST /token`, replace the in-memory token with the response,
 and never persist it in local storage, IndexedDB, files, events, logs, or URLs. Refresh rechecks the
-platform login session, role assignment, offering scope, permissions, assessment/tool association,
-submission state, and pinned version. Revoked access therefore survives for at most one token TTL.
+platform login session, role assignment, workspace ownership, offering scope where applicable,
+permissions, assessment/tool association, submission state, and pinned version. Revoked access
+therefore survives for at most one token TTL.
 Once a token has expired, the normal platform launcher must create or reopen the session.
 
 Because the launch token deliberately exists only in memory, a hard reload after the fragment has
@@ -132,9 +135,9 @@ Capabilities are intentionally coarse transport rights:
 | `events:append` | Append event batches and inspect the server checkpoint. |
 | `replay:read` | List recorded sessions and download their opaque event batches. |
 
-The JWT also binds every call to one user, role assignment, tool, immutable tool version, work
-session, assignment workspace, mode, and read-only state. API clients never submit a workspace ID
-to a document route.
+The JWT also binds every call to one user, role assignment, tool, immutable tool version, runtime
+session, workspace, workspace kind, mode, and read-only state. API clients never submit a workspace
+ID to a document route.
 
 ## 4. Recommended startup
 
@@ -143,7 +146,8 @@ After reading and clearing the fragment:
 1. Call `GET /context` and configure the UI from `session.mode`, `session.readOnly`, and
    `session.capabilities`.
 2. Call `GET /documents?parentFolderId=root` to build the initial explorer.
-3. In owner mode, call `GET /events/checkpoint`; resume local sequence numbering at `nextSeq`.
+3. In owner mode with `events:append`, call `GET /events/checkpoint`; resume local sequence
+   numbering at `nextSeq`. Personal sessions omit this capability and must not record.
 4. In replay mode, call `GET /replay/sessions` and request batches for a compatible session.
 5. Refresh the JWT before `expiresIn` elapses.
 6. On a clean owner shutdown, flush events and call `PATCH /session`. Treat close as idempotent.

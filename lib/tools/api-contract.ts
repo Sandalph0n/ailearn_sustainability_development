@@ -14,6 +14,13 @@ export const ToolWorkSessionRequestSchema = z.strictObject({
     roleAssignmentId: z.uuid(),
 });
 
+export const ToolPersonalSessionRequestSchema = z.strictObject({
+    mode: z.literal('PERSONAL'),
+    workspaceId: z.uuid(),
+    toolId: z.uuid(),
+    roleAssignmentId: z.uuid(),
+});
+
 export const ToolReplaySessionRequestSchema = z.strictObject({
     mode: z.literal('REPLAY'),
     workSessionId: z.uuid(),
@@ -22,6 +29,7 @@ export const ToolReplaySessionRequestSchema = z.strictObject({
 
 export const ToolSessionRequestSchema = z.discriminatedUnion('mode', [
     ToolWorkSessionRequestSchema,
+    ToolPersonalSessionRequestSchema,
     ToolReplaySessionRequestSchema,
 ]);
 

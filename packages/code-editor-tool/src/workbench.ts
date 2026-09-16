@@ -245,7 +245,11 @@ export async function startCodeEditor(
 
     syncStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     syncStatus.name = 'Lernumi recording';
-    syncStatus.text = canRecord ? '$(cloud) Saved to Lernumi' : '$(lock) Read-only';
+    syncStatus.text = context.session.readOnly
+        ? '$(lock) Read-only'
+        : canRecord
+          ? '$(cloud) Saved to Lernumi'
+          : '$(folder) Personal workspace';
     syncStatus.show();
 
     const eventBridge = connectEditorEvents(provider, recorder);

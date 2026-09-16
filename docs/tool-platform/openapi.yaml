@@ -7,7 +7,7 @@ info:
     identifier: LicenseRef-Proprietary
   description: >-
     Scoped HTTP contract for untrusted browser tools. A token is bound to one user, role
-    assignment, immutable tool version, work session, and assignment workspace.
+    assignment, immutable tool version, runtime session, and workspace.
 servers:
   - url: /api/tool/v1
     description: Current Lernumi deployment
@@ -17,7 +17,7 @@ tags:
   - name: Context
     description: Read the server-derived user and learning context.
   - name: Documents
-    description: Manage the token-bound assignment workspace tree and file content.
+    description: Manage the token-bound workspace tree and file content.
   - name: Events
     description: Append and recover the current work session event stream.
   - name: Replay
@@ -28,11 +28,12 @@ paths:
     post:
       tags: [Session]
       operationId: createToolSession
-      summary: Launch an owner or replay runtime
+      summary: Launch an assessment, personal, or replay runtime
       description: >-
         Called by the trusted platform shell. The server derives every scope from the authenticated
-        user and verifies the supplied role assignment. A WORK launch creates a work session; a
-        REPLAY launch reuses the target session with the tool's current replay runtime.
+        user and verifies the supplied role assignment. A WORK launch creates a recorded work
+        session, PERSONAL opens an owned personal workspace without recording, and REPLAY reuses
+        the target session with the tool's current replay runtime.
       security:
         - platformSession: []
       requestBody:
@@ -42,6 +43,7 @@ paths:
             schema:
               oneOf:
                 - $ref: '#/components/schemas/WorkSessionRequest'
+                - $ref: '#/components/schemas/PersonalSessionRequest'
                 - $ref: '#/components/schemas/ReplaySessionRequest'
               discriminator:
                 propertyName: mode
@@ -52,7 +54,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/SessionGrant' }
         '201':
-          description: Work session created
+          description: Owner runtime created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SessionGrant' }
@@ -546,6 +548,16 @@ components:
       properties:
         mode: { type: string, const: WORK }
         attemptId: { $ref: '#/components/schemas/Uuid' }
+        toolId: { $ref: '#/components/schemas/Uuid' }
+        roleAssignmentId: { $ref: '#/components/schemas/Uuid' }
+
+    PersonalSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [mode, workspaceId, toolId, roleAssignmentId]
+      properties:
+        mode: { type: string, const: PERSONAL }
+        workspaceId: { $ref: '#/components/schemas/Uuid' }
         toolId: { $ref: '#/components/schemas/Uuid' }
         roleAssignmentId: { $ref: '#/components/schemas/Uuid' }
 
