@@ -4,7 +4,7 @@ Tài liệu này mô tả **nền tảng** và **hợp đồng giữa nền tả
 
 Nó cố ý KHÔNG mô tả bên trong từng công cụ. Công cụ dùng thư viện gì, dựng giao diện ra sao, ghi nhận thao tác bằng kỹ thuật nào — đều là việc riêng của công cụ đó. Xem §11.
 
-Về phạm vi, lịch và phân công, xem [Project Plan.md](./Project%20Plan.md).
+Về phạm vi, lịch và phân công, xem [project-plan.md](./project-plan.md).
 
 ---
 
@@ -30,7 +30,7 @@ Về lâu dài điều này mở đường cho công cụ do bên thứ ba viế
 
 Mỗi lần upload ZIP tạo một `ToolVersion` mới và một prefix mới trong bucket `tools`. Version chứa manifest đã kiểm, hash SHA-256, đường dẫn entry duy nhất và metadata của package. Nội dung version không có API sửa hay ghi đè.
 
-`Tool.activeVersionId` chỉ là con trỏ mặc định cho phiên mới. `AssignmentWorkSession.toolVersionId` pin version chạy thật; đổi active version không làm một phiên cũ đổi code, nên replay luôn dùng đúng phần mềm đã sinh ra chuỗi event đó. Hợp đồng đầy đủ nằm tại [`docs/tool-platform`](./docs/tool-platform/README.md).
+`Tool.activeVersionId` chỉ là con trỏ mặc định cho phiên mới. `AssignmentWorkSession.toolVersionId` pin version chạy thật; đổi active version không làm một phiên cũ đổi code, nên replay luôn dùng đúng phần mềm đã sinh ra chuỗi event đó. Hợp đồng đầy đủ nằm tại [`docs/tool-platform`](./tool-platform/README.md).
 
 Package phải có cấu trúc tối thiểu:
 

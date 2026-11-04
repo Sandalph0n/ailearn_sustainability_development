@@ -1,6 +1,6 @@
 # Ghi chú triển khai — công cụ soạn mã (`code`)
 
-Chỉ nói về bên trong công cụ này. Phần nền tảng và hợp đồng xem [Architecture.md](./Architecture.md).
+Chỉ nói về bên trong công cụ này. Phần nền tảng và hợp đồng xem [architecture.md](../architecture.md).
 
 ---
 

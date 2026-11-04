@@ -2,7 +2,7 @@
 
 Bắt đầu 21/08/2026 · Hạn 21/09/2026 · 2 người · Sản phẩm demo · The 17 Goals, Goal 4
 
-Tài liệu này giữ **phạm vi, lịch và phân công**. Quyết định kỹ thuật và lý do nằm ở [Architecture.md](./Architecture.md). Ghi chú triển khai riêng từng công cụ ở các file `Notes - *.md`.
+Tài liệu này giữ **phạm vi, lịch và phân công**. Quyết định kỹ thuật và lý do nằm ở [architecture.md](./architecture.md). Ghi chú triển khai riêng từng công cụ ở thư mục [`notes/`](./notes/).
 
 ---
 
@@ -290,7 +290,7 @@ Hai người ngang hàng, cắt theo trục dọc. Điểm chạm duy nhất là
 - **Nguyên:** bốn cờ bất thường, phần tua theo dòng thời gian hiện ra khi vai trò là người chấm
 - **Duy:** công cụ sơ đồ + recorder cho nó, trang danh sách bài nộp, ghi note và chấm điểm
 
-> Không dựng màn hình chấm bài riêng. Phần tua lại nằm trong chính công cụ, hiện ra khi vai trò người mở là người chấm — xem `Architecture.md` §6. Nền tảng chỉ cần trang danh sách để bấm vào, cộng phần kiểm quyền ở máy chủ.
+> Không dựng màn hình chấm bài riêng. Phần tua lại nằm trong chính công cụ, hiện ra khi vai trò người mở là người chấm — xem `architecture.md` §6. Nền tảng chỉ cần trang danh sách để bấm vào, cộng phần kiểm quyền ở máy chủ.
 - **Nghiệm thu:** giảng viên mở bài của sinh viên, tua lại, thấy cờ, chấm xong
 - **Đóng băng tính năng.** Sau mốc này chỉ sửa lỗi và hoàn thiện
 
