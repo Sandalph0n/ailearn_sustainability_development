@@ -1,6 +1,6 @@
 # Lernumi
 
-Nền tảng học tập đa cơ sở giáo dục. Xem [Kế hoạch dự án](./docs/project-plan.md) để biết phạm vi, và [Kiến trúc](./docs/architecture.md) để biết thiết kế hệ thống.
+Nền tảng học tập đa cơ sở giáo dục. Xem [Kế hoạch dự án](./docs/project-plan.md) để biết phạm vi, và [Kiến trúc](./docs/architecture.md) để biết thiết kế hệ thống. Phân công và đóng góp của từng thành viên xem [CONTRIBUTORS.md](./CONTRIBUTORS.md).
 
 Nhà phát triển công cụ xem [Tool Platform Contract](./docs/tool-platform/README.md),
 [OpenAPI v1](./docs/tool-platform/openapi.yaml), và [schema của `tool.json`](./docs/tool-platform/tool.schema.json).
