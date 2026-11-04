@@ -1,0 +1,38 @@
+Copyright (c) 2026 Khôi Nguyên Vũ and contributors. All rights reserved.
+
+This repository and all of its contents (source code, database schemas,
+architecture, design documents, diagrams and other materials) are proprietary.
+This repository is public for viewing only.
+
+NO LICENSE IS GRANTED. No permission is granted to use, copy, modify, merge,
+publish, distribute, sublicense, relicense, sell, or create derivative works
+from any part of this repository, in whole or in part, for any purpose,
+without the prior written permission of the copyright holder, Khôi Nguyên Vũ.
+
+1. Viewing and forking. Making this repository public does not place it in
+   the public domain or under an open-source license. The only rights granted
+   are those GitHub's Terms of Service require for public repositories:
+   viewing the repository and forking it on GitHub. A fork carries no
+   further rights.
+
+2. No relicensing. No one may add, replace or change a license on this
+   repository or on any fork or copy of it. A license file added to a fork or
+   copy has no effect on the code in this repository, and its presence grants
+   no rights.
+
+3. Attribution. Any reference to this project, including in a résumé,
+   portfolio, publication or job application, must accurately represent each
+   person's role. The system architecture and design of this project are the
+   work of Khôi Nguyên Vũ and must not be presented as the work of anyone
+   else.
+
+4. Copyright notices. You may not remove or alter this notice, the commit
+   history, or any authorship information in this repository or in any fork
+   or copy of it.
+
+THIS REPOSITORY IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THIS REPOSITORY.
+
+For permission requests, contact the copyright holder through GitHub:
+https://github.com/Sandalph0n
