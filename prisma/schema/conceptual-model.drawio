@@ -1,6 +1,6 @@
-<mxfile host="Electron">
+<mxfile host="app.diagrams.net">
   <diagram id="ALxcZrdGmLdBCSveqMmi" name="Page-1">
-    <mxGraphModel dx="2405" dy="1228" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="4313" dy="2180" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1094,10 +1094,14 @@
           <mxGeometry height="30" width="180" y="60" as="geometry" />
         </mxCell>
         <mxCell id="EventBatch-key-clientBatchId" parent="EventBatch-row-clientBatchId" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
-          <mxGeometry height="30" width="30" as="geometry"><mxRectangle height="30" width="30" as="alternateBounds" /></mxGeometry>
+          <mxGeometry height="30" width="30" as="geometry">
+            <mxRectangle height="30" width="30" as="alternateBounds" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="EventBatch-value-clientBatchId" parent="EventBatch-row-clientBatchId" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="clientBatchId" vertex="1">
-          <mxGeometry height="30" width="150" x="30" as="geometry"><mxRectangle height="30" width="150" as="alternateBounds" /></mxGeometry>
+          <mxGeometry height="30" width="150" x="30" as="geometry">
+            <mxRectangle height="30" width="150" as="alternateBounds" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="blfOYcstgpvySjwVtCRm-19" parent="blfOYcstgpvySjwVtCRm-18" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=1;" value="" vertex="1">
           <mxGeometry height="30" width="180" y="30" as="geometry" />
@@ -1180,18 +1184,42 @@
         <mxCell id="EventBatch-row-payloadHash" parent="blfOYcstgpvySjwVtCRm-18" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
           <mxGeometry height="30" width="180" y="240" as="geometry" />
         </mxCell>
-        <mxCell id="EventBatch-key-payloadHash" parent="EventBatch-row-payloadHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1"><mxGeometry height="30" width="30" as="geometry"><mxRectangle height="30" width="30" as="alternateBounds" /></mxGeometry></mxCell>
-        <mxCell id="EventBatch-value-payloadHash" parent="EventBatch-row-payloadHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="payloadHash" vertex="1"><mxGeometry height="30" width="150" x="30" as="geometry"><mxRectangle height="30" width="150" as="alternateBounds" /></mxGeometry></mxCell>
+        <mxCell id="EventBatch-key-payloadHash" parent="EventBatch-row-payloadHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" as="geometry">
+            <mxRectangle height="30" width="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EventBatch-value-payloadHash" parent="EventBatch-row-payloadHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="payloadHash" vertex="1">
+          <mxGeometry height="30" width="150" x="30" as="geometry">
+            <mxRectangle height="30" width="150" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
         <mxCell id="EventBatch-row-previousChainHash" parent="blfOYcstgpvySjwVtCRm-18" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
           <mxGeometry height="30" width="180" y="270" as="geometry" />
         </mxCell>
-        <mxCell id="EventBatch-key-previousChainHash" parent="EventBatch-row-previousChainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1"><mxGeometry height="30" width="30" as="geometry"><mxRectangle height="30" width="30" as="alternateBounds" /></mxGeometry></mxCell>
-        <mxCell id="EventBatch-value-previousChainHash" parent="EventBatch-row-previousChainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="previousChainHash" vertex="1"><mxGeometry height="30" width="150" x="30" as="geometry"><mxRectangle height="30" width="150" as="alternateBounds" /></mxGeometry></mxCell>
+        <mxCell id="EventBatch-key-previousChainHash" parent="EventBatch-row-previousChainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" as="geometry">
+            <mxRectangle height="30" width="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EventBatch-value-previousChainHash" parent="EventBatch-row-previousChainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="previousChainHash" vertex="1">
+          <mxGeometry height="30" width="150" x="30" as="geometry">
+            <mxRectangle height="30" width="150" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
         <mxCell id="EventBatch-row-chainHash" parent="blfOYcstgpvySjwVtCRm-18" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
           <mxGeometry height="30" width="180" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="EventBatch-key-chainHash" parent="EventBatch-row-chainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1"><mxGeometry height="30" width="30" as="geometry"><mxRectangle height="30" width="30" as="alternateBounds" /></mxGeometry></mxCell>
-        <mxCell id="EventBatch-value-chainHash" parent="EventBatch-row-chainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="chainHash" vertex="1"><mxGeometry height="30" width="150" x="30" as="geometry"><mxRectangle height="30" width="150" as="alternateBounds" /></mxGeometry></mxCell>
+        <mxCell id="EventBatch-key-chainHash" parent="EventBatch-row-chainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="30" width="30" as="geometry">
+            <mxRectangle height="30" width="30" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="EventBatch-value-chainHash" parent="EventBatch-row-chainHash" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="chainHash" vertex="1">
+          <mxGeometry height="30" width="150" x="30" as="geometry">
+            <mxRectangle height="30" width="150" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
         <mxCell id="blfOYcstgpvySjwVtCRm-28" edge="1" parent="1" source="blfOYcstgpvySjwVtCRm-1" style="fontSize=12;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;rounded=0;edgeStyle=orthogonalEdgeStyle;startFill=0;" target="blfOYcstgpvySjwVtCRm-18" value="">
           <mxGeometry height="100" relative="1" width="100" as="geometry">
             <Array as="points">
